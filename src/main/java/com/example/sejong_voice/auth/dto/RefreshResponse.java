@@ -1,7 +1,7 @@
 package com.example.sejong_voice.auth.dto;
 
-public record RefreshResponseDto(
-        String studentId,
+public record RefreshResponse(
+        String studentNo,
         String accessToken,
         long expiresIn
 ) {}

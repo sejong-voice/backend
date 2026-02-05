@@ -2,8 +2,8 @@ package com.example.sejong_voice.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record LogoutRequestDto(
-        @NotBlank String studentId
+public record LogoutRequest(
+        @NotBlank String studentNo
 ) {}
 
 

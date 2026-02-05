@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Map;
 
-public record SsoAuthResultDto(
+public record SsoAuthResult(
         boolean success,
         @JsonProperty("is_auth") boolean isAuth, //
         String code,

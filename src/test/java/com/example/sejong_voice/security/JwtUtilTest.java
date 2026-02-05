@@ -2,7 +2,7 @@ package com.example.sejong_voice.security;
 
 import com.example.sejong_voice.auth.User;
 import com.example.sejong_voice.auth.UserRole;
-import com.example.sejong_voice.global.security.JwtUtil;
+import com.example.sejong_voice.auth.jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

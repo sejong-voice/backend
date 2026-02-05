@@ -1,19 +1,27 @@
-package com.example.sejong_voice.global.security;
+package com.example.sejong_voice.auth.jwt;
 
 
 import com.example.sejong_voice.auth.User;
+import com.example.sejong_voice.auth.UserRole;
+import com.example.sejong_voice.auth.dto.UserRoleRequest;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 
 import io.jsonwebtoken.security.Keys;
+import org.springframework.util.StringUtils;
 
 
 /*
@@ -85,4 +93,56 @@ public class JwtUtil {
       요약하면 “검증된 토큰의 payload 내용을 가져와 비즈니스 판단에 쓰는 용도”입니다.
 
      */
+
+
+    // 헤더에서 토큰 추출 Bearer
+    public String resolveToken(HttpServletRequest req) {
+        String bearerToken = req.getHeader("Authorization");
+        if( StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")){
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+
+//    // 토큰을 바탕으로 스프링 시큐리티 인증 객체 생성
+//    public Authentication getAuthentication(String token) {
+//        Claims claims = parseClaims(token);
+//        String studentNo = claims.getSubject();
+//        String role = claims.get("role").toString();
+//
+//        //사용자 권한 정보를 담은 리슼트 생성
+//        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_"+role));
+//
+//        // 유저 정봏를 담은 principal 객체 생성 (학번을 ID로 사용)
+//        //var principal = new org.springframework.security.core.userdetails.User(studentNo, "", authorities);
+//        //return new UsernamePasswordAuthenticationToken(principal, token, authorities);
+//        //이 부분이 user로 만들고 있어서 UserRoleRequest랑은 파라미터가 맞지 않음
+//
+//    }
+
+    public Authentication getAuthentication(String token) {
+        Claims claims = parseClaims(token);
+
+        String studentNo = claims.getSubject();
+        String rawRole = claims.get("role", String.class);  // 예: "SUPER" 또는 "ROLE_SUPER"
+        if (!StringUtils.hasText(rawRole)) {
+            throw new IllegalArgumentException("Missing role claim");
+        }
+
+        // 1) enum 변환용 키 정규화
+        String enumKey = rawRole.replace("ROLE_", "").toUpperCase(java.util.Locale.ROOT);//소문자 -> 대문자
+        UserRole roleEnum = UserRole.valueOf(enumKey);// "SUPER" -> UserRole.SUPER
+
+
+        // 2) authorities는 ROLE_ prefix로 고정
+        List<SimpleGrantedAuthority> authorities =
+                List.of(new SimpleGrantedAuthority("ROLE_" + roleEnum.name()));
+
+        // 3) principal(UserRoleRequest)에 enum 넣기
+        UserRoleRequest principal = new UserRoleRequest();
+        principal.setStudentNo(studentNo);
+        principal.setRole(roleEnum);
+
+        return new UsernamePasswordAuthenticationToken(principal, token, authorities);
+    }
 }

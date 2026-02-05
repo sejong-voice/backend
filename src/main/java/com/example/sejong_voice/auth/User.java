@@ -22,6 +22,10 @@ public class User {
   @Column(name = "student_no", length = 30, nullable = false, unique = true)
   private String studentNo;
 
+  // 1. password 컬럼 추가 (암호화된 비번이 들어가므로 길이는 넉넉히 100~255 권장)
+  @Column(name = "password", length = 255, nullable = false)
+  private String password;
+
   @Column(name = "name", length = 60, nullable = false)
   private String name;
 
@@ -46,10 +50,11 @@ public class User {
   
   // 특정 필드만 인자로 받는 생성자에 @Builder 적용
   @Builder
-  public User(String studentNo, String name, String department) {
+  public User(String studentNo, String name, String department, String password) {
     this.studentNo = studentNo;
     this.name = name;
     this.department = department;
+    this.password = password;
 
     // 생성 시점의 기본값 정의
     this.role = UserRole.STUDENT;
@@ -58,10 +63,17 @@ public class User {
     this.createdAt = LocalDateTime.now();
   }
 
-  // 비즈니스 로직에 따른 업데이트 메서드
-  public void update(UserRole role, UserStatus status, LocalDateTime duration) {
-    this.role = role;
+  // 비즈니스 로직에 따른 업데이트 메서드 -> role / status-duration따로따로 dto 마련해서 업데이트 하는 구조인데 분리 안하고 하나의 update메서드로 작업해도 괜찮으려나
+  public void updateDepartment(String newDepartment) {
+    this.department = newDepartment;
+  }
+
+  public void updateStatus(UserStatus status, LocalDateTime duration) {
     this.status = status;
     this.duration = duration;
+  }
+
+  public void updateRole(UserRole role) {
+    this.role = role;
   }
 }

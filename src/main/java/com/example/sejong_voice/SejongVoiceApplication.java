@@ -3,9 +3,11 @@ package com.example.sejong_voice;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
 
-@SpringBootApplication
+
 @ConfigurationPropertiesScan // 프로젝트 내의 모든 properties클래스를 자동으로 탐색
+@SpringBootApplication(exclude = {UserDetailsServiceAutoConfiguration.class})
 public class SejongVoiceApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(SejongVoiceApplication.class, args);

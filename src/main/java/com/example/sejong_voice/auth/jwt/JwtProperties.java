@@ -1,4 +1,4 @@
-package com.example.sejong_voice.global.security;
+package com.example.sejong_voice.auth.jwt;
 
 
 import lombok.Getter;

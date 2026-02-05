@@ -4,7 +4,7 @@ import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 
-public record ErrorResponseDto(
+public record ErrorResponse(
         LocalDateTime timestamp,
         int status,
         String error,
@@ -12,8 +12,9 @@ public record ErrorResponseDto(
         String message,
         String path
 ) {
-    public static ErrorResponseDto of(int status, String code, String message, String path) {
-        return new ErrorResponseDto(
+    public static ErrorResponse of(int status, String code, String message, String path) {
+        //ErrorResponse의 값을 한 번에 모두 꺼내기 위함
+        return new ErrorResponse(
                 LocalDateTime.now(),
                 status,
                 HttpStatus.valueOf(status).getReasonPhrase(),

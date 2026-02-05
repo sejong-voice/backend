@@ -1,0 +1,24 @@
+package com.example.sejong_voice.global.error;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+@Getter
+@RequiredArgsConstructor
+public enum ErrorCode {
+    // Auth 관련 (AUTH_xxx)
+    INVALID_PASSWORD(401, "AUTH_001", "학번 또는 비밀번호가 일치하지 않습니다."),
+    USER_SUSPENDED(403, "AUTH_002", "정지된 계정입니다."),
+    USER_NOT_FOUND(404, "AUTH_003", "유저를 찾을 수 없습니다."),
+    INVALID_TOKEN(401, "AUTH_004", "해당 인증 정보가 존재하지 않습니다. 다시 로그인해주세요."),
+    TOKEN_EXPIRED(401, "AUTH_005", "만료된 세션입니다. 다시 로그인해주세요."),
+    NOT_SUPER_ACCOUNT(403, "AUTH_006", "Super 계정만 접근 가능한 기능입니다."),
+    SSO_AUTH_FAILED(403, "AUTH_007", "SSO 인증에 실패하였습니다."),
+    // 공통 에러 (COMMON_xxx)
+    INTERNAL_SERVER_ERROR(500, "COMMON_001", "서버 내부 오류가 발생했습니다.");
+
+
+    private final int status;
+    private final String code;
+    private final String message;
+}
