@@ -1,5 +1,6 @@
 package com.example.sejong_voice.auth;
 
+import com.example.sejong_voice.auth.dto.DepartmentRequest;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -29,7 +30,7 @@ public class User {
   @Column(name = "name", length = 60, nullable = false)
   private String name;
 
-  @Column(name = "department", length = 30, nullable = false)
+  @Column(name = "department", length = 255, nullable = false)
   private String department;
 
   @Enumerated(EnumType.STRING)
@@ -63,9 +64,9 @@ public class User {
     this.createdAt = LocalDateTime.now();
   }
 
-  // 비즈니스 로직에 따른 업데이트 메서드 -> role / status-duration따로따로 dto 마련해서 업데이트 하는 구조인데 분리 안하고 하나의 update메서드로 작업해도 괜찮으려나
-  public void updateDepartment(String newDepartment) {
-    this.department = newDepartment;
+  // 비즈니스 로직에 따른 업데이트 메서드 -> role / status-duration따로따로 dto 마련해서 업데이트 하는 구조
+  public void updateDepartment(DepartmentRequest newDepartment) {
+    this.department = newDepartment.department();
   }
 
   public void updateStatus(UserStatus status, LocalDateTime duration) {

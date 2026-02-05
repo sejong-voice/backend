@@ -38,13 +38,14 @@ public class SecurityConfig {
                 // 2. 경로별 권한 설정 (위에서부터 우선순위 적용)
                 // api 경로만 수정하면 되긴함
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/sso/**").permitAll()
+                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()//refresh는 토큰이 만료되어도 접근가능하게 해용해두어ㅑ하는데
                         // Auth
                         .requestMatchers("/api/v1/auth/profile").authenticated()
+                        .requestMatchers("/api/v1/auth/logout").authenticated()
 
                         // SUPER만 허용 (정확히 찍기)
-                        .requestMatchers("/api/v1/admin/users/*/department").hasRole("SUPER")
-                        .requestMatchers("/api/v1/admin/users/*/status").hasRole("SUPER")
+                        .requestMatchers("/api/v1/admin/user/*/department").hasRole("SUPER")
+                        .requestMatchers("/api/v1/admin/user/*/status").hasRole("SUPER")
                         .requestMatchers("/api/v1/admin/user/*/role").hasRole("SUPER")
 
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER")
