@@ -130,7 +130,7 @@ public class AuthServiceTest {
 
         // 4. 실제 테스트 대상 메서드(accessRefresh)를 호출합니다.
         // "valid_rt"라는 토큰을 전달했을 때 서비스 로직이 정상적으로 돌아가는지 확인합니다.
-        RefreshResponse response = authService.accessRefresh("valid_rt");
+        RefreshResponse response = authService.accessRefresh(new RefreshRequest("valid_rt"));
 
         // 5. 결과가 예상과 일치하는지 검증(Assertion)합니다.
         // 서비스로부터 받은 응답의 액세스 토큰 값이 우리가 설정한 "new_at"과 같은지 확인합니다.
@@ -158,7 +158,7 @@ public class AuthServiceTest {
         given(userRepository.findByStudentNo("20260001")).willReturn(Optional.of(studentUser));
 
         // 2. When: 위에서 만든 adminRequest를 전달
-        authService.updateStatus(adminRequest, "20260001", UserStatus.SUSPENDED, LocalDateTime.now().plusDays(7));
+        authService.updateStatus( "20260001", UserStatus.SUSPENDED, LocalDateTime.now().plusDays(7));
 
         // 3. Then: 검증
         verify(refreshTokenRepository).deleteByUser(studentUser);
@@ -172,7 +172,7 @@ public class AuthServiceTest {
 
         // When & Then: 예외가 발생하는지 검증
         assertThatThrownBy(() ->
-                authService.updateRole(userSearchRoleRequest, "20260002", UserRole.ADMIN)
+                authService.updateRole( "20260002", UserRole.ADMIN)
         ).isInstanceOf(NotSuperAccountException.class);
 
         // Then: 예외가 먼저 터졌으므로 DB 조회(findByStudentNo)는 단 한 번도 일어나지 않아야 함

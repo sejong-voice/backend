@@ -72,22 +72,23 @@ public class AuthService {
 
     // 3. 토큰 재발급 (RefreshToken 유효, AccessToken 재발급)
     @Transactional
-    public RefreshResponse accessRefresh(String refreshToken){ //studentId로 유저 조회, 해당 user_id로 refreshToken 조회후 요청
+    public RefreshResponse accessRefresh(RefreshRequest refreshRequest){ //studentId로 유저 조회, 해당 user_id로 refreshToken 조회후 요청
+        User user = userRepository.findByStudentNo(refreshRequest.studentNo()).orElseThrow(UserNotFoundException::new);
         //DB 존재 여부 확인
-        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
+        RefreshToken storedToken = refreshTokenRepository.findByUser(user)
                 .orElseThrow(() -> new InvalidTokenException(ErrorCode.INVALID_TOKEN));//커스텀 에러
         // 토큰 유효성 검사
         if(storedToken.isExpired()){
-            refreshTokenRepository.deleteByToken(refreshToken);
+            refreshTokenRepository.deleteByUser(user);
             throw new InvalidTokenException(ErrorCode.TOKEN_EXPIRED);//커스텀 에러
         }
 
         // accessToken 재발급
-        User user = storedToken.getUser();
-        String newAccessToken = jwtUtil.generateToken(user,jwtProperties.getAccessTokenExpiration());//3600L
+        User newUser = storedToken.getUser();
+        String newAccessToken = jwtUtil.generateToken(newUser,jwtProperties.getAccessTokenExpiration());//3600L
 
         return new RefreshResponse(
-                user.getStudentNo(),
+                newUser.getStudentNo(),
                 newAccessToken,
                 jwtProperties.getAccessTokenExpiration()//3600L
         );
@@ -103,10 +104,10 @@ public class AuthService {
 
     // 5. 유저 정보 수정 (Super 계정 전용 - 학과 수정)
     @Transactional
-    public void updateDepartment(UserRoleRequest superRole, String targetStudentNo, String newDepartment){
-        if(superRole.getRole()!=UserRole.SUPER){//super계정인 경우에
-            throw new NotSuperAccountException();
-        }
+    public void updateDepartment(String targetStudentNo, DepartmentRequest newDepartment){
+//        if(superRole.getRole()!=UserRole.SUPER){//super계정인 경우에
+//            throw new NotSuperAccountException();
+//        }
         User targetUser = userRepository.findByStudentNo(targetStudentNo)
                 .orElseThrow(UserNotFoundException::new);//커스텀 에러
         targetUser.updateDepartment(newDepartment);
@@ -114,10 +115,10 @@ public class AuthService {
 
     // 6. 상태 변경 (Super 계정 전용 - 제재 및 토큰 파기)
     @Transactional
-    public void updateStatus(UserRoleRequest superRole, String targetStudentNo, UserStatus newStatus, LocalDateTime newDuration) {
-        if(superRole.getRole()!=UserRole.SUPER){//super계정인 경우에
-            throw new NotSuperAccountException();
-        }
+    public void updateStatus( String targetStudentNo, UserStatus newStatus, LocalDateTime newDuration) {
+//        if(superRole.getRole()!=UserRole.SUPER){//super계정인 경우에
+//            throw new NotSuperAccountException();
+//        }
         User targetUser = userRepository.findByStudentNo(targetStudentNo)
                 .orElseThrow(UserNotFoundException::new);//커스텀 에러
         targetUser.updateStatus(newStatus, newDuration);
@@ -130,11 +131,11 @@ public class AuthService {
 
     // 7. 권한 수정 (Super 계정 전용 - Role 변경)
     @Transactional
-    public void updateRole(UserRoleRequest superRole, String targetStudentNo, UserRole newRole){
-        // 1. 권한이 SUPER가 아니면 즉시 예외 발생
-        if (superRole.getRole() != UserRole.SUPER) {
-            throw new NotSuperAccountException(); //
-        }
+    public void updateRole( String targetStudentNo, UserRole newRole){
+//        // 1. 권한이 SUPER가 아니면 즉시 예외 발생
+//        if (superRole.getRole() != UserRole.SUPER) {
+//            throw new NotSuperAccountException(); //
+//        }
 
         // 2. 권한이 확인된 경우에만 이후 로직 실행
         User targetUser = userRepository.findByStudentNo(targetStudentNo)
