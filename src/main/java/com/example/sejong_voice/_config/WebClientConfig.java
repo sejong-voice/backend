@@ -1,4 +1,4 @@
-package com.example.sejong_voice.global.config;
+package com.example.sejong_voice._config;
 
 import com.example.sejong_voice.auth.dto.SsoProperties;
 import lombok.RequiredArgsConstructor;

@@ -1,9 +1,8 @@
 package com.example.sejong_voice.auth.jwt;
 
 
-import com.example.sejong_voice.auth.User;
-import com.example.sejong_voice.auth.UserRole;
-import com.example.sejong_voice.auth.dto.UserRoleRequest;
+import com.example.sejong_voice.user.entity.UserRole;
+import com.example.sejong_voice.auth.dto.UserPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -23,62 +22,52 @@ import java.util.List;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.util.StringUtils;
 
-
-/*
-@RequiredArgsConstructor
-final이 붙은 필드나 @NonNull이 붙은 필드만을 파라미터로 받는 생성자를 자동으로 생성해주는 어노테이션입니다.
-작성하신 JwtProperties 클래스처럼 설정 값을 불변(immutable)으로 유지하거나, 스프링에서 **의존성 주입(DI)**을 받을 때 매우 유용하게 사용됩니다.
- */
 @Component
 @RequiredArgsConstructor
 public class JwtUtil {
-    private final JwtProperties jwtProperties;
-    private SecretKey secretKey;
 
-    @PostConstruct
-    protected void init() {
-        this.secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8));
-    }
+  private final JwtProperties jwtProperties;
+  private SecretKey secretKey;
 
-    //토큰 생성
-    public String generateToken(User user,Long expiration){
-        return Jwts.builder()
-                .setIssuer(jwtProperties.getIssuer())
-                .setSubject(user.getStudentNo())
-                .claim("role",user.getRole().name())//enum값인 role을 문자열로 사용하기위해 name으로 변환
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis()+expiration))
-                .signWith(secretKey, SignatureAlgorithm.HS256)
-                .compact();
-    }
+  @PostConstruct
+  protected void init() {
+    this.secretKey = Keys.hmacShaKeyFor(
+        jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8));
+  }
 
-    //토큰 검증
-    public boolean validateToken(String token){
-        try{
-            Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);//이건 뭐하는거지
-            /*
-              - setSigningKey(secretKey)로 서명 검증에 쓸 비밀키(HS256)를 지정합니다.
-              - parseClaimsJws(token)가 토큰을 디코딩하며 서명 일치 여부, 포맷, 만료(exp), 발행시각(iat) 등
-                을 확인합니다.
-              - 여기서는 반환값을 쓰지 않고 예외 발생 여부만 봅니다. 예외가 없으면 true, 서명 불일치·만료·형
-                식 오류 등이 나면 catch로 떨어져 false를 리턴하는 구조입니다.
-            */
-            return true;
-        } catch (Exception e){
-            return false;
-        }
+  //토큰 생성
+  public String generateToken(String userId, String studentNo, String role, Long expiration) {
+    return Jwts.builder()
+        .setIssuer(jwtProperties.getIssuer())
+        .setSubject(userId)
+        .claim("studentNo", studentNo)
+        .claim("role", role)
+        .setIssuedAt(new Date())
+        .setExpiration(new Date(System.currentTimeMillis() + expiration))
+        .signWith(secretKey, SignatureAlgorithm.HS256)
+        .compact();
+  }
+
+  //토큰 검증
+  public boolean validateToken(String token) {
+    try {
+      Jwts.parserBuilder().setSigningKey(secretKey).build().parseClaimsJws(token);//이건 뭐하는거지
+      return true;
+    } catch (Exception e) {
+      return false;
     }
+  }
 
   // 클레임 파싱
   // 유효한지만 보고 싶으면 validateToken을 쓰고,
   // 유효하다고 가정하고 토큰 안의 sub, role등 데이터를 꺼내려면 parseClaims
   public Claims parseClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
+    return Jwts.parserBuilder()
+        .setSigningKey(secretKey)
+        .build()
+        .parseClaimsJws(token)
+        .getBody();
+  }
     /*
     • parseClaims는 토큰을 서명 검증한 뒤 클레임 본문을 Claims 객체로 돌려줍니다. 이 Claims는
   Map<String, Object>처럼 동작하며, 이 코드 기준으로는 아래 값들이 들어 있습니다 (src/main/java/
@@ -95,14 +84,14 @@ public class JwtUtil {
      */
 
 
-    // 헤더에서 토큰 추출 Bearer
-    public String resolveToken(HttpServletRequest req) {
-        String bearerToken = req.getHeader("Authorization");
-        if( StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")){
-            return bearerToken.substring(7);
-        }
-        return null;
+  // 헤더에서 토큰 추출 Bearer
+  public String resolveToken(HttpServletRequest req) {
+    String bearerToken = req.getHeader("Authorization");
+    if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+      return bearerToken.substring(7);
     }
+    return null;
+  }
 
 //    // 토큰을 바탕으로 스프링 시큐리티 인증 객체 생성
 //    public Authentication getAuthentication(String token) {
@@ -120,29 +109,30 @@ public class JwtUtil {
 //
 //    }
 
-    public Authentication getAuthentication(String token) {
-        Claims claims = parseClaims(token);
+  public Authentication getAuthentication(String token) {
+    Claims claims = parseClaims(token);
 
-        String studentNo = claims.getSubject();
-        String rawRole = claims.get("role", String.class);  // 예: "SUPER" 또는 "ROLE_SUPER"
-        if (!StringUtils.hasText(rawRole)) {
-            throw new IllegalArgumentException("Missing role claim");
-        }
-
-        // 1) enum 변환용 키 정규화
-        String enumKey = rawRole.replace("ROLE_", "").toUpperCase(java.util.Locale.ROOT);//소문자 -> 대문자
-        UserRole roleEnum = UserRole.valueOf(enumKey);// "SUPER" -> UserRole.SUPER
-
-
-        // 2) authorities는 ROLE_ prefix로 고정
-        List<SimpleGrantedAuthority> authorities =
-                List.of(new SimpleGrantedAuthority("ROLE_" + roleEnum.name()));
-
-        // 3) principal(UserRoleRequest)에 enum 넣기
-        UserRoleRequest principal = new UserRoleRequest();
-        principal.setStudentNo(studentNo);
-        principal.setRole(roleEnum);
-
-        return new UsernamePasswordAuthenticationToken(principal, token, authorities);
+    String userId = claims.getSubject();
+    String studentNo = claims.get("studentNo", String.class);
+    String rawRole = claims.get("role", String.class);  // 예: "SUPER" 또는 "ROLE_SUPER"
+    if (!StringUtils.hasText(rawRole)) {
+      throw new IllegalArgumentException("Missing role claim");
     }
+
+    // 1) enum 변환용 키 정규화
+    String enumKey = rawRole.replace("ROLE_", "").toUpperCase(java.util.Locale.ROOT);//소문자 -> 대문자
+    UserRole roleEnum = UserRole.valueOf(enumKey);// "SUPER" -> UserRole.SUPER
+
+    // 2) authorities는 ROLE_ prefix로 고정
+    List<SimpleGrantedAuthority> authorities =
+        List.of(new SimpleGrantedAuthority("ROLE_" + roleEnum.name()));
+
+    // 3) principal(UserRoleRequest)에 enum 넣기
+    UserPrincipal principal = new UserPrincipal();
+    principal.setUserId(userId);
+    principal.setStudentNo(studentNo);
+    principal.setRole(roleEnum);
+
+    return new UsernamePasswordAuthenticationToken(principal, token, authorities);
+  }
 }

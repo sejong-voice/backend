@@ -2,12 +2,11 @@ package com.example.sejong_voice.auth;
 
 
 import com.example.sejong_voice.auth.dto.DepartmentRequest;
-import com.example.sejong_voice.auth.dto.UserRoleRequest;
+import com.example.sejong_voice.auth.dto.UserPrincipal;
 import com.example.sejong_voice.auth.dto.UserStatusRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,7 +16,7 @@ public class AdminController {
 
     private final AuthService authService;
 
-    //학과 수정 -> 만약에 전과를 하면 수정하는 방식으로 하려고 했는데, 사실 전과하면 sso에서 mayjor값이 변경되기 때문에 안써도 되긴함
+    // 학과 수정 -> 만약에 전과를 하면 수정하는 방식으로 하려고 했는데, 사실 전과하면 sso에서 mayjor값이 변경되기 때문에 안써도 되긴함
     @PatchMapping("/user/{studentNo}/department")
     public ResponseEntity<Void> updateDepartment(
             //@AuthenticationPrincipal UserRoleRequest superRole,
@@ -41,7 +40,7 @@ public class AdminController {
     public ResponseEntity<Void> updateRole(
             //@AuthenticationPrincipal UserRoleRequest superRole, // 호출자의 권한 정보
             @PathVariable String studentNo,     //targetUser 학번
-            @RequestBody UserRoleRequest newRole){//targetUser의 변경될 권한 dto
+            @RequestBody UserPrincipal newRole){//targetUser의 변경될 권한 dto
             authService.updateRole( studentNo, newRole.getRole());
             return ResponseEntity.ok().build();
     }

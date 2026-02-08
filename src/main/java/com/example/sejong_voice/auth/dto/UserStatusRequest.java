@@ -1,7 +1,6 @@
 package com.example.sejong_voice.auth.dto;
 
-import com.example.sejong_voice.auth.UserStatus;
-import jakarta.validation.constraints.NotBlank;
+import com.example.sejong_voice.user.entity.UserStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
