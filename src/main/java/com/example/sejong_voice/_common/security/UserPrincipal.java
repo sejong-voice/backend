@@ -4,9 +4,11 @@ import com.example.sejong_voice.user.entity.UserRole;
 import lombok.Builder;
 import lombok.Getter;
 import java.util.UUID;
+import lombok.ToString;
 
 @Getter
 @Builder
+@ToString
 public class UserPrincipal {
   private final UUID userId;
   private final String studentNo;

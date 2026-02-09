@@ -17,10 +17,8 @@ public class UserPrincipalArgumentResolver implements HandlerMethodArgumentResol
 
   @Override
   public boolean supportsParameter(MethodParameter parameter) {
-    // 1. 파라미터에 @AuthUser 어노테이션이 붙어있는지 확인
     boolean hasAnnotation = parameter.hasParameterAnnotation(AuthUser.class);
 
-    // 2. 파라미터의 타입이 UserPrincipal 클래스인지 확인
     boolean hasType = UserPrincipal.class.isAssignableFrom(parameter.getParameterType());
 
     return hasAnnotation && hasType;
