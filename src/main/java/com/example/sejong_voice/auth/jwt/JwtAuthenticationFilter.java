@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
       log.debug("[JWT] Auth Success. UserID={}", authentication.getName());
 
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       SecurityContextHolder.clearContext();
       log.warn("[JWT] Invalid Token: {}", e.getMessage());
     }
