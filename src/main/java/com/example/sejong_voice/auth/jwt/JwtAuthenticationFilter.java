@@ -1,6 +1,7 @@
 package com.example.sejong_voice.auth.jwt;
 
 import io.jsonwebtoken.Claims;
+import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -21,40 +23,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   @Override
   protected void doFilterInternal(
-      HttpServletRequest request,
-      @NonNull HttpServletResponse response,
-      @NonNull FilterChain filterChain
+      @Nonnull HttpServletRequest request,
+      @Nonnull HttpServletResponse response,
+      @Nonnull FilterChain filterChain
   ) throws ServletException, IOException {
 
-    String uri = request.getRequestURI();
     String token = jwtUtil.resolveToken(request);
 
-    log.info("[JWT] {} {} tokenPresent={}", request.getMethod(), uri, token != null);
-
-    // 토큰이 없으면 그냥 통과 (SecurityConfig가 /profile에서 막아줌)
+    // 토큰이 없으면 빠르고 조용하게 다음 필터로 넘김
     if (token == null) {
       filterChain.doFilter(request, response);
       return;
     }
 
     try {
-      // 1. 유효성 검사
-      if (jwtUtil.validateToken(token)) {
+      Authentication authentication = jwtUtil.getAuthentication(token);
 
-        // 2. 토큰 파싱
-        var authentication = jwtUtil.getAuthentication(token);
+      // 정상 토큰일 경우
+      SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 3. 컨텍스트 저장
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+      log.debug("[JWT] Auth Success. UserID={}", authentication.getName());
 
-        log.info("[JWT] Auth Success. UserID={}, Authorities={}",
-            authentication.getName(), authentication.getAuthorities());
-      }
     } catch (Exception e) {
       SecurityContextHolder.clearContext();
-      log.warn("[JWT] auth process failed -> continue without authentication", e);
+      log.warn("[JWT] Invalid Token: {}", e.getMessage());
     }
-
     filterChain.doFilter(request, response);
   }
 }

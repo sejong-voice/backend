@@ -35,16 +35,9 @@ public class UserPrincipalArgumentResolver implements HandlerMethodArgumentResol
   ) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-    if (authentication == null) {
-      throw new BusinessException(AuthErrorCode.INVALID_USER);
+    if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {
+      return authentication.getPrincipal();
     }
-
-    Object principal = authentication.getPrincipal();
-
-    if (!(principal instanceof UserPrincipal)) {
-      throw new BusinessException(AuthErrorCode.INVALID_USER);
-    }
-
-    return principal;
+    throw new BusinessException(AuthErrorCode.INVALID_USER);
   }
 }

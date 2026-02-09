@@ -109,8 +109,7 @@ public class JwtUtil {
     try {
       roleEnum = UserRole.valueOf(enumKey);
     } catch (IllegalArgumentException e) {
-      // DB나 Enum에 없는 이상한 권한이 들어왔을 경우
-      throw new IllegalArgumentException("Invalid Role: " + enumKey);
+      throw new BusinessException(AuthErrorCode.INVALID_USER);
     }
 
     // 5. Authorities 생성
@@ -118,10 +117,11 @@ public class JwtUtil {
         Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + roleEnum.name()));
 
     // 6. UserPrincipal 객체 생성
-    UserPrincipal principal = new UserPrincipal();
-    principal.setUserId(userId);
-    principal.setStudentNo(studentNo);
-    principal.setRole(roleEnum);
+    UserPrincipal principal = UserPrincipal.builder()
+        .userId(userId)
+        .studentNo(studentNo)
+        .role(roleEnum)
+        .build();
 
     // 7. 인증 토큰 반환
     return new UsernamePasswordAuthenticationToken(principal, token, authorities);

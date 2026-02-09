@@ -1,18 +1,14 @@
 package com.example.sejong_voice._common.security;
 
 import com.example.sejong_voice.user.entity.UserRole;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 import java.util.UUID;
 
-@Data
+@Getter
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class UserPrincipal {
-  private UUID userId;
-  private String studentNo;
-  private UserRole role;
+  private final UUID userId;
+  private final String studentNo;
+  private final UserRole role;
 }
