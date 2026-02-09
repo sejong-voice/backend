@@ -84,7 +84,6 @@ public class AuthService {
         .expiryDate(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration()))
         .build();
 
-    refreshTokenRepository.flush();
     refreshTokenRepository.save(newToken);
 
     return LoginResponse.of(
