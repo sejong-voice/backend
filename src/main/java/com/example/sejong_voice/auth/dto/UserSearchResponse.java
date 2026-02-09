@@ -1,8 +1,8 @@
 package com.example.sejong_voice.auth.dto;
 
-import com.example.sejong_voice.auth.User;
-import com.example.sejong_voice.auth.UserRole;
-import com.example.sejong_voice.auth.UserStatus;
+import com.example.sejong_voice.user.entity.User;
+import com.example.sejong_voice.user.entity.UserRole;
+import com.example.sejong_voice.user.entity.UserStatus;
 
 import java.util.UUID;
 

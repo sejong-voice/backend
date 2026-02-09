@@ -1,8 +1,8 @@
 package com.example.sejong_voice.auth;
 
+import com.example.sejong_voice.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.nio.channels.FileChannel;
 import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {

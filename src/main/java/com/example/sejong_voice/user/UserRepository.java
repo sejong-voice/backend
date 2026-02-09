@@ -1,5 +1,8 @@
-package com.example.sejong_voice.auth;
+package com.example.sejong_voice.user;
 
+import com.example.sejong_voice.user.entity.User;
+import com.example.sejong_voice.user.entity.UserRole;
+import com.example.sejong_voice.user.entity.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

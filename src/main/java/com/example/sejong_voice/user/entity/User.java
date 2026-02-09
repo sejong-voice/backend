@@ -1,4 +1,4 @@
-package com.example.sejong_voice.auth;
+package com.example.sejong_voice.user.entity;
 
 import com.example.sejong_voice.auth.dto.DepartmentRequest;
 import jakarta.persistence.*;
@@ -12,7 +12,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "users")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA용 기본 생성자
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
   @Id
@@ -23,14 +23,13 @@ public class User {
   @Column(name = "student_no", length = 30, nullable = false, unique = true)
   private String studentNo;
 
-  // 1. password 컬럼 추가 (암호화된 비번이 들어가므로 길이는 넉넉히 100~255 권장)
-  @Column(name = "password", length = 255, nullable = false)
+  @Column(name = "password", nullable = false)
   private String password;
 
   @Column(name = "name", length = 60, nullable = false)
   private String name;
 
-  @Column(name = "department", length = 255, nullable = false)
+  @Column(name = "department", nullable = false)
   private String department;
 
   @Enumerated(EnumType.STRING)
@@ -46,8 +45,6 @@ public class User {
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
-
-
   
   // 특정 필드만 인자로 받는 생성자에 @Builder 적용
   @Builder

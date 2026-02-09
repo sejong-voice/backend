@@ -1,5 +1,6 @@
 package com.example.sejong_voice.auth;
 
+import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
