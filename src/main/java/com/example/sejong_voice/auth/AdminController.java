@@ -1,8 +1,9 @@
 package com.example.sejong_voice.auth;
 
 
+import com.example.sejong_voice._common.security.AuthUser;
+import com.example.sejong_voice._common.security.UserPrincipal;
 import com.example.sejong_voice.auth.dto.DepartmentRequest;
-import com.example.sejong_voice.auth.dto.UserPrincipal;
 import com.example.sejong_voice.auth.dto.UserStatusRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,8 +41,9 @@ public class AdminController {
     public ResponseEntity<Void> updateRole(
             //@AuthenticationPrincipal UserRoleRequest superRole, // 호출자의 권한 정보
             @PathVariable String studentNo,     //targetUser 학번
-            @RequestBody UserPrincipal newRole){//targetUser의 변경될 권한 dto
-            authService.updateRole( studentNo, newRole.getRole());
+            @AuthUser UserPrincipal userPrincipal
+    ){//targetUser의 변경될 권한 dto
+            authService.updateRole(studentNo, userPrincipal.getRole());
             return ResponseEntity.ok().build();
     }
 }

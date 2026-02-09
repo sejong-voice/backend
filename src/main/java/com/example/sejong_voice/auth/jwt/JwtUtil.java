@@ -1,13 +1,17 @@
 package com.example.sejong_voice.auth.jwt;
 
 
+import com.example.sejong_voice._common.security.UserPrincipal;
+import com.example.sejong_voice.auth.exception.AuthErrorCode;
+import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.user.entity.UserRole;
-import com.example.sejong_voice.auth.dto.UserPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Collections;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -68,21 +72,6 @@ public class JwtUtil {
         .parseClaimsJws(token)
         .getBody();
   }
-    /*
-    • parseClaims는 토큰을 서명 검증한 뒤 클레임 본문을 Claims 객체로 돌려줍니다. 이 Claims는
-  Map<String, Object>처럼 동작하며, 이 코드 기준으로는 아래 값들이 들어 있습니다 (src/main/java/
-  com/example/sejong_voice/global/security/JwtUtil.java:65):
-
-  - sub: user.getStudentNo()로 넣은 subject
-  - iss: jwtProperties.getIssuer()
-  - role: user.getRole().name()로 넣은 커스텀 클레임
-  - iat: 토큰 발급 시각
-  - exp: 만료 시각
-    즉, 비즈니스 로직에서 token의 상세 정보가 필요한 경우에 사용
-      요약하면 “검증된 토큰의 payload 내용을 가져와 비즈니스 판단에 쓰는 용도”입니다.
-
-     */
-
 
   // 헤더에서 토큰 추출 Bearer
   public String resolveToken(HttpServletRequest req) {
@@ -93,46 +82,48 @@ public class JwtUtil {
     return null;
   }
 
-//    // 토큰을 바탕으로 스프링 시큐리티 인증 객체 생성
-//    public Authentication getAuthentication(String token) {
-//        Claims claims = parseClaims(token);
-//        String studentNo = claims.getSubject();
-//        String role = claims.get("role").toString();
-//
-//        //사용자 권한 정보를 담은 리슼트 생성
-//        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_"+role));
-//
-//        // 유저 정봏를 담은 principal 객체 생성 (학번을 ID로 사용)
-//        //var principal = new org.springframework.security.core.userdetails.User(studentNo, "", authorities);
-//        //return new UsernamePasswordAuthenticationToken(principal, token, authorities);
-//        //이 부분이 user로 만들고 있어서 UserRoleRequest랑은 파라미터가 맞지 않음
-//
-//    }
-
   public Authentication getAuthentication(String token) {
+    // 1. 토큰 파싱
     Claims claims = parseClaims(token);
 
-    String userId = claims.getSubject();
-    String studentNo = claims.get("studentNo", String.class);
-    String rawRole = claims.get("role", String.class);  // 예: "SUPER" 또는 "ROLE_SUPER"
-    if (!StringUtils.hasText(rawRole)) {
-      throw new IllegalArgumentException("Missing role claim");
+    // 2. userId 변환
+    String subject = claims.getSubject();
+    UUID userId;
+    try {
+      userId = UUID.fromString(subject);
+    } catch (IllegalArgumentException e) {
+      throw new BusinessException(AuthErrorCode.INVALID_USER);
     }
 
-    // 1) enum 변환용 키 정규화
-    String enumKey = rawRole.replace("ROLE_", "").toUpperCase(java.util.Locale.ROOT);//소문자 -> 대문자
-    UserRole roleEnum = UserRole.valueOf(enumKey);// "SUPER" -> UserRole.SUPER
+    // 3. 기타 정보 추출
+    String studentNo = claims.get("studentNo", String.class);
+    String rawRole = claims.get("role", String.class);
 
-    // 2) authorities는 ROLE_ prefix로 고정
+    if (!StringUtils.hasText(rawRole)) {
+      throw new BusinessException(AuthErrorCode.INVALID_USER);
+    }
+
+    // 4. Role Enum 변환
+    String enumKey = rawRole.replace("ROLE_", "").toUpperCase(java.util.Locale.ROOT);
+    UserRole roleEnum;
+    try {
+      roleEnum = UserRole.valueOf(enumKey);
+    } catch (IllegalArgumentException e) {
+      // DB나 Enum에 없는 이상한 권한이 들어왔을 경우
+      throw new IllegalArgumentException("Invalid Role: " + enumKey);
+    }
+
+    // 5. Authorities 생성
     List<SimpleGrantedAuthority> authorities =
-        List.of(new SimpleGrantedAuthority("ROLE_" + roleEnum.name()));
+        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + roleEnum.name()));
 
-    // 3) principal(UserRoleRequest)에 enum 넣기
+    // 6. UserPrincipal 객체 생성
     UserPrincipal principal = new UserPrincipal();
     principal.setUserId(userId);
     principal.setStudentNo(studentNo);
     principal.setRole(roleEnum);
 
+    // 7. 인증 토큰 반환
     return new UsernamePasswordAuthenticationToken(principal, token, authorities);
   }
 }
