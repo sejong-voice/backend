@@ -38,8 +38,8 @@ public class Vote {
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @Column(nullable = false, columnDefinition = "TINYINT")
-  private Integer choice;
+  @Column(nullable = false)
+  private VoteChoice choice;
 
   @CreatedDate
   @Column(name = "created_at", nullable = false, updatable = false)
@@ -49,10 +49,10 @@ public class Vote {
   public Vote(Post post, User user, VoteChoice choice) {
     this.post = post;
     this.user = user;
-    this.choice = choice.getValue();
+    this.choice = choice;
   }
 
   public void updateChoice(VoteChoice newChoice) {
-    this.choice = newChoice.getValue();
+    this.choice = newChoice;
   }
 }

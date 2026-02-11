@@ -10,8 +10,4 @@ public record CouncilResponse(
   public CouncilResponse(Council council) {
     this(council.getId(), council.getName());
   }
-
-  public static CouncilResponse from(Council council) {
-    return new CouncilResponse(council.getId(), council.getName());
-  }
 }

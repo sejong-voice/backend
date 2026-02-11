@@ -27,6 +27,8 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
     // 1. 컨텐츠 조회
     List<Post> content = queryFactory
         .selectFrom(post)
+        .join(post.user).fetchJoin()
+        .join(post.council).fetchJoin()
         .where(
             statusEq(condition.status()),
             responsibleCouncilEq(condition.councilId()),
