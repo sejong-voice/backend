@@ -6,6 +6,7 @@ COPY gradlew gradlew
 COPY gradle gradle
 COPY build.gradle settings.gradle ./
 RUN chmod +x gradlew
+RUN ./gradlew dependencies --no-daemon
 
 # 소스 복사 후 빌드
 COPY src src

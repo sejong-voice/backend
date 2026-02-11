@@ -38,7 +38,7 @@ public class AuthController {
     public ResponseEntity<UserSearchResponse> getProfile(
             @AuthUser UserPrincipal userPrincipal
     ) {
-        if (userPrincipal != null) {
+        if (userPrincipal == null) {
             throw new BusinessException(AuthErrorCode.INVALID_USER);
         }
 
@@ -50,7 +50,7 @@ public class AuthController {
     public ResponseEntity<Void> logout(
             @AuthUser UserPrincipal userPrincipal
     ) {
-        if (userPrincipal != null) {
+        if (userPrincipal == null) {
             throw new BusinessException(AuthErrorCode.INVALID_USER);
         }
         authService.logout(userPrincipal.getStudentNo());
