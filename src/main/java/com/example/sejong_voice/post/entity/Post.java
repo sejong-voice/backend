@@ -1,0 +1,121 @@
+package com.example.sejong_voice.post.entity;
+
+import com.example.sejong_voice.council.entity.Council;
+import com.example.sejong_voice.user.entity.User;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Post {
+
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  @Column(columnDefinition = "BINARY(16)")
+  private UUID id;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "council_id", nullable = false)
+  private Council council;
+
+  @Column(nullable = false)
+  private String title;
+
+  @Column(nullable = false, columnDefinition = "TEXT")
+  private String content;
+
+  @Enumerated(EnumType.STRING)
+  private PostStatus status;
+
+  @Column(nullable = false)
+  private LocalDateTime votingStartAt;
+
+  @Column(nullable = false)
+  private LocalDateTime votingEndAt;
+
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  private PostVotingDuration votingDuration;
+
+  private LocalDateTime closedAt;
+
+  private LocalDateTime approvedAt;
+
+  @Column(nullable = false)
+  private Integer minVoteSnapshot;
+
+  @Column(nullable = false)
+  private BigDecimal approveRatioSnapshot;
+
+  @Column(nullable = false)
+  private LocalDateTime createdAt;
+
+  private LocalDateTime deletedAt;
+
+  @Column(columnDefinition = "TEXT")
+  private String resultContent;
+
+  @Column(nullable = false)
+  private Integer viewCount;
+
+  @Builder
+  public Post(
+      User user,
+      Council council,
+      String title,
+      String content,
+      PostVotingDuration postVotingDuration,
+      Integer minVoteSnapshot,
+      BigDecimal approveRatioSnapshot
+  ) {
+    this.user = user;
+    this.council = council;
+    this.title = title;
+    this.content = content;
+    this.votingDuration = postVotingDuration;
+    this.minVoteSnapshot = minVoteSnapshot;
+    this.approveRatioSnapshot = approveRatioSnapshot;
+
+    this.status = PostStatus.VOTING;
+
+    LocalDateTime now = LocalDateTime.now();
+    this.createdAt = now;
+    this.votingStartAt = now;
+    this.votingEndAt = postVotingDuration.calculateDeadline(now);
+
+    this.viewCount = 1;
+  }
+
+  public void incrementViewCount() {
+    this.viewCount++;
+  }
+
+  public void update(String newTitle, String newContent) {
+    this.title = newTitle;
+    this.content = newContent;
+  }
+
+  public void delete() {
+    this.deletedAt = LocalDateTime.now();
+  }
+}
