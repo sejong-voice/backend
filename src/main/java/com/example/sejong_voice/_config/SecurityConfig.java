@@ -51,7 +51,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER")
 
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        //이건 사실 없어도 되지 않음?
 
                         // 나머지는 로그인한 유저라면 모두 가능
                         .anyRequest().authenticated()

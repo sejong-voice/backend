@@ -1,10 +1,15 @@
 package com.example.sejong_voice.auth;
 
 
+import com.example.sejong_voice._common.security.AuthUser;
+import com.example.sejong_voice._common.security.UserPrincipal;
 import com.example.sejong_voice.auth.dto.*;
+import com.example.sejong_voice.auth.exception.AuthErrorCode;
+import com.example.sejong_voice.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -12,36 +17,44 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
 
-  private final AuthService authService;
+    private final AuthService authService;
 
-  @PostMapping("/login")
-  public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
-    return ResponseEntity.ok(
-        authService.login(
-            loginRequest.studentNo(),
-            loginRequest.password()
-        )
-    );
-  }
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+        return ResponseEntity.ok(
+                authService.login(
+                        loginRequest.studentNo(),
+                        loginRequest.password()
+                )
+        );
+    }
 
-  @PostMapping("/refresh") //현재 만료된 accessToken을 header에 담아 요청을 보내면 401 InvalidToken커스텀 예외처리가 됨.
-  public ResponseEntity<RefreshResponse> refresh(@RequestBody RefreshRequest refreshRequest) {
-    return ResponseEntity.ok(authService.accessRefresh(refreshRequest));
-  }
+    @PostMapping("/refresh") //현재 만료된 accessToken을 header에 담아 요청을 보내면 401 InvalidToken커스텀 예외처리가 됨.
+    public ResponseEntity<RefreshResponse> refresh(@RequestBody RefreshRequest refreshRequest) {
+        return ResponseEntity.ok(authService.accessRefresh(refreshRequest));
+    }
 
-  @GetMapping("/profile")
-  //@AuthenticationPrincipal하고 @UserPrincipal로 jwt에서 값 추출한 후 principal을 만들어서 사용하는 방식. responsebody + dto 조합이 아니라
-  public ResponseEntity<UserSearchResponse> getProfile(
-      @RequestBody UserSearchRequest userSearchRequest) {
-    return ResponseEntity.ok(authService.getUserProfile(userSearchRequest.studentNo()));
-  }
-  //AuthenticationPrincipal이게 security를 통해서 인증 확인 후 인증 객체를 반환. principal 데이터 타입이랑 맞춰줘야함.
+    @GetMapping("/profile")//조회가 필요한 user의 accessToken을 넣어서 요청해야함
+    public ResponseEntity<UserSearchResponse> getProfile(
+            @AuthUser UserPrincipal userPrincipal
+    ) {
+        if (userPrincipal == null) {
+            throw new BusinessException(AuthErrorCode.INVALID_USER);
+        }
 
-  @PostMapping("/logout")
-  //@AuthenticationPrincipal하고 @UserPrincipal로 jwt에서 값 추출한 후 principal을 만들어서 사용하는 방식. responsebody + dto 조합이 아니라
-  public ResponseEntity<Void> logout(@RequestBody UserSearchRequest userSearchRequest) {
-    authService.logout(userSearchRequest.studentNo());
-    return ResponseEntity.noContent().build();
-  }
+        return ResponseEntity.ok(authService.getUserProfile(userPrincipal.getStudentNo()));
+    }
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @AuthUser UserPrincipal userPrincipal
+    ) {
+        if (userPrincipal == null) {
+            throw new BusinessException(AuthErrorCode.INVALID_USER);
+        }
+        authService.logout(userPrincipal.getStudentNo());
+        return ResponseEntity.noContent().build();
+    }
 
 }
