@@ -76,6 +76,7 @@ public class AuthService {
     );
 
     refreshTokenRepository.deleteByUser(user);
+    refreshTokenRepository.flush();
 
     // 새 토큰 정보 저장
     RefreshToken newToken = RefreshToken.builder()

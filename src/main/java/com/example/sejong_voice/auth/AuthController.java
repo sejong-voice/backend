@@ -1,10 +1,15 @@
 package com.example.sejong_voice.auth;
 
 
+
+import com.example.sejong_voice._common.security.UserPrincipal;
 import com.example.sejong_voice.auth.dto.*;
+import com.example.sejong_voice.auth.exception.AuthErrorCode;
+import com.example.sejong_voice.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -29,18 +34,29 @@ public class AuthController {
     return ResponseEntity.ok(authService.accessRefresh(refreshRequest));
   }
 
-  @GetMapping("/profile")
-  //@AuthenticationPrincipal하고 @UserPrincipal로 jwt에서 값 추출한 후 principal을 만들어서 사용하는 방식. responsebody + dto 조합이 아니라
-  public ResponseEntity<UserSearchResponse> getProfile(
-      @RequestBody UserSearchRequest userSearchRequest) {
-    return ResponseEntity.ok(authService.getUserProfile(userSearchRequest.studentNo()));
+  @GetMapping("/profile")//조회가 필요한 user의 accessToken을 넣어서 요청해야함
+  public ResponseEntity<UserSearchResponse> getProfile() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+      //토큰이 없거나 JWT 검증에 실패해 SecurityContext가 비어 있는 경우
+      //혹은 다른 인증 방식으로 들어와 principal 타입이 UserPrincipal이 아닌 경우
+      throw new BusinessException(AuthErrorCode.INVALID_USER);
+    }
+
+    return ResponseEntity.ok(authService.getUserProfile(principal.getStudentNo()));
   }
-  //AuthenticationPrincipal이게 security를 통해서 인증 확인 후 인증 객체를 반환. principal 데이터 타입이랑 맞춰줘야함.
+
+
 
   @PostMapping("/logout")
-  //@AuthenticationPrincipal하고 @UserPrincipal로 jwt에서 값 추출한 후 principal을 만들어서 사용하는 방식. responsebody + dto 조합이 아니라
-  public ResponseEntity<Void> logout(@RequestBody UserSearchRequest userSearchRequest) {
-    authService.logout(userSearchRequest.studentNo());
+  public ResponseEntity<Void> logout() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
+      throw new BusinessException(AuthErrorCode.INVALID_USER);
+    }
+    authService.logout(principal.getStudentNo());
     return ResponseEntity.noContent().build();
   }
 
