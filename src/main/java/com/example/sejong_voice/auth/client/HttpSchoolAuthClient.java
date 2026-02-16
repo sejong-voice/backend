@@ -16,7 +16,7 @@ import java.time.Duration;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
-@Profile("local") // local에서만 실서버 호출
+//@Profile("local") // local에서만 실서버 호출
 @RequiredArgsConstructor
 public class HttpSchoolAuthClient implements SchoolAuthClient {
 
