@@ -71,7 +71,8 @@ public class User {
     this.duration = duration;
   }
 
-  public void activateNow(){// 조기 복구
+  // 조기 복구
+  public void activateNow(){
     this.status = UserStatus.ACTIVE;
     this.duration = LocalDateTime.now();
   }
@@ -79,5 +80,4 @@ public class User {
   public void updateRole(UserRole role) {
     this.role = role;
   }
-
 }
