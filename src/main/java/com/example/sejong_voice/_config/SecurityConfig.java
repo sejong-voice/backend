@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/user/*/department").hasRole("SUPER")
                         .requestMatchers("/api/v1/admin/user/*/status").hasRole("SUPER")
                         .requestMatchers("/api/v1/admin/user/*/role").hasRole("SUPER")
+                        .requestMatchers("/api/v1/admin/user/*/restore").hasRole("SUPER")
 
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER")
 
