@@ -56,9 +56,14 @@ public class AuthService {
       throw new BusinessException(AuthErrorCode.INVALID_PASSWORD);
     }
 
-    // 5. 계정 상태 체크 (정지 여부)
-    if (user.getStatus() == UserStatus.SUSPENDED) {
-      throw new BusinessException(AuthErrorCode.USER_SUSPENDED);
+    // 5. 계정 상태 체크 (정지 여부, duration 만료하면 acitvate+duration 초기화)
+    if (user.getStatus() == UserStatus.SUSPENDED && user.getDuration() != null ) {
+      LocalDateTime now = LocalDateTime.now();
+      if( now.isBefore(user.getDuration())){
+        throw new BusinessException(AuthErrorCode.USER_SUSPENDED);
+      } else{
+        user.updateStatus(UserStatus.ACTIVE, now);
+      }
     }
 
     String accessToken = jwtUtil.generateToken(
@@ -75,17 +80,22 @@ public class AuthService {
         jwtProperties.getRefreshTokenExpiration()
     );
 
-    refreshTokenRepository.deleteByUser(user);
-    refreshTokenRepository.flush();
+//    refreshTokenRepository.deleteByUser(user);
+//    refreshTokenRepository.flush();
 
-    // 새 토큰 정보 저장
-    RefreshToken newToken = RefreshToken.builder()
-        .user(user)
-        .token(refreshToken)
-        .expiryDate(Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration()))
-        .build();
+    Instant newExpiry = Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration());
 
-    refreshTokenRepository.save(newToken);
+    //refreshToken 조회 후 있으면 update, 없으면 신규 생성 후 save
+    refreshTokenRepository.findByUser(user).ifPresentOrElse(
+            existingToken -> existingToken.updateToken(refreshToken, newExpiry),
+            () -> refreshTokenRepository.save(
+                    RefreshToken.builder()
+                            .user(user)
+                            .token(refreshToken)
+                            .expiryDate(newExpiry)
+                            .build()
+            )
+    );
 
     return LoginResponse.of(
         user.getStudentNo(),
@@ -167,6 +177,14 @@ public class AuthService {
     if (newStatus.equals(UserStatus.SUSPENDED)) {
       refreshTokenRepository.deleteByUser(targetUser);
     }
+  }
+
+  // 6-2. 조기 복구 (Super 계정 전용)
+  @Transactional
+  public void activateStatus(String targetStudentNo) {
+    User targetUser = userRepository.findByStudentNo(targetStudentNo)
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+    targetUser.activateNow();
   }
 
   // 7. 권한 수정 (Super 계정 전용 - Role 변경)

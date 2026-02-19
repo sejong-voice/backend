@@ -17,6 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -149,6 +151,45 @@ class AuthServiceTest {
 
 
   @Test
+  @DisplayName("로그인 성공: 기존 RefreshToken이 있으면 updateToken으로 갱신")
+  void login_Success_UpdateExistingRefreshToken() {
+    // given: "이미 DB에 refresh token row가 있는 상황"을 만들기 위해 RefreshToken mock 준비
+    RefreshToken existingToken = mock(RefreshToken.class);
+
+    // given: 로그인 학번으로 유저 조회 성공하도록 설정
+    doReturn(Optional.of(mockStudentUser)).when(userRepository).findByStudentNo("20260001");
+
+    // given: 비밀번호 검증 통과
+    doReturn(true).when(passwordEncoder).matches(anyString(), anyString());
+
+    // given: access/refresh 만료시간 설정
+    doReturn(3600_000L).when(jwtProperties).getAccessTokenExpiration();
+    doReturn(1_209_600_000L).when(jwtProperties).getRefreshTokenExpiration();
+
+    // given: generateToken이 2번 호출되므로 순서대로 access, refresh 반환
+    doReturn("access_token", "refresh_token")
+            .when(jwtUtil).generateToken(anyString(), anyString(), anyString(), anyLong());
+
+    // given: 핵심 스텁 - findByUser 시 기존 토큰이 존재한다고 가정
+    // => 서비스가 save(신규 생성) 대신 existingToken.updateToken(...) 경로를 타야 함
+    doReturn(Optional.of(existingToken)).when(refreshTokenRepository).findByUser(mockStudentUser);
+
+    // when: 실제 로그인 실행
+    LoginResponse response = authService.login(loginRequest.studentNo(), loginRequest.password());
+
+    // then: 로그인은 정상 성공해야 함
+    assertThat(response.accessToken()).isEqualTo("access_token");
+
+    // then: 기존 토큰 엔티티에 토큰값/만료시간 갱신이 호출되었는지 검증
+    verify(existingToken).updateToken(eq("refresh_token"), any(Instant.class));
+
+    // then: 기존 row가 있으므로 신규 save는 호출되면 안 됨(충돌 방지 목적)
+    verify(refreshTokenRepository, never()).save(any(RefreshToken.class));
+  }
+
+
+
+  @Test
   @DisplayName("정보 조회: 존재하는 학번 조회 시 이름 등 정보 반환")
   void getUserProfile_Success() {
     // Given
@@ -162,6 +203,7 @@ class AuthServiceTest {
     assertThat(response.studentNo()).isEqualTo("20260001");
     assertThat(response.department()).isNull(); // Stubbing 안 했으므로 null (필요하면 추가)
   }
+
 
 
   @Test
@@ -180,6 +222,49 @@ class AuthServiceTest {
     // 2. 토큰 삭제가 호출되었는지 확인 (핵심)
     verify(refreshTokenRepository).deleteByUser(mockStudentUser);
   }
+
+
+
+  @Test
+  @DisplayName("로그인 성공: 정지기간이 지났으면 ACTIVE로 복구")
+  void updateStatus_With_Duration_Expired() {
+    //given : 임시로 Duration이 만료된 유저를 생성
+    doReturn(Optional.of(mockStudentUser)).when(userRepository).findByStudentNo("20260001");
+    doReturn(true).when(passwordEncoder).matches(anyString(), anyString());
+    doReturn(UserStatus.SUSPENDED).when(mockStudentUser).getStatus();
+    doReturn(LocalDateTime.now().minusDays(1)).when(mockStudentUser).getDuration();
+    doReturn(3600_000L).when(jwtProperties).getAccessTokenExpiration();
+    doReturn(1_209_600_000L).when(jwtProperties).getRefreshTokenExpiration();
+
+    doReturn("access_token","refresh_token")
+            .when(jwtUtil).generateToken(anyString(), anyString(), anyString(), anyLong());
+
+    //when : 실제 로그인 실행
+    LoginResponse response = authService.login(loginRequest.studentNo(), loginRequest.password());
+
+    //then : status, duration이 복구되었는지 검증
+    assertThat(response.accessToken()).isEqualTo("access_token");
+    //mock 객체를 만들어서 검증하는거라서 실제하지 않음. 그래서 assertThat보단 verify를 사용
+    verify(mockStudentUser).updateStatus(eq(UserStatus.ACTIVE), any(LocalDateTime.class));
+
+  }
+
+
+  @Test
+  @DisplayName("조기 복구 성공: 유저 존재 시 activateNow 호출")
+  void activateStatus_Success() {
+    // given
+    doReturn(Optional.of(mockStudentUser)).when(userRepository).findByStudentNo("20260001");
+
+    // when
+    authService.activateStatus("20260001");
+
+    // then
+    verify(mockStudentUser).activateNow();
+  }
+
+
+
 
   @Test
   @DisplayName("권한 변경 실패: 존재하지 않는 유저는 예외 발생")

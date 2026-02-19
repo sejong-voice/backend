@@ -35,6 +35,13 @@ public class AdminController {
     return ResponseEntity.ok().build();
   }
 
+  //조기 복구
+  @PatchMapping("/user/{studentNo}/restore")
+  public ResponseEntity<Void> activateStatus(@PathVariable String studentNo) {
+    authService.activateStatus(studentNo);
+    return ResponseEntity.ok().build();
+  }
+
   //권한 수정
   @PatchMapping("/user/{studentNo}/role")
   public ResponseEntity<Void> updateRole(
