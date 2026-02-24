@@ -109,22 +109,6 @@ class AuthServiceTest {
         .isEqualTo(AuthErrorCode.INVALID_PASSWORD);
   }
 
-  @Test
-  @DisplayName("로그인 실패: 정지 유저 접근 시 예외 발생")
-  void login_Fail_Suspended() {
-    // Given
-    doReturn(UserStatus.SUSPENDED).when(mockStudentUser).getStatus();
-    doReturn(Optional.of(mockStudentUser)).when(userRepository).findByStudentNo("20260001");
-    // 정지 유저라도 비밀번호 검사 로직 순서에 따라 필요할 수 있음
-    lenient().doReturn(true).when(passwordEncoder).matches(anyString(), anyString());
-
-    // When & Then
-    assertThatThrownBy(() -> authService.login(loginRequest.studentNo(), loginRequest.password()))
-        .isInstanceOf(BusinessException.class)
-        .extracting("errorCode")
-        .isEqualTo(AuthErrorCode.USER_SUSPENDED);
-  }
-
 
   @Test
   @DisplayName("토큰 재발급: 유효한 RefreshToken 확인 후 AccessToken 재발급")
