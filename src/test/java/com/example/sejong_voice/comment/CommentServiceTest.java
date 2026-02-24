@@ -1,5 +1,6 @@
 package com.example.sejong_voice.comment;
 
+import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import com.example.sejong_voice.comment.dto.CommentResponse;
 import com.example.sejong_voice.comment.entity.Comment;
 import com.example.sejong_voice.comment.entity.CommentStatus;
@@ -7,6 +8,7 @@ import com.example.sejong_voice.comment.exception.CommentErrorCode;
 import com.example.sejong_voice.comment.repository.CommentRepository;
 import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.post.entity.Post;
+import com.example.sejong_voice.post.exception.PostErrorCode;
 import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.user.UserRepository;
 import com.example.sejong_voice.user.entity.User;
@@ -111,7 +113,7 @@ class CommentServiceTest {
       // when & then
       assertThatThrownBy(() -> commentService.create(userId, UUID.randomUUID(), null, "content"))
           .isInstanceOf(BusinessException.class)
-          .hasFieldOrPropertyWithValue("errorCode", CommentErrorCode.USER_NOT_FOUND);
+          .hasFieldOrPropertyWithValue("errorCode", AuthErrorCode.USER_NOT_FOUND);
     }
 
     @Test
@@ -126,7 +128,7 @@ class CommentServiceTest {
       // when & then
       assertThatThrownBy(() -> commentService.create(userId, postId, null, "content"))
           .isInstanceOf(BusinessException.class)
-          .hasFieldOrPropertyWithValue("errorCode", CommentErrorCode.POST_NOT_FOUND);
+          .hasFieldOrPropertyWithValue("errorCode", PostErrorCode.POST_NOT_FOUND);
     }
   }
 
