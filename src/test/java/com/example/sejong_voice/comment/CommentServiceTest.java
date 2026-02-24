@@ -150,7 +150,7 @@ class CommentServiceTest {
           .content("내용")
           .build();
 
-      when(commentRepository.findByPostIdOrderByCreatedAtAsc(postId)).thenReturn(List.of(comment));
+      when(commentRepository.findAllByPostIdWithUserOrderByCreatedAtAsc(postId)).thenReturn(List.of(comment));
 
       // when
       List<CommentResponse> result = commentService.getByPostId(postId);

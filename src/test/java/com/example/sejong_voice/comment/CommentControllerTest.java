@@ -114,7 +114,7 @@ class CommentControllerTest {
     UUID commentId = UUID.randomUUID();
 
     // when & then
-    mockMvc.perform(delete("/api/v1/comments/{commentId}", commentId))
+    mockMvc.perform(delete("/api/v1/comments/{id}", commentId))
         .andExpect(status().isNoContent());
   }
 }

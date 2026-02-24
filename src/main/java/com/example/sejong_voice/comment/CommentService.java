@@ -62,8 +62,9 @@ public class CommentService {
   }
 
   public List<CommentResponse> getByPostId(UUID postId) {
-    List<Comment> commentList = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
+    List<Comment> commentList = commentRepository.findAllByPostIdWithUserOrderByCreatedAtAsc(postId);
     return commentList.stream()
+        .filter(comment -> comment.getParent() == null)
         .map(CommentResponse::from)
         .toList();
   }

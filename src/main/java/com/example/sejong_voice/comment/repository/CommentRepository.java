@@ -8,6 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface CommentRepository extends JpaRepository<Comment, UUID> {
-  @Query("SELECT c FROM Comment c WHERE c.post.id = :postId AND c.parent IS NULL ORDER BY c.createdAt ASC")
-  List<Comment> findByPostIdOrderByCreatedAtAsc(@Param("postId") UUID postId);
+  @Query("SELECT c FROM Comment c LEFT JOIN FETCH c.user WHERE c.post.id = :postId ORDER BY c.createdAt ASC")
+  List<Comment> findAllByPostIdWithUserOrderByCreatedAtAsc(@Param("postId") UUID postId);
 }
