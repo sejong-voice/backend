@@ -1,5 +1,6 @@
 package com.example.sejong_voice.post.entity;
 
+import com.example.sejong_voice.comment.entity.CommentStatus;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.Column;
@@ -78,6 +79,10 @@ public class Post {
   @Column(nullable = false)
   private Integer viewCount;
 
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private PostModerationStatus visibilityStatus;
+
   @Builder
   public Post(
       User user,
@@ -104,6 +109,7 @@ public class Post {
     this.votingEndAt = postVotingDuration.calculateDeadline(now);
 
     this.viewCount = 1;
+    this.visibilityStatus = PostModerationStatus.ACTIVE;
   }
 
   public void incrementViewCount() {
@@ -117,5 +123,10 @@ public class Post {
 
   public void delete() {
     this.deletedAt = LocalDateTime.now();
+  }
+
+  public void blind() {this.visibilityStatus = PostModerationStatus.BLINDED;}
+
+  public void activate() { this.visibilityStatus = PostModerationStatus.ACTIVE;
   }
 }
