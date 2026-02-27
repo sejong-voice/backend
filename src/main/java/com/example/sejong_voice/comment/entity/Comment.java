@@ -68,4 +68,7 @@ public class Comment {
   public void blind() {
     this.status = CommentStatus.BLINDED;
   }
+
+  public void activate() {this.status = CommentStatus.ACTIVE;
+  }
 }

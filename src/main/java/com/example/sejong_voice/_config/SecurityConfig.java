@@ -21,10 +21,6 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;//토큰 검증용
 
-  // “엔티티냐 DTO냐”가 핵심이 아니라, @AuthenticationPrincipal이 주입하는 대상이 ‘SecurityContext의 principal’인데,
-  // 지금 그 principal이 UserRoleRequest(DTO) 형태가 아니기 때문에 문제가 난다가 핵심
-  // 1순위: JwtAuthenticationFilter에서 UsernamePasswordAuthenticationToken 생성하는 부분 (principal을 UserRoleRequest로 바꾸기)
-  // 2순위: JwtUtil에 getRole() (필요하면 getStudentNo()) 추가/수정
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -42,12 +38,21 @@ public class SecurityConfig {
                         // Auth
                         .requestMatchers("/api/v1/auth/profile").authenticated()
                         .requestMatchers("/api/v1/auth/logout").authenticated()
+                        // 신고 생성은 로그인 사용자 허용
+                        .requestMatchers( "/api/v1/reports/posts/*").authenticated()
+                        .requestMatchers( "/api/v1/reports/comments/*").authenticated()
 
                         // SUPER만 허용 (정확히 찍기)
                         .requestMatchers("/api/v1/admin/user/*/department").hasRole("SUPER")
                         .requestMatchers("/api/v1/admin/user/*/status").hasRole("SUPER")
                         .requestMatchers("/api/v1/admin/user/*/role").hasRole("SUPER")
                         .requestMatchers("/api/v1/admin/user/*/restore").hasRole("SUPER")
+
+                        .requestMatchers("/api/v1/admin/moderations/posts/*").hasRole("SUPER")
+                        .requestMatchers("/api/v1/admin/moderations/comments/*").hasRole("SUPER")
+                        .requestMatchers( "/api/v1/admin/reports/users/*/comments/count").hasRole("SUPER")
+                        .requestMatchers( "/api/v1/admin/reports/posts/*/count").hasRole("SUPER")
+
 
                         .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "SUPER")
 
