@@ -28,7 +28,7 @@ public class PostFacade {
   private final PostService postService;
   private final UserService userService;
   private final CouncilService councilService;
-  private final VoteService postVoteService;
+  private final VoteService voteService;
 
   @Transactional
   public UUID create(
@@ -44,7 +44,7 @@ public class PostFacade {
     return postService.create(user, council, title, content, votingDuration).getId();
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
   public PostResponse getPost(UUID postId) {
     return postService.get(postId);
   }
@@ -75,7 +75,7 @@ public class PostFacade {
 
     // 2. 제약 조건 체크 (학생 작성자의 경우 투표가 1개라도 있으면 삭제 불가)
     if (isAuthor && !isSuper && !isCouncilAdmin) {
-      if (postVoteService.existsByPostId(postId)) {
+      if (voteService.existsByPostId(postId)) {
         throw new BusinessException(PostErrorCode.CANNOT_DELETE_POST_WITH_VOTES);
       }
     }
@@ -118,8 +118,8 @@ public class PostFacade {
 
   @Transactional
   public void processClosing(UUID postId) {
-    long agreeCount = postVoteService.countAgree(postId);
-    long totalCount = agreeCount + postVoteService.countDisagree(postId);
+    long agreeCount = voteService.countAgree(postId);
+    long totalCount = agreeCount + voteService.countDisagree(postId);
     
     postService.evaluateAndClose(postId, agreeCount, totalCount);
   }
