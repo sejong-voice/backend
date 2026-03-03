@@ -1,4 +1,4 @@
-package com.example.sejong_voice.post.vote.dto;
+package com.example.sejong_voice.vote.dto;
 
 public record VoteSummaryResponse(
     long agreeCount,

@@ -1,8 +1,8 @@
 package com.example.sejong_voice._init;
 
 import com.example.sejong_voice.council.entity.Council;
-import com.example.sejong_voice.council.policy.entity.CouncilPolicy;
-import com.example.sejong_voice.council.policy.CouncilPolicyRepository;
+import com.example.sejong_voice.policy.entity.CouncilPolicy;
+import com.example.sejong_voice.policy.repository.PolicyRepository;
 import com.example.sejong_voice.council.repository.CouncilRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ import java.util.Map;
 public class DataInitializer implements CommandLineRunner {
 
   private final CouncilRepository councilRepository;
-  private final CouncilPolicyRepository councilPolicyRepository;
+  private final PolicyRepository councilPolicyRepository;
 
   private static final int MIN_VOTE = 10;
   private static final double APPROVE_RATIO = 0.1;

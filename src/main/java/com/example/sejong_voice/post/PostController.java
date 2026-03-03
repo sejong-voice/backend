@@ -4,6 +4,7 @@ import com.example.sejong_voice._common.security.AuthUser;
 import com.example.sejong_voice._common.security.UserPrincipal;
 import com.example.sejong_voice.post.dto.PostCreateRequest;
 import com.example.sejong_voice.post.dto.PostResponse;
+import com.example.sejong_voice.post.dto.PostResultRequest;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.dto.PostUpdateRequest;
 import jakarta.validation.Valid;
@@ -16,28 +17,21 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
 public class PostController {
 
-  private final PostService postService;
+  private final PostFacade postFacade;
 
   @PostMapping
   public ResponseEntity<UUID> create(
       @RequestBody @Valid PostCreateRequest request,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    UUID id = postService.create(
+    UUID id = postFacade.create(
         userPrincipal.getUserId(),
         request.title(),
         request.content(),
@@ -48,9 +42,9 @@ public class PostController {
     return ResponseEntity.status(HttpStatus.CREATED).body(id);
   }
 
-  @GetMapping("/{id}")
-  public ResponseEntity<PostResponse> get(@PathVariable UUID id) {
-    return ResponseEntity.ok(postService.get(id));
+  @GetMapping("/{postId}")
+  public ResponseEntity<PostResponse> get(@PathVariable UUID postId) {
+    return ResponseEntity.ok(postFacade.getPost(postId));
   }
 
   @GetMapping
@@ -59,9 +53,10 @@ public class PostController {
       @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    PostSearchCondition postSearchCondition = condition.withCurrentUserId(userPrincipal.getUserId());
+    UUID currentUserId = (userPrincipal != null) ? userPrincipal.getUserId() : null;
+    PostSearchCondition postSearchCondition = condition.withCurrentUserId(currentUserId);
 
-    return ResponseEntity.ok(postService.getAll(postSearchCondition, pageable));
+    return ResponseEntity.ok(postFacade.getAllPosts(postSearchCondition, pageable));
   }
 
   @PutMapping("/{postId}")
@@ -70,12 +65,45 @@ public class PostController {
       @RequestBody @Valid PostUpdateRequest request,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    PostResponse response = postService.update(
+    PostResponse response = postFacade.update(
         postId,
         request.title(),
         request.content(),
         userPrincipal.getUserId()
     );
     return ResponseEntity.ok(response);
+  }
+
+  @DeleteMapping("/{postId}")
+  public ResponseEntity<Void> delete(
+      @PathVariable UUID postId,
+      @AuthUser UserPrincipal userPrincipal
+  ) {
+    postFacade.delete(postId, userPrincipal.getUserId());
+    return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/{postId}/close")
+  public ResponseEntity<Void> closeEarly(
+      @PathVariable UUID postId,
+      @AuthUser UserPrincipal userPrincipal
+  ) {
+    postFacade.closeEarly(postId, userPrincipal.getUserId());
+    return ResponseEntity.ok().build();
+  }
+
+  @PutMapping("/{postId}/result")
+  public ResponseEntity<Void> updateResult(
+      @PathVariable UUID postId,
+      @RequestBody @Valid PostResultRequest request,
+      @AuthUser UserPrincipal userPrincipal
+  ) {
+    postFacade.updateResult(
+        postId,
+        userPrincipal.getUserId(),
+        request.status(),
+        request.resultContent()
+    );
+    return ResponseEntity.ok().build();
   }
 }

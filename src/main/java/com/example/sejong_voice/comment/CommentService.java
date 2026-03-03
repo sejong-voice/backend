@@ -25,23 +25,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommentService {
 
   private final CommentRepository commentRepository;
-  private final PostRepository postRepository;
-  private final UserRepository userRepository;
 
   @Transactional
   public UUID create(
-      UUID userId,
-      UUID postId,
+      User user,
+      Post post,
       UUID parentId,
       String content
   ) {
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
-
-    Post post = postRepository.findById(postId)
-        .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
-
-
     Comment parent = null;
     if (parentId != null) {
       parent = commentRepository.findById(parentId)
@@ -56,7 +47,7 @@ public class CommentService {
         .build();
 
     Comment saved = commentRepository.save(comment);
-    log.info("댓글 생성: commentId={}, userId={}, postId={}", saved.getId(), userId, postId);
+    log.info("댓글 생성: commentId={}, userId={}, postId={}", saved.getId(), user.getId(), post.getId());
 
     return saved.getId();
   }

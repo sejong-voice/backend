@@ -1,6 +1,9 @@
 package com.example.sejong_voice.post.repository;
 
 import com.example.sejong_voice.post.entity.Post;
+import com.example.sejong_voice.post.entity.PostStatus;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -15,4 +18,6 @@ public interface PostRepository extends JpaRepository<Post, UUID>, PostRepositor
 
   @Query("select p from Post p join fetch p.user where p.id = :id and p.deletedAt is null")
   Optional<Post> findByIdWithUser(@Param("id") UUID id);
+
+  List<Post> findAllByStatusAndVotingEndAtBefore(PostStatus status, LocalDateTime now);
 }

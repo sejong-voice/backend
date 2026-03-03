@@ -1,4 +1,4 @@
-package com.example.sejong_voice.post.vote.exception;
+package com.example.sejong_voice.vote.exception;
 
 import com.example.sejong_voice.exception.ErrorCode;
 import lombok.Getter;
