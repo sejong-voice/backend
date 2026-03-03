@@ -16,7 +16,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class VoteFacade {
 
-  private final VoteService postVoteService;
+  private final VoteService voteService;
   private final UserService userService;
   private final PostService postService;
 
@@ -25,11 +25,11 @@ public class VoteFacade {
     User user = userService.getById(userId);
     Post post = postService.getById(postId);
     
-    postVoteService.cast(post, user, choice);
+    voteService.cast(post, user, choice);
   }
 
   @Transactional(readOnly = true)
   public VoteSummaryResponse getSummary(UUID postId) {
-    return postVoteService.getSummary(postId);
+    return voteService.getSummary(postId);
   }
 }

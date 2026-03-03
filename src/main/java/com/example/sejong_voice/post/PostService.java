@@ -126,8 +126,11 @@ public class PostService {
   }
 
   @Transactional
-  public void updateResult(UUID postId, com.example.sejong_voice.post.entity.PostStatus status,
-      String resultContent) {
+  public void updateResult(
+      UUID postId,
+      PostStatus status,
+      String resultContent
+  ) {
     Post post = getById(postId);
     post.updateResult(status, resultContent);
     log.info("게시물 결과 업데이트: postId={}, status={}", postId, status);
