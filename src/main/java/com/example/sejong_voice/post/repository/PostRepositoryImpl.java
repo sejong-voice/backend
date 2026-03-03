@@ -77,7 +77,12 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
   }
 
   private BooleanExpression isMine(Boolean mine, UUID currentUserId) {
-    return (Boolean.TRUE.equals(mine) && currentUserId != null) ?
-        post.user.id.eq(currentUserId) : null;
+    if (Boolean.TRUE.equals(mine)) {
+      if (currentUserId == null) {
+        return post.id.isNull();
+      }
+      return post.user.id.eq(currentUserId);
+    }
+    return null;
   }
 }

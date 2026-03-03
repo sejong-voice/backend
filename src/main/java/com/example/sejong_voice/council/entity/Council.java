@@ -1,6 +1,6 @@
 package com.example.sejong_voice.council.entity;
 
-import com.example.sejong_voice.council.policy.entity.CouncilPolicy;
+import com.example.sejong_voice.policy.entity.CouncilPolicy;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.UUID;

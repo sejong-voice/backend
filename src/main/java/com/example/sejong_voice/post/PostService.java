@@ -1,19 +1,18 @@
 package com.example.sejong_voice.post;
 
-import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import com.example.sejong_voice.council.entity.Council;
-import com.example.sejong_voice.council.exception.CouncilErrorCode;
-import com.example.sejong_voice.council.policy.entity.CouncilPolicy;
-import com.example.sejong_voice.council.repository.CouncilRepository;
+import com.example.sejong_voice.policy.entity.CouncilPolicy;
 import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.post.dto.PostResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.entity.Post;
+import com.example.sejong_voice.post.entity.PostStatus;
 import com.example.sejong_voice.post.entity.PostVotingDuration;
 import com.example.sejong_voice.post.exception.PostErrorCode;
 import com.example.sejong_voice.post.repository.PostRepository;
-import com.example.sejong_voice.user.UserRepository;
 import com.example.sejong_voice.user.entity.User;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,28 +29,17 @@ import java.util.UUID;
 public class PostService {
 
   private final PostRepository postRepository;
-  private final UserRepository userRepository;
-  private final CouncilRepository councilRepository;
 
   @Transactional
-  public UUID create(
-      UUID userId,
+  public Post create(
+      User user,
+      Council council,
       String title,
       String content,
-      UUID councilId,
       PostVotingDuration postVotingDuration
   ) {
-    // 1. 연관 엔티티 조회
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
-
-    Council council = councilRepository.findById(councilId)
-        .orElseThrow(() -> new BusinessException(CouncilErrorCode.COUNCIL_NOT_FOUND));
-
-    // 2. 정책 스냅샷 가져오기 (해당 학생회의 현재 정책)
     CouncilPolicy policy = council.getPolicy();
 
-    // 3. 엔티티 생성 (객체와 스냅샷 전달)
     Post post = Post.builder()
         .user(user)
         .council(council)
@@ -62,10 +50,8 @@ public class PostService {
         .approveRatioSnapshot(policy.getApproveRatioThreshold())
         .build();
 
-    UUID id = postRepository.save(post).getId();
-    log.info("게시물 생성: postId={}, userId={}, councilId={}", id, userId, councilId);
-
-    return id;
+    log.info("게시물 생성: userId={}, councilId={}", user.getId(), council.getId());
+    return postRepository.save(post);
   }
 
   @Transactional
@@ -93,6 +79,11 @@ public class PostService {
     return postList;
   }
 
+  public Post getById(UUID id) {
+    return postRepository.findByIdAndDeletedAtIsNull(id)
+        .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
+  }
+
   @Transactional
   public PostResponse update(
       UUID postId,
@@ -115,5 +106,34 @@ public class PostService {
 
     // 4. 변경된 데이터 반환
     return PostResponse.from(post);
+  }
+
+  @Transactional
+  public void delete(UUID postId) {
+    Post post = getById(postId);
+    post.delete();
+    log.info("게시물 삭제 완료: postId={}", postId);
+  }
+
+  @Transactional
+  public void evaluateAndClose(UUID postId, long agreeCount, long totalCount) {
+    Post post = getById(postId);
+    post.evaluateAndClose(agreeCount, totalCount);
+    log.info(
+        "게시물 투표 종료: postId={}, status={}, result={}",
+        postId, post.getStatus(), post.getResultContent()
+    );
+  }
+
+  @Transactional
+  public void updateResult(UUID postId, com.example.sejong_voice.post.entity.PostStatus status,
+      String resultContent) {
+    Post post = getById(postId);
+    post.updateResult(status, resultContent);
+    log.info("게시물 결과 업데이트: postId={}, status={}", postId, status);
+  }
+
+  public List<Post> findAllByStatusAndVotingEndAtBefore(PostStatus status, LocalDateTime now) {
+    return postRepository.findAllByStatusAndVotingEndAtBefore(status, now);
   }
 }

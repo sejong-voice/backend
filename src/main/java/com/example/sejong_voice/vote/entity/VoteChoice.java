@@ -1,4 +1,4 @@
-package com.example.sejong_voice.post.vote.entity;
+package com.example.sejong_voice.vote.entity;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

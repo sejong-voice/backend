@@ -19,8 +19,7 @@ public record PostResponse(
     PostStatus status,
     PostVotingDuration postVotingDuration,
     LocalDateTime createdAt,
-    LocalDateTime votingEndAt,
-    Integer viewCount
+    LocalDateTime votingEndAt
 ) {
 
   public static PostResponse from(Post post) {
@@ -36,7 +35,6 @@ public record PostResponse(
         .postVotingDuration(post.getVotingDuration())
         .createdAt(post.getCreatedAt())
         .votingEndAt(post.getVotingEndAt())
-        .viewCount(post.getViewCount())
         .build();
   }
 }

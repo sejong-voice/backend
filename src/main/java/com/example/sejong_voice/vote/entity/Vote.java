@@ -1,4 +1,4 @@
-package com.example.sejong_voice.post.vote.entity;
+package com.example.sejong_voice.vote.entity;
 
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;

@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -125,8 +126,44 @@ public class Post {
     this.deletedAt = LocalDateTime.now();
   }
 
-  public void blind() {this.visibilityStatus = PostModerationStatus.BLINDED;}
+  public void blind() {
+    this.visibilityStatus = PostModerationStatus.BLINDED;
+  }
 
-  public void activate() { this.visibilityStatus = PostModerationStatus.ACTIVE;
+  public void activate() {
+    this.visibilityStatus = PostModerationStatus.ACTIVE;
+  }
+
+  public void evaluateAndClose(long agreeCount, long totalCount) {
+    if (this.status != PostStatus.VOTING) {
+      return;
+    }
+
+    this.closedAt = LocalDateTime.now();
+
+    // 1. 최소 투표 수 미달 -> 기각
+    if (totalCount < this.minVoteSnapshot) {
+      this.status = PostStatus.PENDING;
+      return;
+    }
+
+    // 2. 찬성 비율 미달 -> 기각
+    BigDecimal actualRatio = totalCount == 0 ? BigDecimal.ZERO :
+        BigDecimal.valueOf(agreeCount)
+            .divide(BigDecimal.valueOf(totalCount), 4, RoundingMode.HALF_UP);
+
+    if (actualRatio.compareTo(this.approveRatioSnapshot) < 0) {
+      this.status = PostStatus.PENDING;
+      return;
+    }
+
+    // 3. 통과 -> 답변 대기 상태
+    this.status = PostStatus.APPROVED;
+    this.approvedAt = this.closedAt;
+  }
+
+  public void updateResult(PostStatus status, String resultContent) {
+    this.status = status;
+    this.resultContent = resultContent;
   }
 }

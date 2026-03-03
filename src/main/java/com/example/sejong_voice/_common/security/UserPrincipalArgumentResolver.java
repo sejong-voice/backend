@@ -36,6 +36,6 @@ public class UserPrincipalArgumentResolver implements HandlerMethodArgumentResol
     if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {
       return authentication.getPrincipal();
     }
-    throw new BusinessException(AuthErrorCode.INVALID_USER);
+    return null;
   }
 }

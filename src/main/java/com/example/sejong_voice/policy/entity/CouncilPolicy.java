@@ -1,4 +1,4 @@
-package com.example.sejong_voice.council.policy.entity;
+package com.example.sejong_voice.policy.entity;
 
 import com.example.sejong_voice.council.entity.Council;
 import jakarta.persistence.*;

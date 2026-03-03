@@ -1,9 +1,9 @@
-package com.example.sejong_voice.post.vote;
+package com.example.sejong_voice.vote;
 
 import com.example.sejong_voice._common.security.AuthUser;
 import com.example.sejong_voice._common.security.UserPrincipal;
-import com.example.sejong_voice.post.vote.dto.VoteRequest;
-import com.example.sejong_voice.post.vote.dto.VoteSummaryResponse;
+import com.example.sejong_voice.vote.dto.VoteRequest;
+import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +14,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/posts/{postId}/votes")
 @RequiredArgsConstructor
-public class PostVoteController {
+public class VoteController {
 
-  private final PostVoteService postVoteService;
+  private final VoteFacade voteFacade;
 
   @PutMapping
   public ResponseEntity<Void> cast(
@@ -24,7 +24,7 @@ public class PostVoteController {
       @RequestBody @Valid VoteRequest request,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    postVoteService.cast(postId, userPrincipal.getUserId(), request.choice());
+    voteFacade.cast(postId, userPrincipal.getUserId(), request.choice());
     return ResponseEntity.ok().build();
   }
 
@@ -32,6 +32,6 @@ public class PostVoteController {
   public ResponseEntity<VoteSummaryResponse> getSummary(
       @PathVariable UUID postId
   ) {
-    return ResponseEntity.ok(postVoteService.getSummary(postId));
+    return ResponseEntity.ok(voteFacade.getSummary(postId));
   }
 }

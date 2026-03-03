@@ -1,6 +1,6 @@
-package com.example.sejong_voice.council.policy.dto;
+package com.example.sejong_voice.policy.dto;
 
-import com.example.sejong_voice.council.policy.entity.CouncilPolicy;
+import com.example.sejong_voice.policy.entity.CouncilPolicy;
 import java.math.BigDecimal;
 
 public record CouncilPolicyResponse(

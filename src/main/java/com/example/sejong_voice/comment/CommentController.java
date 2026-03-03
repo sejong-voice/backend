@@ -17,14 +17,14 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CommentController {
 
-  private final CommentService commentService;
+  private final CommentFacade commentFacade;
 
   @PostMapping
   public ResponseEntity<UUID> create(
       @RequestBody @Valid CommentCreateRequest request,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    UUID id = commentService.create(
+    UUID id = commentFacade.create(
         userPrincipal.getUserId(),
         request.postId(),
         request.parentId(),
@@ -35,7 +35,7 @@ public class CommentController {
 
   @GetMapping("/post/{postId}")
   public ResponseEntity<List<CommentResponse>> get(@PathVariable UUID postId) {
-    return ResponseEntity.ok(commentService.getByPostId(postId));
+    return ResponseEntity.ok(commentFacade.getByPostId(postId));
   }
 
   @DeleteMapping("/{id}")
@@ -43,7 +43,7 @@ public class CommentController {
       @PathVariable UUID id,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    commentService.delete(userPrincipal.getUserId(), id);
+    commentFacade.delete(userPrincipal.getUserId(), id);
     return ResponseEntity.noContent().build();
   }
 }
