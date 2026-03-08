@@ -61,9 +61,14 @@ public class ReportController {
   @PatchMapping("/admin/moderations/posts/{postId}")
   public ResponseEntity<Void> moderatePost(
       @PathVariable UUID postId,
-      @RequestBody @Valid PostModerationRequest request
+      @RequestBody @Valid PostModerationRequest request,
+      @AuthUser UserPrincipal userPrincipal
   ) {
-    reportService.moderatePost(postId, request.actionType());
+    reportService.moderatePost(
+            userPrincipal.getUserId(), // principal에서 userId 추출
+            postId,
+            request.actionType()
+    );
     return ResponseEntity.ok().build();
   }
 

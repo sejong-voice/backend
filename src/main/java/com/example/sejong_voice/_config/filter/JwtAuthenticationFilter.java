@@ -1,12 +1,11 @@
-package com.example.sejong_voice.auth.jwt;
+package com.example.sejong_voice._config.filter;
 
-import io.jsonwebtoken.Claims;
+import com.example.sejong_voice.auth.jwt.JwtUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;

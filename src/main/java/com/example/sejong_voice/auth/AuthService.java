@@ -33,7 +33,8 @@ public class AuthService {
   @Transactional
   public LoginResponse login(String studentNo, String password) {
     //1. DB 조회
-    User user = userRepository.findByStudentNo(studentNo).orElseGet(() -> {
+    User user = userRepository.findByStudentNo(studentNo)
+            .orElseGet(() -> {
 
       // 2. DB에 유저가 없다면 파이썬 서버로 SSO 인증 요청
       SsoResponse ssoResponse = schoolAuthClient.getStudentProfile(
@@ -51,9 +52,19 @@ public class AuthService {
       );
     });
 
-    // 4. DB에 있던 유저라면 비밀번호 검증
+    // 4. DB에 있던 유저라면 비밀번호 검증 -> 비번 틀리면 다시 sso요청, 예외
     if (!passwordEncoder.matches(password, user.getPassword())) {
-      throw new BusinessException(AuthErrorCode.INVALID_PASSWORD);
+      // SSO 재검증: 여기서 실패하면 예외 던지도록 매핑
+      try {
+        schoolAuthClient.getStudentProfile(new SsoRequest(studentNo, password));
+      } catch (Exception e) {
+        throw new BusinessException(AuthErrorCode.INVALID_PASSWORD);
+      }
+
+      // SSO 성공이면 비번 동기화 후 통과
+      user.updatePassword(passwordEncoder.encode(password));
+      // ssoResponse.user() 이런식으로는 할 필요가 없는게 sso를 예외없이 통과된거라 검증된 비번이기 때문
+      userRepository.save(user);
     }
 
     // 5. 계정 상태 체크 (정지 여부, duration 만료하면 acitvate+duration 초기화)
@@ -80,8 +91,6 @@ public class AuthService {
         jwtProperties.getRefreshTokenExpiration()
     );
 
-//    refreshTokenRepository.deleteByUser(user);
-//    refreshTokenRepository.flush();
 
     Instant newExpiry = Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration());
 
@@ -143,7 +152,7 @@ public class AuthService {
     );
   }
 
-  // 4.유저 정보 조회_--------
+  // 4.유저 정보 조회
   public UserSearchResponse getUserProfile(String studentNo) {
     User user = userRepository.findByStudentNo(studentNo)
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
@@ -153,10 +162,10 @@ public class AuthService {
 
   // 5. 유저 정보 수정 (Super 계정 전용 - 학과 수정)
   @Transactional
-  public void updateDepartment(String targetStudentNo, DepartmentRequest newDepartment) {
-//        if(superRole.getRole()!=UserRole.SUPER){//super계정인 경우에
-//            throw new NotSuperAccountException();
-//        }
+  public void updateDepartment(
+          String targetStudentNo,
+          DepartmentRequest newDepartment
+  ) {
     User targetUser = userRepository.findByStudentNo(targetStudentNo)
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
     targetUser.updateDepartment(newDepartment);
@@ -164,11 +173,11 @@ public class AuthService {
 
   // 6. 상태 변경 (Super 계정 전용 - 제재 및 토큰 파기)
   @Transactional
-  public void updateStatus(String targetStudentNo, UserStatus newStatus,
-      LocalDateTime newDuration) {
-//        if(superRole.getRole()!=UserRole.SUPER){//super계정인 경우에
-//            throw new NotSuperAccountException();
-//        }
+  public void updateStatus(
+          String targetStudentNo,
+          UserStatus newStatus,
+          LocalDateTime newDuration
+  ) {
     User targetUser = userRepository.findByStudentNo(targetStudentNo)
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
     targetUser.updateStatus(newStatus, newDuration);
@@ -189,13 +198,10 @@ public class AuthService {
 
   // 7. 권한 수정 (Super 계정 전용 - Role 변경)
   @Transactional
-  public void updateRole(String targetStudentNo, UserRole newRole) {
-//        // 1. 권한이 SUPER가 아니면 즉시 예외 발생
-//        if (superRole.getRole() != UserRole.SUPER) {
-//            throw new NotSuperAccountException(); //
-//        }
-
-    // 2. 권한이 확인된 경우에만 이후 로직 실행
+  public void updateRole(
+          String targetStudentNo,
+          UserRole newRole
+  ) {
     User targetUser = userRepository.findByStudentNo(targetStudentNo)
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
     targetUser.updateRole(newRole);

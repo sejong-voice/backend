@@ -61,10 +61,12 @@ public class User {
     this.createdAt = LocalDateTime.now();
   }
 
-  // 비즈니스 로직에 따른 업데이트 메서드 -> role / status-duration따로따로 dto 마련해서 업데이트 하는 구조
+
   public void updateDepartment(DepartmentRequest newDepartment) {
     this.department = newDepartment.department();
   }
+
+  public void updatePassword(String newPassword){this.password = newPassword;}
 
   public void updateStatus(UserStatus status, LocalDateTime duration) {
     this.status = status;

@@ -5,6 +5,7 @@ import static com.example.sejong_voice.post.entity.QPost.post;
 import com.example.sejong_voice.post.dto.PostResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.entity.Post;
+import com.example.sejong_voice.post.entity.PostModerationStatus;
 import com.example.sejong_voice.post.entity.PostStatus;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -34,6 +35,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
             responsibleCouncilEq(condition.councilId()),
             keywordContains(condition.keyword()),
             isMine(condition.mine(), condition.currentUserId()),
+                post.visibilityStatus.eq(PostModerationStatus.ACTIVE), // ACTIVE만 조회가능하게
             post.deletedAt.isNull()
         )
         .offset(pageable.getOffset())

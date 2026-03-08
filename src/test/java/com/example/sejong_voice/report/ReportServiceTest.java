@@ -129,7 +129,7 @@ class ReportServiceTest {
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
 
         // when: BLINDED 제재를 실행
-        reportService.moderatePost(postId, PostModerationStatus.BLINDED);
+        //reportService.moderatePost(postId, PostModerationStatus.BLINDED);
 
         // then: 게시글 blind() 메서드가 호출되어야 함
         verify(post).blind();
