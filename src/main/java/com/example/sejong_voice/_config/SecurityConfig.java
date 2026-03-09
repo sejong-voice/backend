@@ -1,8 +1,11 @@
 package com.example.sejong_voice._config;
 
 
-import com.example.sejong_voice.auth.jwt.JwtAuthenticationFilter;
+import com.example.sejong_voice._config.filter.JwtAuthenticationFilter;
+import com.example.sejong_voice._config.filter.UserStatusFilter;
 import com.example.sejong_voice.auth.jwt.JwtUtil;
+import com.example.sejong_voice.user.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +23,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
   private final JwtUtil jwtUtil;//토큰 검증용
+  private final UserRepository userRepository;
+  private final ObjectMapper objectMapper;
 
 
   @Bean
@@ -74,6 +79,10 @@ public class SecurityConfig {
     // 3. JWT 필터 적용 (UsernamePasswordAuthenticationFilter 이전에 실행)
     http.addFilterBefore(new JwtAuthenticationFilter(jwtUtil),
         UsernamePasswordAuthenticationFilter.class);
+
+
+    http.addFilterAfter(new UserStatusFilter(userRepository, objectMapper),
+            JwtAuthenticationFilter.class);
 
     return http.build();
   }

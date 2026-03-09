@@ -18,6 +18,8 @@ import com.example.sejong_voice.report.repository.CommentReportRepository;
 import com.example.sejong_voice.report.repository.PostReportRepository;
 import com.example.sejong_voice.user.UserRepository;
 import com.example.sejong_voice.user.entity.User;
+import com.example.sejong_voice.history.entity.PostStatusHistory;
+import com.example.sejong_voice.history.repository.PostStatusHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ReportService {
     private final PostReportRepository postReportRepository;
+    private final PostStatusHistoryRepository postStatusHistoryRepository;
     private final CommentReportRepository commentReportRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
@@ -125,16 +128,34 @@ public class ReportService {
 
     // 게시글 제재
     @Transactional
-    public void moderatePost(UUID postId, PostModerationStatus actionType) {
+    public void moderatePost(
+            UUID adminUserId ,
+            UUID postId,
+            PostModerationStatus actionType
+    ) {
         //제재할 post. 없으면 예외처리
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException(ReportErrorCode.POST_NOT_FOUND));
+
+        // 변경 전 상태 임시 저장
+        PostModerationStatus fromStatus = post.getVisibilityStatus();
+
 
         switch (actionType) {
             case ACTIVE -> post.activate();   // ACTIVE 복구
             case DELETED -> post.delete();    // 삭제 처리
             case BLINDED -> post.blind();     // 블라인드 처리
         }
+
+        // 히스토리 저장 (builder 사용)
+        postStatusHistoryRepository.save(
+                PostStatusHistory.builder()
+                        .userId(adminUserId)
+                        .post(post)
+                        .fromStatus(fromStatus)
+                        .toStatus(actionType)
+                        .build()
+        );
     }
 
     // 댓글 제재
