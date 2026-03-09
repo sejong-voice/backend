@@ -30,7 +30,7 @@ public class PostFacade {
     private final UserService userService;
     private final CouncilService councilService;
     private final VoteService voteService;
-    //private final NotificationService notificationService;
+    private final NotificationService notificationService;
 
     @Transactional
     public UUID create(
@@ -120,26 +120,20 @@ public class PostFacade {
 
     @Transactional
     public void processClosing(UUID postId) {
+        Post post = postService.getById(postId);
+        PostStatus beforeStatus = post.getStatus();
+
         long agreeCount = voteService.countAgree(postId);
         long totalCount = agreeCount + voteService.countDisagree(postId);
 
         postService.evaluateAndClose(postId, agreeCount, totalCount);
 
-    /*
-    Post post = postService.getById(postId);
-    PostStatus beforeStatus = post.getStatus();
+        PostStatus afterStatus = post.getStatus(); // 같은 트랜잭션 내 managed entity 기준
 
-    long agreeCount = voteService.countAgree(postId);
-    long totalCount = agreeCount + voteService.countDisagree(postId);
+        // "APPROVED 상태인지"가 아니라 "APPROVED로 전환됐는지" 체크
+        if (beforeStatus != PostStatus.APPROVED && afterStatus == PostStatus.APPROVED) {
+            notificationService.createPostApprovedNotifications(post);
+        }
 
-    postService.evaluateAndClose(postId, agreeCount, totalCount);
-
-    PostStatus afterStatus = post.getStatus(); // 같은 트랜잭션 내 managed entity 기준
-
-    // "APPROVED 상태인지"가 아니라 "APPROVED로 전환됐는지" 체크
-    if (beforeStatus != PostStatus.APPROVED && afterStatus == PostStatus.APPROVED) {
-      notificationService.createPostApprovedNotifications(post);
-    }
-     */
     }
 }

@@ -5,7 +5,6 @@ import com.example.sejong_voice.notification.entity.NotificationType;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;

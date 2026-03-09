@@ -3,6 +3,7 @@ package com.example.sejong_voice._config.filter;
 import com.example.sejong_voice._common.ErrorResponse;
 import com.example.sejong_voice._common.security.UserPrincipal;
 import com.example.sejong_voice.auth.exception.AuthErrorCode;
+import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.user.UserRepository;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserStatus;
@@ -49,7 +50,8 @@ public class UserStatusFilter extends OncePerRequestFilter {
         }
 
         // 3) principal의 userId로 DB에서 최신 유저 상태 조회
-        User user = userRepository.findById(principal.getUserId()).orElse(null);
+        User user = userRepository.findById(principal.getUserId()).orElseThrow(
+                () -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
         // 4) 유저가 없거나 ACTIVE가 아니면 접근 차단
         //    - SecurityContext 비우고
