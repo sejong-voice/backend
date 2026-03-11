@@ -6,9 +6,12 @@ import com.example.sejong_voice._config.filter.UserStatusFilter;
 import com.example.sejong_voice.auth.jwt.JwtUtil;
 import com.example.sejong_voice.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -16,6 +19,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -25,12 +31,15 @@ public class SecurityConfig {
   private final JwtUtil jwtUtil;//토큰 검증용
   private final UserRepository userRepository;
   private final ObjectMapper objectMapper;
+  @Value("${app.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173}")
+  private List<String> allowedOrigins;
 
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
         // 1. REST API이므로 필요 없는 기능 끄기
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .csrf(csrf -> csrf.disable())
         .formLogin(form -> form.disable())
         .httpBasic(basic -> basic.disable())
@@ -40,6 +49,7 @@ public class SecurityConfig {
         // 2. 경로별 권한 설정 (위에서부터 우선순위 적용)
         // api 경로만 수정하면 되긴함
         .authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh")
             .permitAll()//refresh는 토큰이 만료되어도 접근가능하게 해용해두어ㅑ하는데
 
@@ -93,4 +103,17 @@ public class SecurityConfig {
     return new BCryptPasswordEncoder();
   }
 
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration config = new CorsConfiguration();
+    config.setAllowedOrigins(allowedOrigins);
+    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    config.setAllowedHeaders(
+        List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+    config.setAllowCredentials(true);
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", config);
+    return source;
+  }
 }
