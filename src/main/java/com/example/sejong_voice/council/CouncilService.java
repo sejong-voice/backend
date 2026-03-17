@@ -6,9 +6,11 @@ import com.example.sejong_voice.council.exception.CouncilErrorCode;
 import com.example.sejong_voice.council.repository.CouncilMemberRepository;
 import com.example.sejong_voice.council.repository.CouncilRepository;
 import com.example.sejong_voice.exception.BusinessException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +23,28 @@ public class CouncilService {
   private final CouncilMemberRepository councilMemberRepository;
 
   public List<CouncilResponse> getAll() {
-    return councilRepository.findAll().stream()
-        .map(CouncilResponse::new)
-        .collect(Collectors.toList());
+    List<Council> councils = councilRepository.findAll();
+    Map<UUID, List<Council>> childrenByParentId = new HashMap<>();
+    List<Council> rootList = new ArrayList<>();
+
+    for (Council council : councils) {
+      Council parent = council.getParent();
+      if (parent == null) {
+        rootList.add(council);
+        continue;
+      }
+
+      childrenByParentId
+          .computeIfAbsent(parent.getId(), ignored -> new ArrayList<>())
+          .add(council);
+    }
+
+    List<CouncilResponse> orderedResponses = new ArrayList<>();
+    for (Council root : rootList) {
+      addCouncilWithDescendants(root, childrenByParentId, orderedResponses);
+    }
+
+    return orderedResponses;
   }
 
   public Council getById(UUID id) {
@@ -33,5 +54,17 @@ public class CouncilService {
 
   public boolean isAdmin(UUID userId, UUID councilId) {
     return councilMemberRepository.existsByUserIdAndCouncilId(userId, councilId);
+  }
+
+  private void addCouncilWithDescendants(
+      Council council,
+      Map<UUID, List<Council>> childrenByParentId,
+      List<CouncilResponse> orderedResponses
+  ) {
+    orderedResponses.add(new CouncilResponse(council));
+
+    for (Council child : childrenByParentId.getOrDefault(council.getId(), List.of())) {
+      addCouncilWithDescendants(child, childrenByParentId, orderedResponses);
+    }
   }
 }
