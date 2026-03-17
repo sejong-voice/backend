@@ -8,7 +8,6 @@ import com.example.sejong_voice.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -31,7 +30,6 @@ public class SecurityConfig {
   private final JwtUtil jwtUtil;//토큰 검증용
   private final UserRepository userRepository;
   private final ObjectMapper objectMapper;
-  @Value("${app.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173}")
   private List<String> allowedOrigins;
 
 
@@ -106,7 +104,7 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOrigins(allowedOrigins);
+    config.setAllowedOrigins(List.of("*"));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     config.setAllowedHeaders(
         List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
