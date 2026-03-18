@@ -26,114 +26,122 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PostFacade {
 
-    private final PostService postService;
-    private final UserService userService;
-    private final CouncilService councilService;
-    private final VoteService voteService;
-    private final NotificationService notificationService;
+  private final PostService postService;
+  private final UserService userService;
+  private final CouncilService councilService;
+  private final VoteService voteService;
+  private final NotificationService notificationService;
 
-    @Transactional
-    public UUID create(
-            UUID userId,
-            String title,
-            String content,
-            UUID councilId,
-            PostVotingDuration votingDuration
-    ) {
-        User user = userService.getById(userId);
-        Council council = councilService.getById(councilId);
+  @Transactional
+  public UUID create(
+      UUID userId,
+      String title,
+      String content,
+      UUID councilId,
+      PostVotingDuration votingDuration
+  ) {
+    User user = userService.getById(userId);
+    Council council = councilService.getById(councilId);
 
-        return postService.create(user, council, title, content, votingDuration).getId();
+    return postService.create(user, council, title, content, votingDuration).getId();
+  }
+
+  @Transactional
+  public PostResponse getPost(UUID postId) {
+    return postService.get(postId);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<PostResponse> getAllPosts(PostSearchCondition condition, Pageable pageable) {
+    if (Boolean.TRUE.equals(condition.assignedToMe())) {
+      UUID currentUserId = condition.currentUserId();
+
+      if (!councilService.hasManagedCouncil(currentUserId)) {
+        throw new BusinessException(PostErrorCode.ACCESS_DENIED);
+      }
     }
 
-    @Transactional
-    public PostResponse getPost(UUID postId) {
-        return postService.get(postId);
+    return postService.getAll(condition, pageable);
+  }
+
+  @Transactional
+  public PostResponse update(UUID postId, String title, String content, UUID userId) {
+    return postService.update(postId, title, content, userId);
+  }
+
+  @Transactional
+  public void delete(UUID postId, UUID userId) {
+    Post post = postService.getById(postId);
+    User user = userService.getById(userId);
+
+    // 1. 권한 체크
+    boolean isAuthor = post.getUser().getId().equals(userId);
+    boolean isSuper = user.getRole() == UserRole.SUPER;
+    boolean isCouncilAdmin = councilService.isAdmin(userId, post.getCouncil().getId());
+
+    if (!isAuthor && !isSuper && !isCouncilAdmin) {
+      throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    @Transactional(readOnly = true)
-    public Page<PostResponse> getAllPosts(PostSearchCondition condition, Pageable pageable) {
-        return postService.getAll(condition, pageable);
+    // 2. 제약 조건 체크 (학생 작성자의 경우 투표가 1개라도 있으면 삭제 불가)
+    if (isAuthor && !isSuper && !isCouncilAdmin) {
+      if (voteService.existsByPostId(postId)) {
+        throw new BusinessException(PostErrorCode.CANNOT_DELETE_POST_WITH_VOTES);
+      }
     }
 
-    @Transactional
-    public PostResponse update(UUID postId, String title, String content, UUID userId) {
-        return postService.update(postId, title, content, userId);
+    // 3. 삭제 수행 (Soft Delete)
+    postService.delete(postId);
+  }
+
+  @Transactional
+  public void closeEarly(UUID postId, UUID userId) {
+    Post post = postService.getById(postId);
+
+    // 권한 체크 (해당 학생회의 운영진만 가능)
+    boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
+
+    if (!isMember) {
+      throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    @Transactional
-    public void delete(UUID postId, UUID userId) {
-        Post post = postService.getById(postId);
-        User user = userService.getById(userId);
+    processClosing(postId);
+  }
 
-        // 1. 권한 체크
-        boolean isAuthor = post.getUser().getId().equals(userId);
-        boolean isSuper = user.getRole() == UserRole.SUPER;
-        boolean isCouncilAdmin = councilService.isAdmin(userId, post.getCouncil().getId());
+  @Transactional
+  public void updateResult(UUID postId, UUID userId, PostStatus status, String resultContent) {
+    Post post = postService.getById(postId);
 
-        if (!isAuthor && !isSuper && !isCouncilAdmin) {
-            throw new BusinessException(PostErrorCode.ACCESS_DENIED);
-        }
+    // 권한 체크 (해당 학생회의 운영진만 가능)
+    boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
 
-        // 2. 제약 조건 체크 (학생 작성자의 경우 투표가 1개라도 있으면 삭제 불가)
-        if (isAuthor && !isSuper && !isCouncilAdmin) {
-            if (voteService.existsByPostId(postId)) {
-                throw new BusinessException(PostErrorCode.CANNOT_DELETE_POST_WITH_VOTES);
-            }
-        }
-
-        // 3. 삭제 수행 (Soft Delete)
-        postService.delete(postId);
+    if (!isMember) {
+      throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    @Transactional
-    public void closeEarly(UUID postId, UUID userId) {
-        Post post = postService.getById(postId);
-
-        // 권한 체크 (해당 학생회의 운영진만 가능)
-        boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
-
-        if (!isMember) {
-            throw new BusinessException(PostErrorCode.ACCESS_DENIED);
-        }
-
-        processClosing(postId);
+    if (status != PostStatus.COMPLETED && status != PostStatus.REJECTED) {
+      throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    @Transactional
-    public void updateResult(UUID postId, UUID userId, PostStatus status, String resultContent) {
-        Post post = postService.getById(postId);
+    postService.updateResult(postId, status, resultContent);
+  }
 
-        // 권한 체크 (해당 학생회의 운영진만 가능)
-        boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
+  @Transactional
+  public void processClosing(UUID postId) {
+    Post post = postService.getById(postId);
+    PostStatus beforeStatus = post.getStatus();
 
-        if (!isMember) {
-            throw new BusinessException(PostErrorCode.ACCESS_DENIED);
-        }
+    long agreeCount = voteService.countAgree(postId);
+    long totalCount = agreeCount + voteService.countDisagree(postId);
 
-        if (status != PostStatus.COMPLETED && status != PostStatus.REJECTED) {
-            throw new BusinessException(PostErrorCode.ACCESS_DENIED);
-        }
+    postService.evaluateAndClose(postId, agreeCount, totalCount);
 
-        postService.updateResult(postId, status, resultContent);
+    PostStatus afterStatus = post.getStatus(); // 같은 트랜잭션 내 managed entity 기준
+
+    // "APPROVED 상태인지"가 아니라 "APPROVED로 전환됐는지" 체크
+    if (beforeStatus != PostStatus.APPROVED && afterStatus == PostStatus.APPROVED) {
+      notificationService.createPostApprovedNotifications(post);
     }
 
-    @Transactional
-    public void processClosing(UUID postId) {
-        Post post = postService.getById(postId);
-        PostStatus beforeStatus = post.getStatus();
-
-        long agreeCount = voteService.countAgree(postId);
-        long totalCount = agreeCount + voteService.countDisagree(postId);
-
-        postService.evaluateAndClose(postId, agreeCount, totalCount);
-
-        PostStatus afterStatus = post.getStatus(); // 같은 트랜잭션 내 managed entity 기준
-
-        // "APPROVED 상태인지"가 아니라 "APPROVED로 전환됐는지" 체크
-        if (beforeStatus != PostStatus.APPROVED && afterStatus == PostStatus.APPROVED) {
-            notificationService.createPostApprovedNotifications(post);
-        }
-
-    }
+  }
 }

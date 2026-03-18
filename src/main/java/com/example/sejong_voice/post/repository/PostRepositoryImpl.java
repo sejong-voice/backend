@@ -1,5 +1,6 @@
 package com.example.sejong_voice.post.repository;
 
+import static com.example.sejong_voice.council.entity.QCouncilMember.councilMember;
 import static com.example.sejong_voice.post.entity.QPost.post;
 
 import com.example.sejong_voice.post.dto.PostResponse;
@@ -33,9 +34,10 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
         .where(
             statusEq(condition.status()),
             responsibleCouncilEq(condition.councilId()),
+            assignedToMe(condition.assignedToMe(), condition.currentUserId()),
             keywordContains(condition.keyword()),
             isMine(condition.mine(), condition.currentUserId()),
-                post.visibilityStatus.eq(PostModerationStatus.ACTIVE), // ACTIVE만 조회가능하게
+            post.visibilityStatus.eq(PostModerationStatus.ACTIVE), // ACTIVE만 조회가능하게
             post.deletedAt.isNull()
         )
         .offset(pageable.getOffset())
@@ -50,6 +52,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
         .where(
             statusEq(condition.status()),
             responsibleCouncilEq(condition.councilId()),
+            assignedToMe(condition.assignedToMe(), condition.currentUserId()),
             keywordContains(condition.keyword()),
             isMine(condition.mine(), condition.currentUserId()),
             post.deletedAt.isNull()
@@ -71,6 +74,21 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
 
   private BooleanExpression responsibleCouncilEq(UUID councilId) {
     return councilId != null ? post.council.id.eq(councilId) : null;
+  }
+
+  private BooleanExpression assignedToMe(Boolean assignedToMe, UUID currentUserId) {
+    if (!Boolean.TRUE.equals(assignedToMe)) {
+      return null;
+    }
+
+    return queryFactory
+        .selectOne()
+        .from(councilMember)
+        .where(
+            councilMember.user.id.eq(currentUserId),
+            councilMember.council.id.eq(post.council.id)
+        )
+        .exists();
   }
 
   private BooleanExpression keywordContains(String keyword) {
