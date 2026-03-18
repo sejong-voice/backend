@@ -52,11 +52,11 @@ public class CommentService {
     return saved.getId();
   }
 
-  public List<CommentResponse> getByPostId(UUID postId) {
+  public List<CommentResponse> getByPostId(UUID postId, UUID currentUserId) {
     List<Comment> commentList = commentRepository.findAllActiveByPostIdWithUserOrderByCreatedAtAsc(postId);
     return commentList.stream()
         .filter(comment -> comment.getParent() == null)
-        .map(CommentResponse::from)
+        .map(comment -> CommentResponse.from(comment, currentUserId))
         .toList();
   }
 

@@ -29,8 +29,8 @@ public class CommentFacade {
   }
 
   @Transactional(readOnly = true)
-  public List<CommentResponse> getByPostId(UUID postId) {
-    return commentService.getByPostId(postId);
+  public List<CommentResponse> getByPostId(UUID postId, UUID currentUserId) {
+    return commentService.getByPostId(postId, currentUserId);
   }
 
   @Transactional
