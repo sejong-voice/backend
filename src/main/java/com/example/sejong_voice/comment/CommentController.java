@@ -45,8 +45,12 @@ public class CommentController {
       description = "특정 게시글의 댓글 목록을 조회합니다. ACTIVE(보여지는 댓글),DELETED(삭제할 댓글),BLINDED(가림 처리한 댓글). ACTIVE 상태만 필터링해서 프론트로 보내줄거임"
   )
   @GetMapping("/post/{postId}")
-  public ResponseEntity<List<CommentResponse>> get(@PathVariable UUID postId) {
-    return ResponseEntity.ok(commentFacade.getByPostId(postId));
+  public ResponseEntity<List<CommentResponse>> get(
+      @PathVariable UUID postId,
+      @AuthUser UserPrincipal userPrincipal
+  ) {
+    UUID currentUserId = userPrincipal != null ? userPrincipal.getUserId() : null;
+    return ResponseEntity.ok(commentFacade.getByPostId(postId, currentUserId));
   }
 
   @Operation(
