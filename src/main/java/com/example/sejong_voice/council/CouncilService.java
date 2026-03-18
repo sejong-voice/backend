@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CouncilService {
+
   private final CouncilRepository councilRepository;
   private final CouncilMemberRepository councilMemberRepository;
 
@@ -54,6 +55,10 @@ public class CouncilService {
 
   public boolean isAdmin(UUID userId, UUID councilId) {
     return councilMemberRepository.existsByUserIdAndCouncilId(userId, councilId);
+  }
+
+  public boolean hasManagedCouncil(UUID userId) {
+    return councilMemberRepository.existsByUserId(userId);
   }
 
   private void addCouncilWithDescendants(
