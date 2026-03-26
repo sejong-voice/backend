@@ -3,7 +3,7 @@ package com.example.sejong_voice.post.repository;
 import static com.example.sejong_voice.council.entity.QCouncilMember.councilMember;
 import static com.example.sejong_voice.post.entity.QPost.post;
 
-import com.example.sejong_voice.post.dto.PostResponse;
+import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostModerationStatus;
@@ -24,7 +24,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public Page<PostResponse> search(PostSearchCondition condition, Pageable pageable) {
+  public Page<PostListResponse> search(PostSearchCondition condition, Pageable pageable) {
 
     // 1. 컨텐츠 조회
     List<Post> content = queryFactory
@@ -60,8 +60,8 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
         .fetchOne();
 
     // 3. 변환 및 반환
-    List<PostResponse> dtoList = content.stream()
-        .map(PostResponse::from)
+    List<PostListResponse> dtoList = content.stream()
+        .map(PostListResponse::from)
         .toList();
 
     return new PageImpl<>(dtoList, pageable, total != null ? total : 0L);

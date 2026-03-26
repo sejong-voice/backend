@@ -8,7 +8,7 @@ import java.util.UUID;
 import lombok.Builder;
 
 @Builder
-public record PostResponse(
+public record PostDetailResponse(
     UUID id,
     UUID userId,
     String userStudentNo,
@@ -22,8 +22,8 @@ public record PostResponse(
     LocalDateTime votingEndAt
 ) {
 
-  public static PostResponse from(Post post) {
-    return PostResponse.builder()
+  public static PostDetailResponse from(Post post) {
+    return PostDetailResponse.builder()
         .id(post.getId())
         .userId(post.getUser().getId())
         .userStudentNo(post.getUser().getStudentNo())

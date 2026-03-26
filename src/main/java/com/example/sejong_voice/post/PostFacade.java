@@ -1,9 +1,11 @@
 package com.example.sejong_voice.post;
 
+import com.example.sejong_voice.comment.CommentService;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.council.CouncilService;
 import com.example.sejong_voice.notification.NotificationService;
-import com.example.sejong_voice.post.dto.PostResponse;
+import com.example.sejong_voice.post.dto.PostDetailResponse;
+import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatus;
@@ -14,12 +16,14 @@ import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.vote.VoteService;
 import com.example.sejong_voice.exception.BusinessException;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -31,6 +35,7 @@ public class PostFacade {
   private final CouncilService councilService;
   private final VoteService voteService;
   private final NotificationService notificationService;
+  private final CommentService commentService;
 
   @Transactional
   public UUID create(
@@ -47,12 +52,12 @@ public class PostFacade {
   }
 
   @Transactional
-  public PostResponse getPost(UUID postId) {
+  public PostDetailResponse getPost(UUID postId) {
     return postService.get(postId);
   }
 
   @Transactional(readOnly = true)
-  public Page<PostResponse> getAllPosts(PostSearchCondition condition, Pageable pageable) {
+  public Page<PostListResponse> getList(PostSearchCondition condition, Pageable pageable) {
     if (Boolean.TRUE.equals(condition.assignedToMe())) {
       UUID currentUserId = condition.currentUserId();
 
@@ -61,11 +66,22 @@ public class PostFacade {
       }
     }
 
-    return postService.getAll(condition, pageable);
+    Page<PostListResponse> posts = postService.getList(condition, pageable);
+    List<UUID> postIds = posts.getContent().stream()
+        .map(PostListResponse::id)
+        .toList();
+
+    Map<UUID, Long> voteCountByPostId = voteService.countByPostIds(postIds);
+    Map<UUID, Long> commentCountByPostId = commentService.countActiveByPostIds(postIds);
+
+    return posts.map(response -> response.withCounts(
+        voteCountByPostId.getOrDefault(response.id(), 0L),
+        commentCountByPostId.getOrDefault(response.id(), 0L)
+    ));
   }
 
   @Transactional
-  public PostResponse update(UUID postId, String title, String content, UUID userId) {
+  public PostDetailResponse update(UUID postId, String title, String content, UUID userId) {
     return postService.update(postId, title, content, userId);
   }
 
