@@ -6,6 +6,9 @@ import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.Vote;
 import com.example.sejong_voice.vote.entity.VoteChoice;
 import com.example.sejong_voice.vote.repository.VoteRepository;
+import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -65,6 +68,18 @@ public class VoteService {
 
   public long countDisagree(UUID postId) {
     return voteRepository.countByPostIdAndChoice(postId, VoteChoice.DISAGREE);
+  }
+
+  public Map<UUID, Long> countByPostIds(Collection<UUID> postIds) {
+    if (postIds.isEmpty()) {
+      return Map.of();
+    }
+
+    return voteRepository.countByPostIds(postIds).stream()
+        .collect(Collectors.toMap(
+            row -> (UUID) row[0],
+            row -> (Long) row[1]
+        ));
   }
 
   public boolean existsByPostId(UUID postId) {

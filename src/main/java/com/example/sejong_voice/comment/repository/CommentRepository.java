@@ -1,6 +1,7 @@
 package com.example.sejong_voice.comment.repository;
 
 import com.example.sejong_voice.comment.entity.Comment;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,5 +20,14 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
   ORDER BY c.createdAt ASC
   """)
   List<Comment> findAllActiveByPostIdWithUserOrderByCreatedAtAsc(@Param("postId") UUID postId);
+
+  @Query("""
+      SELECT c.post.id, COUNT(c)
+      FROM Comment c
+      WHERE c.post.id IN :postIds
+        AND c.status = com.example.sejong_voice.comment.entity.CommentStatus.ACTIVE
+      GROUP BY c.post.id
+      """)
+  List<Object[]> countActiveByPostIds(@Param("postIds") Collection<UUID> postIds);
 
 }

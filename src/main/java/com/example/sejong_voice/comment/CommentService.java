@@ -3,6 +3,7 @@ package com.example.sejong_voice.comment;
 import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import com.example.sejong_voice.comment.dto.CommentResponse;
 import com.example.sejong_voice.comment.entity.Comment;
+import com.example.sejong_voice.comment.entity.CommentStatus;
 import com.example.sejong_voice.comment.exception.CommentErrorCode;
 import com.example.sejong_voice.comment.repository.CommentRepository;
 import com.example.sejong_voice.exception.BusinessException;
@@ -11,8 +12,11 @@ import com.example.sejong_voice.post.exception.PostErrorCode;
 import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.user.UserRepository;
 import com.example.sejong_voice.user.entity.User;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -58,6 +62,18 @@ public class CommentService {
         .filter(comment -> comment.getParent() == null)
         .map(comment -> CommentResponse.from(comment, currentUserId))
         .toList();
+  }
+
+  public Map<UUID, Long> countActiveByPostIds(Collection<UUID> postIds) {
+    if (postIds.isEmpty()) {
+      return Map.of();
+    }
+
+    return commentRepository.countActiveByPostIds(postIds).stream()
+        .collect(Collectors.toMap(
+            row -> (UUID) row[0],
+            row -> (Long) row[1]
+        ));
   }
 
   @Transactional
