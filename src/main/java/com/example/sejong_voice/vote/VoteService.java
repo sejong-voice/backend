@@ -1,5 +1,6 @@
 package com.example.sejong_voice.vote;
 
+import com.example.sejong_voice.post.dto.PostCountRow;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
@@ -77,8 +78,8 @@ public class VoteService {
 
     return voteRepository.countByPostIds(postIds).stream()
         .collect(Collectors.toMap(
-            row -> (UUID) row[0],
-            row -> (Long) row[1]
+            PostCountRow::postId,
+            PostCountRow::count
         ));
   }
 

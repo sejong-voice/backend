@@ -1,16 +1,12 @@
 package com.example.sejong_voice.comment;
 
-import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import com.example.sejong_voice.comment.dto.CommentResponse;
 import com.example.sejong_voice.comment.entity.Comment;
-import com.example.sejong_voice.comment.entity.CommentStatus;
 import com.example.sejong_voice.comment.exception.CommentErrorCode;
 import com.example.sejong_voice.comment.repository.CommentRepository;
 import com.example.sejong_voice.exception.BusinessException;
+import com.example.sejong_voice.post.dto.PostCountRow;
 import com.example.sejong_voice.post.entity.Post;
-import com.example.sejong_voice.post.exception.PostErrorCode;
-import com.example.sejong_voice.post.repository.PostRepository;
-import com.example.sejong_voice.user.UserRepository;
 import com.example.sejong_voice.user.entity.User;
 import java.util.Collection;
 import java.util.List;
@@ -71,8 +67,8 @@ public class CommentService {
 
     return commentRepository.countActiveByPostIds(postIds).stream()
         .collect(Collectors.toMap(
-            row -> (UUID) row[0],
-            row -> (Long) row[1]
+            PostCountRow::postId,
+            PostCountRow::count
         ));
   }
 

@@ -1,6 +1,7 @@
 package com.example.sejong_voice.comment.repository;
 
 import com.example.sejong_voice.comment.entity.Comment;
+import com.example.sejong_voice.post.dto.PostCountRow;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -22,12 +23,12 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
   List<Comment> findAllActiveByPostIdWithUserOrderByCreatedAtAsc(@Param("postId") UUID postId);
 
   @Query("""
-      SELECT c.post.id, COUNT(c)
+      SELECT new com.example.sejong_voice.post.dto.PostCountRow(c.post.id, COUNT(c))
       FROM Comment c
       WHERE c.post.id IN :postIds
         AND c.status = com.example.sejong_voice.comment.entity.CommentStatus.ACTIVE
       GROUP BY c.post.id
       """)
-  List<Object[]> countActiveByPostIds(@Param("postIds") Collection<UUID> postIds);
+  List<PostCountRow> countActiveByPostIds(@Param("postIds") Collection<UUID> postIds);
 
 }
