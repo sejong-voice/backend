@@ -17,6 +17,9 @@ public record PostDetailResponse(
     String title,
     String content,
     PostStatus status,
+    String resultContent,
+    LocalDateTime resultCreatedAt,
+    LocalDateTime resultUpdatedAt,
     PostVotingDuration postVotingDuration,
     LocalDateTime createdAt,
     LocalDateTime votingEndAt
@@ -32,6 +35,9 @@ public record PostDetailResponse(
         .title(post.getTitle())
         .content(post.getContent())
         .status(post.getStatus())
+        .resultContent(post.getResultContent())
+        .resultCreatedAt(post.getResultCreatedAt())
+        .resultUpdatedAt(post.getResultUpdatedAt())
         .postVotingDuration(post.getVotingDuration())
         .createdAt(post.getCreatedAt())
         .votingEndAt(post.getVotingEndAt())
