@@ -1,6 +1,5 @@
 package com.example.sejong_voice.post.entity;
 
-import com.example.sejong_voice.comment.entity.CommentStatus;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.Column;
@@ -61,8 +60,6 @@ public class Post {
 
   private LocalDateTime closedAt;
 
-  private LocalDateTime approvedAt;
-
   @Column(nullable = false)
   private Integer minVoteSnapshot;
 
@@ -76,6 +73,10 @@ public class Post {
 
   @Column(columnDefinition = "TEXT")
   private String resultContent;
+
+  private LocalDateTime resultCreatedAt;
+
+  private LocalDateTime resultUpdatedAt;
 
   @Column(nullable = false)
   private Integer viewCount;
@@ -159,11 +160,17 @@ public class Post {
 
     // 3. 통과 -> 답변 대기 상태
     this.status = PostStatus.APPROVED;
-    this.approvedAt = this.closedAt;
   }
 
   public void updateResult(PostStatus status, String resultContent) {
     this.status = status;
     this.resultContent = resultContent;
+
+    if (this.resultCreatedAt == null) {
+      this.resultCreatedAt = LocalDateTime.now();
+      return;
+    }
+
+    this.resultUpdatedAt = LocalDateTime.now();
   }
 }

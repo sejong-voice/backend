@@ -121,7 +121,7 @@ public class PostController {
   }
 
   @Operation(
-      summary = "게시글 처리 결과 등록",
+      summary = "게시글 처리 결과(입장문) 등록",
       description = "게시글 상태/결과 내용을 등록 또는 수정합니다."
   )
   @PutMapping("/{postId}/result")
