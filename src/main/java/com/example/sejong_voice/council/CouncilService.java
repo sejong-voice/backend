@@ -26,7 +26,7 @@ public class CouncilService {
 
   public List<CouncilResponse> getAll(String keyword) {
     List<Council> councils = StringUtils.hasText(keyword)
-        ? councilRepository.findByNameContaining(keyword)
+        ? councilRepository.findByNameContainingIgnoreCase(keyword)
         : councilRepository.findAll();
     return buildOrderedResponses(councils);
   }

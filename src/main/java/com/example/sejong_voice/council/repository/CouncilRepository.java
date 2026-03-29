@@ -6,5 +6,5 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CouncilRepository extends JpaRepository<Council, UUID> {
-  List<Council> findByNameContaining(String keyword);
+  List<Council> findByNameContainingIgnoreCase(String keyword);
 }
