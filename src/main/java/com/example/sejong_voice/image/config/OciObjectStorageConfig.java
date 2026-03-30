@@ -35,7 +35,7 @@ public class OciObjectStorageConfig {
   public ObjectStorageClient objectStorageClient(
       BasicAuthenticationDetailsProvider authenticationDetailsProvider
   ) {
-    ObjectStorageClient client = new ObjectStorageClient(authenticationDetailsProvider);
+    ObjectStorageClient client = ObjectStorageClient.builder().build(authenticationDetailsProvider);
 
     if (properties.getEndpoint() != null && !properties.getEndpoint().isBlank()) {
       client.setEndpoint(properties.getEndpoint());

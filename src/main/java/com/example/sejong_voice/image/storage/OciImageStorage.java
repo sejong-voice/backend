@@ -4,10 +4,13 @@ import com.example.sejong_voice.image.config.OciObjectStorageProperties;
 import com.oracle.bmc.objectstorage.ObjectStorageClient;
 import com.oracle.bmc.objectstorage.model.CreatePreauthenticatedRequestDetails;
 import com.oracle.bmc.objectstorage.requests.CreatePreauthenticatedRequestRequest;
+import com.oracle.bmc.objectstorage.requests.DeletePreauthenticatedRequestRequest;
 import com.oracle.bmc.objectstorage.requests.DeleteObjectRequest;
 import com.oracle.bmc.objectstorage.requests.PutObjectRequest;
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -38,14 +41,14 @@ public class OciImageStorage {
     return objectName;
   }
 
-  public String createReadAccessUrl(String objectName) {
+  public ReadAccess createReadAccess(String objectName) {
+    Instant expiresAt = Instant.now().plusSeconds(properties.getAccessUrlExpirationMinutes() * 60);
+
     CreatePreauthenticatedRequestDetails details = CreatePreauthenticatedRequestDetails.builder()
         .name("post-image-read-" + UUID.randomUUID())
         .objectName(objectName)
         .accessType(CreatePreauthenticatedRequestDetails.AccessType.ObjectRead)
-        .timeExpires(Date.from(
-            Instant.now().plusSeconds(properties.getAccessUrlExpirationMinutes() * 60)
-        ))
+        .timeExpires(Date.from(expiresAt))
         .build();
 
     CreatePreauthenticatedRequestRequest request = CreatePreauthenticatedRequestRequest.builder()
@@ -54,11 +57,14 @@ public class OciImageStorage {
         .createPreauthenticatedRequestDetails(details)
         .build();
 
-    String accessUri = getClient().createPreauthenticatedRequest(request)
-        .getPreauthenticatedRequest()
-        .getAccessUri();
+    var preauthenticatedRequest = getClient().createPreauthenticatedRequest(request)
+        .getPreauthenticatedRequest();
 
-    return resolvePublicUrl(accessUri);
+    return new ReadAccess(
+        resolvePublicUrl(preauthenticatedRequest.getAccessUri()),
+        preauthenticatedRequest.getId(),
+        LocalDateTime.ofInstant(expiresAt, ZoneId.systemDefault())
+    );
   }
 
   public void delete(String objectName) {
@@ -76,20 +82,11 @@ public class OciImageStorage {
   }
 
   private String buildObjectName(UUID userId, String originalFileName) {
-    String extension = extractExtension(originalFileName);
-    return "%s/temp/%s/%s%s".formatted(
+    return "%s/%s/%s".formatted(
         properties.getImagePrefix(),
         userId,
-        UUID.randomUUID(),
-        extension
+        UUID.randomUUID()
     );
-  }
-
-  private String extractExtension(String originalFileName) {
-    if (originalFileName == null || !originalFileName.contains(".")) {
-      return "";
-    }
-    return originalFileName.substring(originalFileName.lastIndexOf('.'));
   }
 
   private String resolvePublicUrl(String accessUri) {
@@ -103,5 +100,12 @@ public class OciImageStorage {
     }
 
     return endpoint + accessUri;
+  }
+
+  public record ReadAccess(
+      String url,
+      String requestId,
+      LocalDateTime expiresAt
+  ) {
   }
 }

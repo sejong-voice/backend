@@ -56,6 +56,8 @@ public class Image {
   @Column(nullable = false)
   private LocalDateTime createdAt;
 
+  private Integer displayOrder;
+
   private LocalDateTime activatedAt;
 
   private LocalDateTime deletedAt;
@@ -79,15 +81,17 @@ public class Image {
     this.createdAt = LocalDateTime.now();
   }
 
-  public void activate(Post post) {
+  public void activate(Post post, int displayOrder) {
     this.post = post;
     this.status = ImageStatus.ACTIVE;
+    this.displayOrder = displayOrder;
     this.activatedAt = LocalDateTime.now();
     this.deletedAt = null;
   }
 
   public void markDeleted() {
     this.status = ImageStatus.DELETED;
+    this.displayOrder = null;
     this.deletedAt = LocalDateTime.now();
   }
 }

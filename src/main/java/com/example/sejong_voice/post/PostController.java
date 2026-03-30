@@ -43,7 +43,8 @@ public class PostController {
         request.title(),
         request.content(),
         request.councilId(),
-        request.postVotingDuration()
+        request.postVotingDuration(),
+        request.imageIds()
     );
 
     return ResponseEntity.status(HttpStatus.CREATED).body(id);

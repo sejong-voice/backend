@@ -1,9 +1,11 @@
 package com.example.sejong_voice.post.dto;
 
+import com.example.sejong_voice.image.dto.PostImageResponse;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatus;
 import com.example.sejong_voice.post.entity.PostVotingDuration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
 
@@ -19,7 +21,8 @@ public record PostResponse(
     PostStatus status,
     PostVotingDuration postVotingDuration,
     LocalDateTime createdAt,
-    LocalDateTime votingEndAt
+    LocalDateTime votingEndAt,
+    List<PostImageResponse> images
 ) {
 
   public static PostResponse from(Post post) {
@@ -35,6 +38,24 @@ public record PostResponse(
         .postVotingDuration(post.getVotingDuration())
         .createdAt(post.getCreatedAt())
         .votingEndAt(post.getVotingEndAt())
+        .images(List.of())
         .build();
+  }
+
+  public PostResponse withImages(List<PostImageResponse> images) {
+    return new PostResponse(
+        id,
+        userId,
+        userStudentNo,
+        councilId,
+        councilName,
+        title,
+        content,
+        status,
+        postVotingDuration,
+        createdAt,
+        votingEndAt,
+        images
+    );
   }
 }

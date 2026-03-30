@@ -12,9 +12,9 @@ public interface ImageRepository extends JpaRepository<Image, UUID> {
 
   List<Image> findAllByIdIn(Collection<UUID> ids);
 
-  List<Image> findAllByPostIdAndStatusOrderByCreatedAtAsc(UUID postId, ImageStatus status);
+  List<Image> findAllByPostIdAndStatusOrderByDisplayOrderAsc(UUID postId, ImageStatus status);
 
-  List<Image> findAllByPostIdInAndStatusOrderByCreatedAtAsc(Collection<UUID> postIds, ImageStatus status);
+  List<Image> findAllByPostIdInAndStatusOrderByDisplayOrderAsc(Collection<UUID> postIds, ImageStatus status);
 
   List<Image> findAllByStatusAndCreatedAtBefore(ImageStatus status, LocalDateTime createdAt);
 }

@@ -2,6 +2,9 @@ package com.example.sejong_voice.post;
 
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.council.CouncilService;
+import com.example.sejong_voice.image.dto.PostImageResponse;
+import com.example.sejong_voice.image.ImageFacade;
+import com.example.sejong_voice.image.ImageService;
 import com.example.sejong_voice.notification.NotificationService;
 import com.example.sejong_voice.post.dto.PostResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
@@ -20,6 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -31,6 +36,8 @@ public class PostFacade {
   private final CouncilService councilService;
   private final VoteService voteService;
   private final NotificationService notificationService;
+  private final ImageService imageService;
+  private final ImageFacade imageFacade;
 
   @Transactional
   public UUID create(
@@ -38,17 +45,20 @@ public class PostFacade {
       String title,
       String content,
       UUID councilId,
-      PostVotingDuration votingDuration
+      PostVotingDuration votingDuration,
+      List<UUID> imageIds
   ) {
     User user = userService.getById(userId);
     Council council = councilService.getById(councilId);
+    Post post = postService.create(user, council, title, content, votingDuration);
+    imageService.attachImagesToPost(user, post, imageIds);
 
-    return postService.create(user, council, title, content, votingDuration).getId();
+    return post.getId();
   }
 
   @Transactional
   public PostResponse getPost(UUID postId) {
-    return postService.get(postId);
+    return enrichImages(postService.get(postId));
   }
 
   @Transactional(readOnly = true)
@@ -61,12 +71,17 @@ public class PostFacade {
       }
     }
 
-    return postService.getAll(condition, pageable);
+    Page<PostResponse> postPage = postService.getAll(condition, pageable);
+    Map<UUID, List<PostImageResponse>> imagesByPostId = imageFacade.getActiveImagesByPostIds(
+        postPage.getContent().stream().map(PostResponse::id).toList()
+    );
+
+    return postPage.map(postResponse -> enrichImages(postResponse, imagesByPostId));
   }
 
   @Transactional
   public PostResponse update(UUID postId, String title, String content, UUID userId) {
-    return postService.update(postId, title, content, userId);
+    return enrichImages(postService.update(postId, title, content, userId));
   }
 
   @Transactional
@@ -143,5 +158,16 @@ public class PostFacade {
       notificationService.createPostApprovedNotifications(post);
     }
 
+  }
+
+  private PostResponse enrichImages(PostResponse postResponse) {
+    return postResponse.withImages(imageFacade.getActiveImages(postResponse.id()));
+  }
+
+  private PostResponse enrichImages(
+      PostResponse postResponse,
+      Map<UUID, List<PostImageResponse>> imagesByPostId
+  ) {
+    return postResponse.withImages(imagesByPostId.getOrDefault(postResponse.id(), List.of()));
   }
 }
