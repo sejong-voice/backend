@@ -90,6 +90,7 @@ public class PostController {
         postId,
         request.title(),
         request.content(),
+        request.imageIds(),
         userPrincipal.getUserId()
     );
     return ResponseEntity.ok(response);

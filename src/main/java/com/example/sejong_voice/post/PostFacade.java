@@ -89,8 +89,20 @@ public class PostFacade {
   }
 
   @Transactional
-  public PostDetailResponse update(UUID postId, String title, String content, UUID userId) {
-    return enrichImages(postService.update(postId, title, content, userId));
+  public PostDetailResponse update(
+      UUID postId,
+      String title,
+      String content,
+      List<UUID> imageIds,
+      UUID userId
+  ) {
+    postService.update(postId, title, content, userId);
+
+    User user = userService.getById(userId);
+    Post post = postService.getById(postId);
+    imageService.syncImagesForPost(user, post, imageIds);
+
+    return enrichImages(PostDetailResponse.from(post));
   }
 
   @Transactional

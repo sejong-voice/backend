@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -62,9 +63,7 @@ public class ImageService {
       return;
     }
 
-    if (imageIds.size() > MAX_IMAGES_PER_POST) {
-      throw new BusinessException(ImageErrorCode.TOO_MANY_IMAGES);
-    }
+    validateImageIds(imageIds);
 
     List<Image> images = imageRepository.findAllByIdIn(imageIds);
     if (images.size() != imageIds.size()) {
@@ -72,7 +71,7 @@ public class ImageService {
     }
 
     Map<UUID, Image> imagesById = images.stream()
-        .collect(java.util.stream.Collectors.toMap(Image::getId, image -> image));
+        .collect(Collectors.toMap(Image::getId, image -> image));
 
     for (int order = 0; order < imageIds.size(); order++) {
       Image image = imagesById.get(imageIds.get(order));
@@ -88,6 +87,70 @@ public class ImageService {
     }
 
     log.info("게시글 이미지 연결 완료: postId={}, imageCount={}", post.getId(), images.size());
+  }
+
+  @Transactional
+  public void syncImagesForPost(User user, Post post, List<UUID> imageIds) {
+    List<UUID> requestedImageIds = imageIds == null ? List.of() : imageIds;
+
+    validateImageIds(requestedImageIds);
+
+    List<Image> currentImages = imageRepository.findAllByPostIdAndStatusOrderByDisplayOrderAsc(
+        post.getId(),
+        ImageStatus.ACTIVE
+    );
+    Map<UUID, Image> currentImagesById = currentImages.stream()
+        .collect(Collectors.toMap(Image::getId, image -> image));
+
+    if (requestedImageIds.isEmpty()) {
+      currentImages.forEach(Image::markDeleted);
+      log.info("게시글 이미지 동기화 완료: postId={}, imageCount=0", post.getId());
+      return;
+    }
+
+    List<Image> requestedImages = imageRepository.findAllByIdIn(requestedImageIds);
+    if (requestedImages.size() != requestedImageIds.size()) {
+      throw new BusinessException(ImageErrorCode.IMAGE_NOT_FOUND);
+    }
+
+    Map<UUID, Image> requestedImagesById = requestedImages.stream()
+        .collect(Collectors.toMap(Image::getId, image -> image));
+
+    for (UUID imageId : requestedImageIds) {
+      Image image = requestedImagesById.get(imageId);
+
+      if (!image.getUser().getId().equals(user.getId())) {
+        throw new BusinessException(ImageErrorCode.IMAGE_ACCESS_DENIED);
+      }
+
+      boolean isCurrentPostImage = image.getStatus() == ImageStatus.ACTIVE
+          && image.getPost() != null
+          && image.getPost().getId().equals(post.getId());
+      boolean isAttachableTempImage = image.getStatus() == ImageStatus.TEMP && image.getPost() == null;
+
+      if (!isCurrentPostImage && !isAttachableTempImage) {
+        throw new BusinessException(ImageErrorCode.INVALID_IMAGE_STATUS);
+      }
+    }
+
+    for (Image currentImage : currentImages) {
+      if (!requestedImagesById.containsKey(currentImage.getId())) {
+        currentImage.markDeleted();
+      }
+    }
+
+    for (int order = 0; order < requestedImageIds.size(); order++) {
+      Image image = requestedImagesById.get(requestedImageIds.get(order));
+
+      if (currentImagesById.containsKey(image.getId())) {
+        image.updateDisplayOrder(order);
+        continue;
+      }
+
+      image.activate(post, order);
+    }
+
+    log.info("게시글 이미지 동기화 완료: postId={}, imageCount={}", post.getId(), requestedImages.size());
   }
 
   public List<Image> findActiveImages(UUID postId) {
@@ -131,6 +194,16 @@ public class ImageService {
 
     if (file.getSize() > objectStorageProperties.getMaxFileSizeBytes()) {
       throw new BusinessException(ImageErrorCode.FILE_SIZE_EXCEEDED);
+    }
+  }
+
+  private void validateImageIds(List<UUID> imageIds) {
+    if (imageIds.size() > MAX_IMAGES_PER_POST) {
+      throw new BusinessException(ImageErrorCode.TOO_MANY_IMAGES);
+    }
+
+    if (imageIds.size() != Set.copyOf(imageIds).size()) {
+      throw new BusinessException(ImageErrorCode.INVALID_IMAGE_STATUS);
     }
   }
 

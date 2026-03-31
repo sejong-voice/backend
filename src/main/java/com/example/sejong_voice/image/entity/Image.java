@@ -89,8 +89,13 @@ public class Image {
     this.deletedAt = null;
   }
 
+  public void updateDisplayOrder(int displayOrder) {
+    this.displayOrder = displayOrder;
+  }
+
   public void markDeleted() {
     this.status = ImageStatus.DELETED;
+    this.post = null;
     this.displayOrder = null;
     this.deletedAt = LocalDateTime.now();
   }
