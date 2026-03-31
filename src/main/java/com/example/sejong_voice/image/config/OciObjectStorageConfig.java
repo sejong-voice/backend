@@ -36,13 +36,7 @@ public class OciObjectStorageConfig {
       BasicAuthenticationDetailsProvider authenticationDetailsProvider
   ) {
     ObjectStorageClient client = ObjectStorageClient.builder().build(authenticationDetailsProvider);
-
-    if (properties.getEndpoint() != null && !properties.getEndpoint().isBlank()) {
-      client.setEndpoint(properties.getEndpoint());
-    } else {
-      client.setRegion(Region.fromRegionId(properties.getRegion()));
-    }
-
+    client.setRegion(Region.fromRegionId(properties.getRegion()));
     return client;
   }
 }

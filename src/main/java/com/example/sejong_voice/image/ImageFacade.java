@@ -40,10 +40,10 @@ public class ImageFacade {
     try {
       objectName = ociImageStorage.upload(userId, file, file.getContentType());
       Image image = imageService.createTempImage(user, file, objectName);
-      String readAccessUrl = ociImageStorage.createReadAccess(objectName).url();
+      String imageUrl = ociImageStorage.getPublicUrl(objectName);
 
       log.info("이미지 업로드 완료: imageId={}, userId={}, objectName={}", image.getId(), userId, objectName);
-      return new ImageUploadResponse(image.getId(), readAccessUrl);
+      return new ImageUploadResponse(image.getId(), imageUrl);
     } catch (IOException | RuntimeException e) {
       cleanupUploadedObject(objectName);
       log.error("이미지 업로드 실패: userId={}", userId, e);
@@ -99,7 +99,7 @@ public class ImageFacade {
   private PostImageResponse toPostImageResponse(Image image) {
     return new PostImageResponse(
         image.getId(),
-        ociImageStorage.createReadAccess(image.getObjectName()).url()
+        ociImageStorage.getPublicUrl(image.getObjectName())
     );
   }
 }
