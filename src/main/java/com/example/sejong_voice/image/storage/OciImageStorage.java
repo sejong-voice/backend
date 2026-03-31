@@ -15,6 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class OciImageStorage {
 
+  private static final String PUBLIC_OBJECT_BASE_URL_FORMAT =
+      "https://%s.objectstorage.%s.oci.customer-oci.com/n/%s/b/%s/o";
+
   private final ObjectProvider<ObjectStorageClient> objectStorageClientProvider;
   private final OciObjectStorageProperties properties;
 
@@ -61,7 +64,7 @@ public class OciImageStorage {
   }
 
   private String resolveObjectBaseUrl() {
-    return "https://%s.objectstorage.%s.oci.customer-oci.com/n/%s/b/%s/o".formatted(
+    return PUBLIC_OBJECT_BASE_URL_FORMAT.formatted(
         properties.getNamespace(),
         properties.getRegion(),
         properties.getNamespace(),
