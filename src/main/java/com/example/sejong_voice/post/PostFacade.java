@@ -124,6 +124,8 @@ public class PostFacade {
       }
     }
 
+    commentService.deleteAllByPostId(postId);
+    imageService.deleteAllByPostId(postId);
     postService.delete(postId);
   }
 

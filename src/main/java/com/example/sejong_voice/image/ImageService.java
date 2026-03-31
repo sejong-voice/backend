@@ -182,6 +182,13 @@ public class ImageService {
     image.markDeleted();
   }
 
+  @Transactional
+  public void deleteAllByPostId(UUID postId) {
+    List<Image> images = imageRepository.findAllByPostIdAndStatusOrderByDisplayOrderAsc(postId, ImageStatus.ACTIVE);
+    images.forEach(Image::markDeleted);
+    log.info("게시글 이미지 삭제 처리: postId={}, imageCount={}", postId, images.size());
+  }
+
   private void validate(MultipartFile file) {
     if (file == null || file.isEmpty()) {
       throw new BusinessException(ImageErrorCode.EMPTY_FILE);
