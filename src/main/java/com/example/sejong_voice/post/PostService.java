@@ -3,7 +3,8 @@ package com.example.sejong_voice.post;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.policy.entity.CouncilPolicy;
 import com.example.sejong_voice.exception.BusinessException;
-import com.example.sejong_voice.post.dto.PostResponse;
+import com.example.sejong_voice.post.dto.PostDetailResponse;
+import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatus;
@@ -55,7 +56,7 @@ public class PostService {
   }
 
   @Transactional
-  public PostResponse get(UUID id) {
+  public PostDetailResponse get(UUID id) {
     Post post = postRepository.findByIdAndDeletedAtIsNull(id)
         .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
 
@@ -63,11 +64,11 @@ public class PostService {
     post.incrementViewCount();
     log.info("게시물 상세 조회: postId={}", id);
 
-    return PostResponse.from(post);
+    return PostDetailResponse.from(post);
   }
 
-  public Page<PostResponse> getAll(PostSearchCondition condition, Pageable pageable) {
-    Page<PostResponse> postList = postRepository.search(condition, pageable);
+  public Page<PostListResponse> getList(PostSearchCondition condition, Pageable pageable) {
+    Page<PostListResponse> postList = postRepository.search(condition, pageable);
 
     log.info(
         "게시물 목록 조회: 실제건수={}, 전체건수={}, 검색조건={}",
@@ -85,7 +86,7 @@ public class PostService {
   }
 
   @Transactional
-  public PostResponse update(
+  public PostDetailResponse update(
       UUID postId,
       String title,
       String content,
@@ -105,7 +106,7 @@ public class PostService {
     log.info("게시물 수정: {}", postId);
 
     // 4. 변경된 데이터 반환
-    return PostResponse.from(post);
+    return PostDetailResponse.from(post);
   }
 
   @Transactional

@@ -14,6 +14,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -23,14 +24,25 @@ public class CouncilService {
   private final CouncilRepository councilRepository;
   private final CouncilMemberRepository councilMemberRepository;
 
-  public List<CouncilResponse> getAll() {
-    List<Council> councils = councilRepository.findAll();
+  public List<CouncilResponse> getAll(String keyword) {
+    List<Council> councils = StringUtils.hasText(keyword)
+        ? councilRepository.findByNameContainingIgnoreCaseWithParent(keyword)
+        : councilRepository.findAllWithParent();
+    return buildOrderedResponses(councils);
+  }
+
+  private List<CouncilResponse> buildOrderedResponses(List<Council> councils) {
     Map<UUID, List<Council>> childrenByParentId = new HashMap<>();
     List<Council> rootList = new ArrayList<>();
+    Map<UUID, Council> councilById = new HashMap<>();
+
+    for (Council council : councils) {
+      councilById.put(council.getId(), council);
+    }
 
     for (Council council : councils) {
       Council parent = council.getParent();
-      if (parent == null) {
+      if (parent == null || !councilById.containsKey(parent.getId())) {
         rootList.add(council);
         continue;
       }

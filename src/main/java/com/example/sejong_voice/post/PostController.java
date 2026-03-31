@@ -3,7 +3,8 @@ package com.example.sejong_voice.post;
 import com.example.sejong_voice._common.security.AuthUser;
 import com.example.sejong_voice._common.security.UserPrincipal;
 import com.example.sejong_voice.post.dto.PostCreateRequest;
-import com.example.sejong_voice.post.dto.PostResponse;
+import com.example.sejong_voice.post.dto.PostDetailResponse;
+import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostResultRequest;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.dto.PostUpdateRequest;
@@ -55,7 +56,7 @@ public class PostController {
       description = "조건/페이징 기반으로 게시글 목록을 조회합니다.ACTIVE(보여지는 게시글),DELETED(삭제할 게시글),BLINDED(가림 처리한 게시글). ACTIVE 상태만 필터링해서 프론트로 보내줄거임"
   )
   @GetMapping
-  public ResponseEntity<Page<PostResponse>> getAll(
+  public ResponseEntity<Page<PostListResponse>> getList(
       @ParameterObject @ModelAttribute PostSearchCondition condition,
       @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
       @AuthUser UserPrincipal userPrincipal
@@ -63,7 +64,7 @@ public class PostController {
     UUID currentUserId = (userPrincipal != null) ? userPrincipal.getUserId() : null;
     PostSearchCondition postSearchCondition = condition.withCurrentUserId(currentUserId);
 
-    return ResponseEntity.ok(postFacade.getAllPosts(postSearchCondition, pageable));
+    return ResponseEntity.ok(postFacade.getList(postSearchCondition, pageable));
   }
 
   @Operation(
@@ -71,7 +72,7 @@ public class PostController {
           description = "게시글 ID로 단건 상세 정보를 조회합니다. ACTIVE(보여지는 게시글),DELETED(삭제할 게시글),BLINDED(가림 처리한 게시글). ACTIVE 상태만 필터링해서 프론트로 보내줄거임"
   )
   @GetMapping("/{postId}")
-  public ResponseEntity<PostResponse> get(@PathVariable UUID postId) {
+  public ResponseEntity<PostDetailResponse> get(@PathVariable UUID postId) {
     return ResponseEntity.ok(postFacade.getPost(postId));
   }
 
@@ -80,12 +81,12 @@ public class PostController {
       description = "작성자 권한으로 게시글 제목/내용을 수정합니다."
   )
   @PutMapping("/{postId}")
-  public ResponseEntity<PostResponse> update(
+  public ResponseEntity<PostDetailResponse> update(
       @PathVariable UUID postId,
       @RequestBody @Valid PostUpdateRequest request,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    PostResponse response = postFacade.update(
+    PostDetailResponse response = postFacade.update(
         postId,
         request.title(),
         request.content(),
@@ -121,7 +122,7 @@ public class PostController {
   }
 
   @Operation(
-      summary = "게시글 처리 결과 등록",
+      summary = "게시글 처리 결과(입장문) 등록",
       description = "게시글 상태/결과 내용을 등록 또는 수정합니다."
   )
   @PutMapping("/{postId}/result")

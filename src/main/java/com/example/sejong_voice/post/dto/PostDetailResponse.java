@@ -10,7 +10,7 @@ import java.util.UUID;
 import lombok.Builder;
 
 @Builder
-public record PostResponse(
+public record PostDetailResponse(
     UUID id,
     UUID userId,
     String userStudentNo,
@@ -19,14 +19,17 @@ public record PostResponse(
     String title,
     String content,
     PostStatus status,
+    String resultContent,
+    LocalDateTime resultCreatedAt,
+    LocalDateTime resultUpdatedAt,
     PostVotingDuration postVotingDuration,
     LocalDateTime createdAt,
     LocalDateTime votingEndAt,
     List<PostImageResponse> images
 ) {
 
-  public static PostResponse from(Post post) {
-    return PostResponse.builder()
+  public static PostDetailResponse from(Post post) {
+    return PostDetailResponse.builder()
         .id(post.getId())
         .userId(post.getUser().getId())
         .userStudentNo(post.getUser().getStudentNo())
@@ -35,6 +38,9 @@ public record PostResponse(
         .title(post.getTitle())
         .content(post.getContent())
         .status(post.getStatus())
+        .resultContent(post.getResultContent())
+        .resultCreatedAt(post.getResultCreatedAt())
+        .resultUpdatedAt(post.getResultUpdatedAt())
         .postVotingDuration(post.getVotingDuration())
         .createdAt(post.getCreatedAt())
         .votingEndAt(post.getVotingEndAt())
@@ -42,8 +48,8 @@ public record PostResponse(
         .build();
   }
 
-  public PostResponse withImages(List<PostImageResponse> images) {
-    return new PostResponse(
+  public PostDetailResponse withImages(List<PostImageResponse> images) {
+    return new PostDetailResponse(
         id,
         userId,
         userStudentNo,
@@ -52,6 +58,9 @@ public record PostResponse(
         title,
         content,
         status,
+        resultContent,
+        resultCreatedAt,
+        resultUpdatedAt,
         postVotingDuration,
         createdAt,
         votingEndAt,
