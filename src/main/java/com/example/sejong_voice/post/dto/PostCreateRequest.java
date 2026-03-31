@@ -4,13 +4,15 @@ import com.example.sejong_voice.post.entity.PostVotingDuration;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.UUID;
 
 public record PostCreateRequest(
     @NotBlank String title,
     @NotBlank String content,
     @NotNull UUID councilId,
-    @NotNull PostVotingDuration postVotingDuration
+    @NotNull PostVotingDuration postVotingDuration,
+    @Nullable List<UUID> imageIds
 ) {
 
 }

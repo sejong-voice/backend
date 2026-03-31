@@ -1,8 +1,12 @@
 package com.example.sejong_voice.post;
 
 import com.example.sejong_voice.comment.CommentService;
-import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.council.CouncilService;
+import com.example.sejong_voice.council.entity.Council;
+import com.example.sejong_voice.exception.BusinessException;
+import com.example.sejong_voice.image.ImageFacade;
+import com.example.sejong_voice.image.ImageService;
+import com.example.sejong_voice.image.dto.PostImageResponse;
 import com.example.sejong_voice.notification.NotificationService;
 import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
@@ -11,20 +15,18 @@ import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatus;
 import com.example.sejong_voice.post.entity.PostVotingDuration;
 import com.example.sejong_voice.post.exception.PostErrorCode;
+import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
-import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.vote.VoteService;
-import com.example.sejong_voice.exception.BusinessException;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -35,6 +37,8 @@ public class PostFacade {
   private final CouncilService councilService;
   private final VoteService voteService;
   private final NotificationService notificationService;
+  private final ImageService imageService;
+  private final ImageFacade imageFacade;
   private final CommentService commentService;
 
   @Transactional
@@ -43,17 +47,20 @@ public class PostFacade {
       String title,
       String content,
       UUID councilId,
-      PostVotingDuration votingDuration
+      PostVotingDuration votingDuration,
+      List<UUID> imageIds
   ) {
     User user = userService.getById(userId);
     Council council = councilService.getById(councilId);
+    Post post = postService.create(user, council, title, content, votingDuration);
+    imageService.attachImagesToPost(user, post, imageIds);
 
-    return postService.create(user, council, title, content, votingDuration).getId();
+    return post.getId();
   }
 
   @Transactional
   public PostDetailResponse getPost(UUID postId) {
-    return postService.get(postId);
+    return enrichImages(postService.get(postId));
   }
 
   @Transactional(readOnly = true)
@@ -66,23 +73,36 @@ public class PostFacade {
       }
     }
 
-    Page<PostListResponse> posts = postService.getList(condition, pageable);
-    List<UUID> postIds = posts.getContent().stream()
+    Page<PostListResponse> postPage = postService.getList(condition, pageable);
+    List<UUID> postIds = postPage.getContent().stream()
         .map(PostListResponse::id)
         .toList();
 
+    Map<UUID, List<PostImageResponse>> imagesByPostId = imageFacade.getActiveImagesByPostIds(postIds);
     Map<UUID, Long> voteCountByPostId = voteService.countByPostIds(postIds);
     Map<UUID, Long> commentCountByPostId = commentService.countActiveByPostIds(postIds);
 
-    return posts.map(response -> response.withCounts(
+    return postPage.map(response -> enrichImages(response.withCounts(
         voteCountByPostId.getOrDefault(response.id(), 0L),
         commentCountByPostId.getOrDefault(response.id(), 0L)
-    ));
+    ), imagesByPostId));
   }
 
   @Transactional
-  public PostDetailResponse update(UUID postId, String title, String content, UUID userId) {
-    return postService.update(postId, title, content, userId);
+  public PostDetailResponse update(
+      UUID postId,
+      String title,
+      String content,
+      List<UUID> imageIds,
+      UUID userId
+  ) {
+    postService.update(postId, title, content, userId);
+
+    User user = userService.getById(userId);
+    Post post = postService.getById(postId);
+    imageService.syncImagesForPost(user, post, imageIds);
+
+    return enrichImages(PostDetailResponse.from(post));
   }
 
   @Transactional
@@ -90,7 +110,6 @@ public class PostFacade {
     Post post = postService.getById(postId);
     User user = userService.getById(userId);
 
-    // 1. 권한 체크
     boolean isAuthor = post.getUser().getId().equals(userId);
     boolean isSuper = user.getRole() == UserRole.SUPER;
     boolean isCouncilAdmin = councilService.isAdmin(userId, post.getCouncil().getId());
@@ -99,22 +118,20 @@ public class PostFacade {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    // 2. 제약 조건 체크 (학생 작성자의 경우 투표가 1개라도 있으면 삭제 불가)
     if (isAuthor && !isSuper && !isCouncilAdmin) {
       if (voteService.existsByPostId(postId)) {
         throw new BusinessException(PostErrorCode.CANNOT_DELETE_POST_WITH_VOTES);
       }
     }
 
-    // 3. 삭제 수행 (Soft Delete)
+    commentService.deleteAllByPostId(postId);
+    imageService.deleteAllByPostId(postId);
     postService.delete(postId);
   }
 
   @Transactional
   public void closeEarly(UUID postId, UUID userId) {
     Post post = postService.getById(postId);
-
-    // 권한 체크 (해당 학생회의 운영진만 가능)
     boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
 
     if (!isMember) {
@@ -127,8 +144,6 @@ public class PostFacade {
   @Transactional
   public void updateResult(UUID postId, UUID userId, PostStatus status, String resultContent) {
     Post post = postService.getById(postId);
-
-    // 권한 체크 (해당 학생회의 운영진만 가능)
     boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
 
     if (!isMember) {
@@ -152,12 +167,20 @@ public class PostFacade {
 
     postService.evaluateAndClose(postId, agreeCount, totalCount);
 
-    PostStatus afterStatus = post.getStatus(); // 같은 트랜잭션 내 managed entity 기준
-
-    // "APPROVED 상태인지"가 아니라 "APPROVED로 전환됐는지" 체크
+    PostStatus afterStatus = post.getStatus();
     if (beforeStatus != PostStatus.APPROVED && afterStatus == PostStatus.APPROVED) {
       notificationService.createPostApprovedNotifications(post);
     }
+  }
 
+  private PostDetailResponse enrichImages(PostDetailResponse postResponse) {
+    return postResponse.withImages(imageFacade.getActiveImages(postResponse.id()));
+  }
+
+  private PostListResponse enrichImages(
+      PostListResponse postResponse,
+      Map<UUID, List<PostImageResponse>> imagesByPostId
+  ) {
+    return postResponse.withImages(imagesByPostId.getOrDefault(postResponse.id(), List.of()));
   }
 }

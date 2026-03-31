@@ -84,4 +84,11 @@ public class CommentService {
     comment.delete();
     log.info("댓글 삭제: commentId={}, userId={}", commentId, userId);
   }
+
+  @Transactional
+  public void deleteAllByPostId(UUID postId) {
+    List<Comment> comments = commentRepository.findAllActiveByPostId(postId);
+    comments.forEach(Comment::delete);
+    log.info("게시글 댓글 삭제 처리: postId={}, commentCount={}", postId, comments.size());
+  }
 }

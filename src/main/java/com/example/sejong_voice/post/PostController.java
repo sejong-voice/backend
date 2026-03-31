@@ -44,7 +44,8 @@ public class PostController {
         request.title(),
         request.content(),
         request.councilId(),
-        request.postVotingDuration()
+        request.postVotingDuration(),
+        request.imageIds()
     );
 
     return ResponseEntity.status(HttpStatus.CREATED).body(id);
@@ -89,6 +90,7 @@ public class PostController {
         postId,
         request.title(),
         request.content(),
+        request.imageIds(),
         userPrincipal.getUserId()
     );
     return ResponseEntity.ok(response);
