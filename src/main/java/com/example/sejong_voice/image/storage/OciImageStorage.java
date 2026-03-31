@@ -2,16 +2,9 @@ package com.example.sejong_voice.image.storage;
 
 import com.example.sejong_voice.image.config.OciObjectStorageProperties;
 import com.oracle.bmc.objectstorage.ObjectStorageClient;
-import com.oracle.bmc.objectstorage.model.CreatePreauthenticatedRequestDetails;
-import com.oracle.bmc.objectstorage.requests.CreatePreauthenticatedRequestRequest;
-import com.oracle.bmc.objectstorage.requests.DeletePreauthenticatedRequestRequest;
 import com.oracle.bmc.objectstorage.requests.DeleteObjectRequest;
 import com.oracle.bmc.objectstorage.requests.PutObjectRequest;
 import java.io.IOException;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -41,30 +34,8 @@ public class OciImageStorage {
     return objectName;
   }
 
-  public ReadAccess createReadAccess(String objectName) {
-    Instant expiresAt = Instant.now().plusSeconds(properties.getAccessUrlExpirationMinutes() * 60);
-
-    CreatePreauthenticatedRequestDetails details = CreatePreauthenticatedRequestDetails.builder()
-        .name("post-image-read-" + UUID.randomUUID())
-        .objectName(objectName)
-        .accessType(CreatePreauthenticatedRequestDetails.AccessType.ObjectRead)
-        .timeExpires(Date.from(expiresAt))
-        .build();
-
-    CreatePreauthenticatedRequestRequest request = CreatePreauthenticatedRequestRequest.builder()
-        .namespaceName(properties.getNamespace())
-        .bucketName(properties.getBucket())
-        .createPreauthenticatedRequestDetails(details)
-        .build();
-
-    var preauthenticatedRequest = getClient().createPreauthenticatedRequest(request)
-        .getPreauthenticatedRequest();
-
-    return new ReadAccess(
-        resolvePublicUrl(preauthenticatedRequest.getAccessUri()),
-        preauthenticatedRequest.getId(),
-        LocalDateTime.ofInstant(expiresAt, ZoneId.systemDefault())
-    );
+  public String getPublicUrl(String objectName) {
+    return "%s/%s".formatted(resolveObjectBaseUrl(), objectName);
   }
 
   public void delete(String objectName) {
@@ -89,23 +60,12 @@ public class OciImageStorage {
     );
   }
 
-  private String resolvePublicUrl(String accessUri) {
-    String endpoint = properties.getEndpoint();
-    if (endpoint == null || endpoint.isBlank()) {
-      endpoint = "https://objectstorage.%s.oraclecloud.com".formatted(properties.getRegion());
-    }
-
-    if (endpoint.endsWith("/")) {
-      endpoint = endpoint.substring(0, endpoint.length() - 1);
-    }
-
-    return endpoint + accessUri;
-  }
-
-  public record ReadAccess(
-      String url,
-      String requestId,
-      LocalDateTime expiresAt
-  ) {
+  private String resolveObjectBaseUrl() {
+    return "https://%s.objectstorage.%s.oci.customer-oci.com/n/%s/b/%s/o".formatted(
+        properties.getNamespace(),
+        properties.getRegion(),
+        properties.getNamespace(),
+        properties.getBucket()
+    );
   }
 }
