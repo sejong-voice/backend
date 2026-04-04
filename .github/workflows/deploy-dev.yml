@@ -26,7 +26,7 @@ jobs:
           context: .
           file: ./docker/Dockerfile
           push: true
-          platforms: linux/amd64
+          platforms: linux/arm64
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/sejong-voice:dev
 
       - name: Create deploy directory on server
