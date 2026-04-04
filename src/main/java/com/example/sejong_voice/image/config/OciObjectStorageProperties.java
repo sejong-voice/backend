@@ -1,7 +1,6 @@
 package com.example.sejong_voice.image.config;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -17,9 +16,6 @@ public class OciObjectStorageProperties {
   private static final long DEFAULT_MAX_FILE_SIZE_BYTES = 5L * 1024 * 1024;
   private static final long DEFAULT_TEMP_IMAGE_RETENTION_HOURS = 24L;
 
-  @NotNull
-  private final AuthMethod authMethod;
-
   @NotBlank
   private final String region;
 
@@ -28,12 +24,6 @@ public class OciObjectStorageProperties {
 
   @NotBlank
   private final String namespace;
-
-  @NotBlank
-  private final String configFilePath;
-
-  @NotBlank
-  private final String profile;
 
   public String getImagePrefix() {
     return DEFAULT_IMAGE_PREFIX;
@@ -45,10 +35,5 @@ public class OciObjectStorageProperties {
 
   public long getTempImageRetentionHours() {
     return DEFAULT_TEMP_IMAGE_RETENTION_HOURS;
-  }
-
-  public enum AuthMethod {
-    CONFIG_FILE,
-    INSTANCE_PRINCIPAL
   }
 }
