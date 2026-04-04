@@ -1,7 +1,6 @@
 services:
   db:
     image: mysql:8.0
-    container_name: sejong_voice_db
     restart: unless-stopped
     command: >
       --default-authentication-plugin=mysql_native_password
@@ -18,7 +17,6 @@ services:
 
   app:
     image: ${DOCKERHUB_USERNAME}/sejong-voice:dev
-    container_name: sejong_voice_app
     restart: unless-stopped
     ports:
       - "8080:8080"
