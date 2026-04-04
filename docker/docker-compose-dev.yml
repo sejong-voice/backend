@@ -47,7 +47,6 @@ services:
     build:
       context: ../ssoPython
       dockerfile: Dockerfile
-    container_name: sejong_voice_sso
     restart: unless-stopped
     ports:
       - "8081:8081"
