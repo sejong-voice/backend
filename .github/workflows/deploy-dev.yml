@@ -88,5 +88,6 @@ jobs:
             EOF
             
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            docker compose --env-file .env -f docker-compose-dev.yml down
             docker compose --env-file .env -f docker-compose-dev.yml pull
             docker compose --env-file .env -f docker-compose-dev.yml up -d
