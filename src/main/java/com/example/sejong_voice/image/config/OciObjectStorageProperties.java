@@ -9,7 +9,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @Getter
 @RequiredArgsConstructor
-@ConfigurationProperties(prefix = "app.oci.object-storage")
+@ConfigurationProperties(prefix = "oci.object-storage")
 public class OciObjectStorageProperties {
 
   private static final String DEFAULT_IMAGE_PREFIX = "post-images";
