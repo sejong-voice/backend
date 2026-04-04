@@ -1,0 +1,58 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: sejong_voice_db
+    restart: unless-stopped
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: sejong_voice
+      TZ: Asia/Seoul
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  app:
+    image: ${DOCKERHUB_USERNAME}/sejong-voice:dev
+    container_name: sejong_voice_app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Asia/Seoul
+      SPRING_PROFILES_ACTIVE: server
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION}
+      JWT_REFRESH_TOKEN_EXPIRATION: ${JWT_REFRESH_TOKEN_EXPIRATION}
+
+      SSO_BASE_URL: ${SSO_BASE_URL}
+      SSO_SESSIONS_PATH: ${SSO_SESSIONS_PATH}
+      SSO_TIMEOUT_MS: ${SSO_TIMEOUT_MS}
+
+      OCI_OBJECT_STORAGE_REGION: ${OCI_OBJECT_STORAGE_REGION}
+      OCI_OBJECT_STORAGE_BUCKET: ${OCI_OBJECT_STORAGE_BUCKET}
+      OCI_OBJECT_STORAGE_NAMESPACE: ${OCI_OBJECT_STORAGE_NAMESPACE}
+    depends_on:
+      - db
+      - sso
+
+  sso:
+    build:
+      context: ../ssoPython
+      dockerfile: Dockerfile
+    container_name: sejong_voice_sso
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+
+volumes:
+  mysql_data:
