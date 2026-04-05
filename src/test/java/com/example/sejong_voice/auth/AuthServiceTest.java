@@ -250,7 +250,7 @@ class AuthServiceTest {
     authService.activateStatus("20260001");
 
     // then
-    verify(mockStudentUser).activateNow(any(Instant.class));
+    verify(mockStudentUser).activateNow();
   }
 
 

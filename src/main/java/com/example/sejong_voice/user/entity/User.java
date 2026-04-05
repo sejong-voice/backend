@@ -68,6 +68,10 @@ public class User {
     this.createdAt = createdAt;
   }
 
+  public static Instant activeDuration() {
+    return EPOCH;
+  }
+
 
   public void updateDepartment(DepartmentRequest newDepartment) {
     this.department = newDepartment.department();
@@ -81,9 +85,9 @@ public class User {
   }
 
   // 조기 복구
-  public void activateNow(Instant duration){
+  public void activateNow(){
     this.status = UserStatus.ACTIVE;
-    this.duration = duration;
+    this.duration = EPOCH;
   }
 
   public void updateRole(UserRole role) {

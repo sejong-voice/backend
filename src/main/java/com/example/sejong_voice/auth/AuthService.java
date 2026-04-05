@@ -52,7 +52,7 @@ public class AuthService {
               .name(ssoResponse.user().name())
               .department(ssoResponse.user().department())
               .password(passwordEncoder.encode(password))
-              .duration(now)
+              .duration(User.activeDuration())
               .createdAt(now)
               .build()
       );
@@ -79,7 +79,7 @@ public class AuthService {
       if( now.isBefore(user.getDuration())){
         throw new BusinessException(AuthErrorCode.USER_SUSPENDED);
       } else{
-        user.updateStatus(UserStatus.ACTIVE, now);
+        user.updateStatus(UserStatus.ACTIVE, User.activeDuration());
       }
     }
 
@@ -199,7 +199,7 @@ public class AuthService {
   public void activateStatus(String targetStudentNo) {
     User targetUser = userRepository.findByStudentNo(targetStudentNo)
             .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
-    targetUser.activateNow(Instant.now(clock));
+    targetUser.activateNow();
   }
 
   // 7. 권한 수정 (Super 계정 전용 - Role 변경)
