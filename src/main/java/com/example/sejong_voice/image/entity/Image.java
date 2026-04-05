@@ -12,7 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -54,13 +54,13 @@ public class Image {
   private ImageStatus status;
 
   @Column(nullable = false)
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   private Integer displayOrder;
 
-  private LocalDateTime activatedAt;
+  private Instant activatedAt;
 
-  private LocalDateTime deletedAt;
+  private Instant deletedAt;
 
   @Builder
   public Image(
@@ -69,7 +69,8 @@ public class Image {
       String originalFileName,
       String objectName,
       String contentType,
-      Long size
+      Long size,
+      Instant createdAt
   ) {
     this.user = user;
     this.post = post;
@@ -78,14 +79,14 @@ public class Image {
     this.contentType = contentType;
     this.size = size;
     this.status = ImageStatus.TEMP;
-    this.createdAt = LocalDateTime.now();
+    this.createdAt = createdAt;
   }
 
-  public void activate(Post post, int displayOrder) {
+  public void activate(Post post, int displayOrder, Instant activatedAt) {
     this.post = post;
     this.status = ImageStatus.ACTIVE;
     this.displayOrder = displayOrder;
-    this.activatedAt = LocalDateTime.now();
+    this.activatedAt = activatedAt;
     this.deletedAt = null;
   }
 
@@ -93,10 +94,10 @@ public class Image {
     this.displayOrder = displayOrder;
   }
 
-  public void markDeleted() {
+  public void markDeleted(Instant deletedAt) {
     this.status = ImageStatus.DELETED;
     this.post = null;
     this.displayOrder = null;
-    this.deletedAt = LocalDateTime.now();
+    this.deletedAt = deletedAt;
   }
 }

@@ -13,7 +13,6 @@ import java.time.Instant;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA용 기본 생성자
 public class RefreshToken {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -37,8 +36,8 @@ public class RefreshToken {
     }
 
     // 만료 여부 확인 비즈니스 로직
-    public boolean isExpired() {
-        return expiryDate.isBefore(Instant.now());
+    public boolean isExpired(Instant now) {
+        return expiryDate.isBefore(now);
     }
 
     // 토큰 값과 만료 시간 업데이트 (재로그인 시 활용)

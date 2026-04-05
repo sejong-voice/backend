@@ -3,7 +3,7 @@ package com.example.sejong_voice.comment.dto;
 import com.example.sejong_voice.comment.entity.Comment;
 import com.example.sejong_voice.comment.entity.CommentStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,7 +14,7 @@ public record CommentResponse(
     CommentStatus status,
     boolean canDelete,
     List<CommentResponse> children,
-    LocalDateTime createdAt
+    Instant createdAt
 ) {
 
   public static CommentResponse from(Comment comment, UUID currentUserId) {

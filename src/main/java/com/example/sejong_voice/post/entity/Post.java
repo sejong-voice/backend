@@ -14,7 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -49,16 +49,16 @@ public class Post {
   private PostStatus status;
 
   @Column(nullable = false)
-  private LocalDateTime votingStartAt;
+  private Instant votingStartAt;
 
   @Column(nullable = false)
-  private LocalDateTime votingEndAt;
+  private Instant votingEndAt;
 
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
   private PostVotingDuration votingDuration;
 
-  private LocalDateTime closedAt;
+  private Instant closedAt;
 
   @Column(nullable = false)
   private Integer minVoteSnapshot;
@@ -67,16 +67,16 @@ public class Post {
   private BigDecimal approveRatioSnapshot;
 
   @Column(nullable = false)
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
-  private LocalDateTime deletedAt;
+  private Instant deletedAt;
 
   @Column(columnDefinition = "TEXT")
   private String resultContent;
 
-  private LocalDateTime resultCreatedAt;
+  private Instant resultCreatedAt;
 
-  private LocalDateTime resultUpdatedAt;
+  private Instant resultUpdatedAt;
 
   @Column(nullable = false)
   private Integer viewCount;
@@ -93,7 +93,8 @@ public class Post {
       String content,
       PostVotingDuration postVotingDuration,
       Integer minVoteSnapshot,
-      BigDecimal approveRatioSnapshot
+      BigDecimal approveRatioSnapshot,
+      Instant createdAt
   ) {
     this.user = user;
     this.council = council;
@@ -105,10 +106,9 @@ public class Post {
 
     this.status = PostStatus.VOTING;
 
-    LocalDateTime now = LocalDateTime.now();
-    this.createdAt = now;
-    this.votingStartAt = now;
-    this.votingEndAt = postVotingDuration.calculateDeadline(now);
+    this.createdAt = createdAt;
+    this.votingStartAt = createdAt;
+    this.votingEndAt = postVotingDuration.calculateDeadline(createdAt);
 
     this.viewCount = 1;
     this.visibilityStatus = PostModerationStatus.ACTIVE;
@@ -123,8 +123,8 @@ public class Post {
     this.content = newContent;
   }
 
-  public void delete() {
-    this.deletedAt = LocalDateTime.now();
+  public void delete(Instant deletedAt) {
+    this.deletedAt = deletedAt;
   }
 
   public void blind() {
@@ -135,12 +135,12 @@ public class Post {
     this.visibilityStatus = PostModerationStatus.ACTIVE;
   }
 
-  public void evaluateAndClose(long agreeCount, long totalCount) {
+  public void evaluateAndClose(long agreeCount, long totalCount, Instant closedAt) {
     if (this.status != PostStatus.VOTING) {
       return;
     }
 
-    this.closedAt = LocalDateTime.now();
+    this.closedAt = closedAt;
 
     // 1. 최소 투표 수 미달 -> 기각
     if (totalCount < this.minVoteSnapshot) {
@@ -162,15 +162,15 @@ public class Post {
     this.status = PostStatus.APPROVED;
   }
 
-  public void updateResult(PostStatus status, String resultContent) {
+  public void updateResult(PostStatus status, String resultContent, Instant now) {
     this.status = status;
     this.resultContent = resultContent;
 
     if (this.resultCreatedAt == null) {
-      this.resultCreatedAt = LocalDateTime.now();
+      this.resultCreatedAt = now;
       return;
     }
 
-    this.resultUpdatedAt = LocalDateTime.now();
+    this.resultUpdatedAt = now;
   }
 }

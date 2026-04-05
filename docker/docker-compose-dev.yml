@@ -10,7 +10,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: sejong_voice
-      TZ: Asia/Seoul
+      TZ: UTC
     ports:
       - "3308:3306"
     volumes:
@@ -23,7 +23,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      TZ: Asia/Seoul
+      TZ: UTC
       SPRING_PROFILES_ACTIVE: server
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME}

@@ -15,9 +15,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.time.Clock;
+import java.time.Instant;
 
 import static com.example.sejong_voice.notification.entity.NotificationType.POST_APPROVED;
 
@@ -30,6 +31,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final CouncilMemberRepository councilMemberRepository;
     private final PostRepository postRepository;
+    private final Clock clock;
 
     //createPostApprovedNotifications , notification 테이블에 상태전환 로그 남기는 메서드
     @Transactional
@@ -48,6 +50,7 @@ public class NotificationService {
                 .user(councilUser)
                 .type(POST_APPROVED)
                 .post(post)
+                .createdAt(Instant.now(clock))
                 .build();
 
         notificationRepository.save(notification);

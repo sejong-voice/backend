@@ -8,6 +8,8 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.post.dto.PostCountRow;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommentService {
 
   private final CommentRepository commentRepository;
+  private final Clock clock;
 
   @Transactional
   public UUID create(
@@ -44,6 +47,7 @@ public class CommentService {
         .post(post)
         .parent(parent)
         .content(content)
+        .createdAt(Instant.now(clock))
         .build();
 
     Comment saved = commentRepository.save(comment);
@@ -81,14 +85,15 @@ public class CommentService {
       throw new BusinessException(CommentErrorCode.ACCESS_DENIED);
     }
 
-    comment.delete();
+    comment.delete(Instant.now(clock));
     log.info("댓글 삭제: commentId={}, userId={}", commentId, userId);
   }
 
   @Transactional
   public void deleteAllByPostId(UUID postId) {
     List<Comment> comments = commentRepository.findAllActiveByPostId(postId);
-    comments.forEach(Comment::delete);
+    Instant now = Instant.now(clock);
+    comments.forEach(comment -> comment.delete(now));
     log.info("게시글 댓글 삭제 처리: postId={}, commentCount={}", postId, comments.size());
   }
 }

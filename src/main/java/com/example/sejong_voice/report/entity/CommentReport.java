@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -48,13 +48,13 @@ public class CommentReport {
   private CommentReportReason reason;
 
   @Column(name = "created_at", nullable = false, updatable = false)
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   @Builder
-  public CommentReport(Comment comment, User user, CommentReportReason reason) {
+  public CommentReport(Comment comment, User user, CommentReportReason reason, Instant createdAt) {
     this.comment = comment;
     this.user = user;
     this.reason = reason;
-    this.createdAt = LocalDateTime.now();
+    this.createdAt = createdAt;
   }
 }

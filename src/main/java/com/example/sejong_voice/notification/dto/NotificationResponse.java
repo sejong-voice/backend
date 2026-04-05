@@ -3,7 +3,7 @@ package com.example.sejong_voice.notification.dto;
 
 import com.example.sejong_voice.notification.entity.Notification;
 import com.example.sejong_voice.notification.entity.NotificationType;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 public record NotificationResponse(
@@ -12,7 +12,7 @@ public record NotificationResponse(
         UUID postId,
         NotificationType type,
         boolean readTF,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {
     public static NotificationResponse from(Notification n) {
         return new NotificationResponse(

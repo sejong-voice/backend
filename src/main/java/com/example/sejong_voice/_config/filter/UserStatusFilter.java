@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.time.Clock;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -31,6 +32,7 @@ public class UserStatusFilter extends OncePerRequestFilter {
 
     // 에러 응답을 JSON으로 직렬화하기 위한 객체
     private final ObjectMapper objectMapper;
+    private final Clock clock;
 
     @Override
     protected void doFilterInternal(
@@ -62,7 +64,7 @@ public class UserStatusFilter extends OncePerRequestFilter {
             response.setStatus(AuthErrorCode.USER_SUSPENDED.getStatus()); // 403
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setCharacterEncoding("UTF-8");
-            objectMapper.writeValue(response.getWriter(), ErrorResponse.of(AuthErrorCode.USER_SUSPENDED));
+            objectMapper.writeValue(response.getWriter(), ErrorResponse.of(AuthErrorCode.USER_SUSPENDED, clock));
             return;
         }
 

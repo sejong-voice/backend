@@ -4,7 +4,7 @@ import com.example.sejong_voice.image.dto.PostImageResponse;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatus;
 import com.example.sejong_voice.post.entity.PostVotingDuration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
@@ -20,11 +20,11 @@ public record PostDetailResponse(
     String content,
     PostStatus status,
     String resultContent,
-    LocalDateTime resultCreatedAt,
-    LocalDateTime resultUpdatedAt,
+    Instant resultCreatedAt,
+    Instant resultUpdatedAt,
     PostVotingDuration postVotingDuration,
-    LocalDateTime createdAt,
-    LocalDateTime votingEndAt,
+    Instant createdAt,
+    Instant votingEndAt,
     List<PostImageResponse> images
 ) {
 

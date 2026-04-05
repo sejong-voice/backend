@@ -14,7 +14,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -55,19 +55,20 @@ public class PostStatusHistory {
   private PostModerationStatus toStatus;
 
   @Column(name = "created_at", nullable = false, updatable = false)
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   @Builder
   public PostStatusHistory(
       UUID userId, //상태를 변경한 관리자 id
       Post post,   // 상태가 변경된 post
       PostModerationStatus fromStatus, // before 상태
-      PostModerationStatus toStatus   // after 상태
+      PostModerationStatus toStatus,   // after 상태
+      Instant createdAt
   ) {
     this.userId = userId;
     this.post = post;
     this.fromStatus = fromStatus;
     this.toStatus = toStatus;
-    this.createdAt = LocalDateTime.now();
+    this.createdAt = createdAt;
   }
 }
