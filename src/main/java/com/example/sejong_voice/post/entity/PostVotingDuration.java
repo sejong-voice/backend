@@ -1,7 +1,8 @@
 package com.example.sejong_voice.post.entity;
 
+import com.example.sejong_voice._common.time.TimeUtils;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -15,9 +16,11 @@ public enum PostVotingDuration {
   private final String description;
   private final int days;
 
-  public LocalDateTime calculateDeadline(LocalDateTime startAt) {
-    return startAt.toLocalDate()
+  public Instant calculateDeadline(Instant startAt) {
+    LocalDateTime deadline = TimeUtils.toSeoulLocalDateTime(startAt)
+        .toLocalDate()
         .plusDays(this.days - 1)
         .atTime(23, 59, 59);
+    return TimeUtils.toUtcInstant(deadline);
   }
 }

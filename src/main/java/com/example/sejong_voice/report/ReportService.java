@@ -20,6 +20,8 @@ import com.example.sejong_voice.user.UserRepository;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.history.entity.PostStatusHistory;
 import com.example.sejong_voice.history.repository.PostStatusHistoryRepository;
+import java.time.Clock;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,7 @@ public class ReportService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
+    private final Clock clock;
 
     //게시글 신고
     @Transactional
@@ -70,6 +73,7 @@ public class ReportService {
                             .reporterUser(reporter)
                             .reason(reason)
                             .description(description)
+                            .createdAt(Instant.now(clock))
                             .build()
             );
             //PostReport의 id 반환
@@ -116,6 +120,7 @@ public class ReportService {
                             .comment(comment)
                             .user(reporter)
                             .reason(reason)
+                            .createdAt(Instant.now(clock))
                             .build()
             );
             return saved.getId();
@@ -143,7 +148,7 @@ public class ReportService {
 
         switch (actionType) {
             case ACTIVE -> post.activate();   // ACTIVE 복구
-            case DELETED -> post.delete();    // 삭제 처리
+            case DELETED -> post.delete(Instant.now(clock));    // 삭제 처리
             case BLINDED -> post.blind();     // 블라인드 처리
         }
 
@@ -154,6 +159,7 @@ public class ReportService {
                         .post(post)
                         .fromStatus(fromStatus)
                         .toStatus(actionType)
+                        .createdAt(Instant.now(clock))
                         .build()
         );
     }
@@ -168,7 +174,7 @@ public class ReportService {
 
         switch (actionType) {
             case ACTIVE -> comment.activate();  // ACTIVE 복구
-            case DELETED -> comment.delete();   // 삭제 처리
+            case DELETED -> comment.delete(Instant.now(clock));   // 삭제 처리
             case BLINDED -> comment.blind();    // 블라인드 처리
         }
     }

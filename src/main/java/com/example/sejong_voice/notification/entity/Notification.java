@@ -10,7 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -42,16 +42,16 @@ public class Notification {
 
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Builder
-    private Notification(User user, NotificationType type, Post post) {
+    private Notification(User user, NotificationType type, Post post, Instant createdAt) {
         this.id = UUID.randomUUID();
         this.user = user; // 알림 받을 유저
         this.type = type; // 어떤 알림인지
         this.post = post; // 어디 게시글에서 온 알림인지
         this.readTF = false;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = createdAt;
     }
 
     public void markAsRead() {this.readTF = true;}//읽음으로 전환하는 로직

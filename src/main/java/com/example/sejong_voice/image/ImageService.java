@@ -8,7 +8,9 @@ import com.example.sejong_voice.image.exception.ImageErrorCode;
 import com.example.sejong_voice.image.repository.ImageRepository;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +40,7 @@ public class ImageService {
 
   private final ImageRepository imageRepository;
   private final OciObjectStorageProperties objectStorageProperties;
+  private final Clock clock;
 
   public void validateUploadFile(MultipartFile file) {
     validate(file);
@@ -51,6 +54,7 @@ public class ImageService {
         .objectName(objectName)
         .contentType(file.getContentType())
         .size(file.getSize())
+        .createdAt(Instant.now(clock))
         .build());
 
     log.info("TEMP 이미지 메타데이터 저장: imageId={}, userId={}", image.getId(), user.getId());
@@ -83,7 +87,7 @@ public class ImageService {
         throw new BusinessException(ImageErrorCode.INVALID_IMAGE_STATUS);
       }
 
-      image.activate(post, order);
+      image.activate(post, order, Instant.now(clock));
     }
 
     log.info("게시글 이미지 연결 완료: postId={}, imageCount={}", post.getId(), images.size());
@@ -103,7 +107,8 @@ public class ImageService {
         .collect(Collectors.toMap(Image::getId, image -> image));
 
     if (requestedImageIds.isEmpty()) {
-      currentImages.forEach(Image::markDeleted);
+      Instant now = Instant.now(clock);
+      currentImages.forEach(image -> image.markDeleted(now));
       log.info("게시글 이미지 동기화 완료: postId={}, imageCount=0", post.getId());
       return;
     }
@@ -135,7 +140,7 @@ public class ImageService {
 
     for (Image currentImage : currentImages) {
       if (!requestedImagesById.containsKey(currentImage.getId())) {
-        currentImage.markDeleted();
+        currentImage.markDeleted(Instant.now(clock));
       }
     }
 
@@ -147,7 +152,7 @@ public class ImageService {
         continue;
       }
 
-      image.activate(post, order);
+      image.activate(post, order, Instant.now(clock));
     }
 
     log.info("게시글 이미지 동기화 완료: postId={}, imageCount={}", post.getId(), requestedImages.size());
@@ -172,20 +177,21 @@ public class ImageService {
   }
 
   public List<Image> findExpiredTempImages() {
-    LocalDateTime cutoff = LocalDateTime.now()
-        .minusHours(objectStorageProperties.getTempImageRetentionHours());
+    Instant cutoff = Instant.now(clock)
+        .minus(Duration.ofHours(objectStorageProperties.getTempImageRetentionHours()));
     return imageRepository.findAllByStatusAndCreatedAtBefore(ImageStatus.TEMP, cutoff);
   }
 
   @Transactional
   public void markDeleted(Image image) {
-    image.markDeleted();
+    image.markDeleted(Instant.now(clock));
   }
 
   @Transactional
   public void deleteAllByPostId(UUID postId) {
     List<Image> images = imageRepository.findAllByPostIdAndStatusOrderByDisplayOrderAsc(postId, ImageStatus.ACTIVE);
-    images.forEach(Image::markDeleted);
+    Instant now = Instant.now(clock);
+    images.forEach(image -> image.markDeleted(now));
     log.info("게시글 이미지 삭제 처리: postId={}, imageCount={}", postId, images.size());
   }
 

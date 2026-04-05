@@ -1,6 +1,7 @@
 package com.example.sejong_voice.auth;
 
 
+import com.example.sejong_voice._common.time.TimeUtils;
 import com.example.sejong_voice.auth.dto.*;
 import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import com.example.sejong_voice.exception.BusinessException;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.Clock;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class AuthService {
   private final SchoolAuthClient schoolAuthClient;
   private final JwtUtil jwtUtil;
   private final JwtProperties jwtProperties;
+  private final Clock clock;
 
   @Transactional
   public LoginResponse login(String studentNo, String password) {
@@ -42,12 +45,15 @@ public class AuthService {
       );
 
       // 3. sso 성공 시 받은 정보로 신규 가입
+      Instant now = Instant.now(clock);
       return userRepository.save(
           User.builder()
               .studentNo(ssoResponse.user().studentNo())
               .name(ssoResponse.user().name())
               .department(ssoResponse.user().department())
               .password(passwordEncoder.encode(password))
+              .duration(now)
+              .createdAt(now)
               .build()
       );
     });
@@ -69,7 +75,7 @@ public class AuthService {
 
     // 5. 계정 상태 체크 (정지 여부, duration 만료하면 acitvate+duration 초기화)
     if (user.getStatus() == UserStatus.SUSPENDED) {
-      LocalDateTime now = LocalDateTime.now();
+      Instant now = Instant.now(clock);
       if( now.isBefore(user.getDuration())){
         throw new BusinessException(AuthErrorCode.USER_SUSPENDED);
       } else{
@@ -92,7 +98,7 @@ public class AuthService {
     );
 
 
-    Instant newExpiry = Instant.now().plusMillis(jwtProperties.getRefreshTokenExpiration());
+    Instant newExpiry = Instant.now(clock).plusMillis(jwtProperties.getRefreshTokenExpiration());
 
     //refreshToken 조회 후 있으면 update, 없으면 신규 생성 후 save
     refreshTokenRepository.findByUser(user).ifPresentOrElse(
@@ -133,7 +139,7 @@ public class AuthService {
         .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_TOKEN));//커스텀 에러
 
     // 토큰 유효성 검사
-    if (storedToken.isExpired()) {
+    if (storedToken.isExpired(Instant.now(clock))) {
       refreshTokenRepository.deleteByUser(user);
       throw new BusinessException(AuthErrorCode.TOKEN_EXPIRED);//커스텀 에러
     }
@@ -180,7 +186,7 @@ public class AuthService {
   ) {
     User targetUser = userRepository.findByStudentNo(targetStudentNo)
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
-    targetUser.updateStatus(newStatus, newDuration);
+    targetUser.updateStatus(newStatus, TimeUtils.toUtcInstant(newDuration));
 
     // 제재suspended이면 refreshToken 즉시파기
     if (newStatus.equals(UserStatus.SUSPENDED)) {
@@ -193,7 +199,7 @@ public class AuthService {
   public void activateStatus(String targetStudentNo) {
     User targetUser = userRepository.findByStudentNo(targetStudentNo)
             .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
-    targetUser.activateNow();
+    targetUser.activateNow(Instant.now(clock));
   }
 
   // 7. 권한 수정 (Super 계정 전용 - Role 변경)

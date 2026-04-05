@@ -1,6 +1,8 @@
 package com.example.sejong_voice.exception;
 
 import com.example.sejong_voice._common.ErrorResponse;
+import java.time.Clock;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -11,7 +13,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+  private final Clock clock;
 
   /**
    * 비즈니스 로직 예외 (BusinessException)
@@ -26,7 +30,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity
         .status(errorCode.getStatus())
-        .body(ErrorResponse.of(errorCode));
+        .body(ErrorResponse.of(errorCode, clock));
   }
 
   /**
@@ -40,7 +44,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity
         .status(errorCode.getStatus())
-        .body(ErrorResponse.of(errorCode));
+        .body(ErrorResponse.of(errorCode, clock));
   }
 
   /**
@@ -55,7 +59,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity
         .status(errorCode.getStatus())
-        .body(ErrorResponse.of(errorCode));
+        .body(ErrorResponse.of(errorCode, clock));
   }
 
   /**
@@ -69,7 +73,7 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity
         .status(errorCode.getStatus())
-        .body(ErrorResponse.of(errorCode));
+        .body(ErrorResponse.of(errorCode, clock));
   }
 
   /**
@@ -83,6 +87,6 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity
         .status(errorCode.getStatus())
-        .body(ErrorResponse.of(errorCode));
+        .body(ErrorResponse.of(errorCode, clock));
   }
 }

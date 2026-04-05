@@ -12,7 +12,7 @@ public class ImageCleanupScheduler {
 
   private final ImageFacade imageFacade;
 
-  @Scheduled(cron = "0 0 * * * *")
+  @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
   public void cleanupExpiredTempImages() {
     log.info("[Scheduler] 만료된 TEMP 이미지 정리 시작");
     imageFacade.cleanupExpiredTempImages();

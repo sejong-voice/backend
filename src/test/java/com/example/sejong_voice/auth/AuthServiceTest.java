@@ -18,8 +18,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,6 +46,8 @@ class AuthServiceTest {
   private JwtUtil jwtUtil;
   @Mock
   private JwtProperties jwtProperties;
+  @Mock
+  private Clock clock;
 
   private User mockStudentUser;
   private User mockSuperUser;
@@ -71,6 +75,8 @@ class AuthServiceTest {
 
     // Login Request
     loginRequest = new LoginRequest("20260001", "password1234");
+    lenient().doReturn(Instant.parse("2026-04-05T00:00:00Z")).when(clock).instant();
+    lenient().doReturn(ZoneOffset.UTC).when(clock).getZone();
   }
 
   @Test
@@ -118,7 +124,7 @@ class AuthServiceTest {
     doReturn(Optional.of(mockStudentUser)).when(userRepository).findByStudentNo("20260001");
 
     RefreshToken mockRefreshToken = mock(RefreshToken.class);
-    doReturn(false).when(mockRefreshToken).isExpired();
+    doReturn(false).when(mockRefreshToken).isExpired(any(Instant.class));
     doReturn(mockStudentUser).when(mockRefreshToken).getUser();
     doReturn(Optional.of(mockRefreshToken)).when(refreshTokenRepository).findByUser(mockStudentUser);
 
@@ -216,7 +222,7 @@ class AuthServiceTest {
     doReturn(Optional.of(mockStudentUser)).when(userRepository).findByStudentNo("20260001");
     doReturn(true).when(passwordEncoder).matches(anyString(), anyString());
     doReturn(UserStatus.SUSPENDED).when(mockStudentUser).getStatus();
-    doReturn(LocalDateTime.now().minusDays(1)).when(mockStudentUser).getDuration();
+    doReturn(Instant.now().minusSeconds(24 * 60 * 60)).when(mockStudentUser).getDuration();
     doReturn(3600_000L).when(jwtProperties).getAccessTokenExpiration();
     doReturn(1_209_600_000L).when(jwtProperties).getRefreshTokenExpiration();
 
@@ -229,7 +235,7 @@ class AuthServiceTest {
     //then : status, duration이 복구되었는지 검증
     assertThat(response.accessToken()).isEqualTo("access_token");
     //mock 객체를 만들어서 검증하는거라서 실제하지 않음. 그래서 assertThat보단 verify를 사용
-    verify(mockStudentUser).updateStatus(eq(UserStatus.ACTIVE), any(LocalDateTime.class));
+    verify(mockStudentUser).updateStatus(eq(UserStatus.ACTIVE), any(Instant.class));
 
   }
 
@@ -244,7 +250,7 @@ class AuthServiceTest {
     authService.activateStatus("20260001");
 
     // then
-    verify(mockStudentUser).activateNow();
+    verify(mockStudentUser).activateNow(any(Instant.class));
   }
 
 

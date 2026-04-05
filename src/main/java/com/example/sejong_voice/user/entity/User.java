@@ -6,7 +6,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -14,6 +14,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
+  private static final Instant EPOCH = Instant.EPOCH;
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -41,14 +42,20 @@ public class User {
   private UserStatus status;
 
   @Column(nullable = false)
-  private LocalDateTime duration;
+  private Instant duration;
 
   @Column(name = "created_at", nullable = false, updatable = false)
-  private LocalDateTime createdAt;
-  
-  // 특정 필드만 인자로 받는 생성자에 @Builder 적용
+  private Instant createdAt;
+
   @Builder
-  public User(String studentNo, String name, String department, String password) {
+  public User(
+      String studentNo,
+      String name,
+      String department,
+      String password,
+      Instant duration,
+      Instant createdAt
+  ) {
     this.studentNo = studentNo;
     this.name = name;
     this.department = department;
@@ -57,8 +64,8 @@ public class User {
     // 생성 시점의 기본값 정의
     this.role = UserRole.STUDENT;
     this.status = UserStatus.ACTIVE;
-    this.duration = LocalDateTime.now(); // '0'의 의미로 현재 시간 세팅
-    this.createdAt = LocalDateTime.now();
+    this.duration = duration != null ? duration : EPOCH;
+    this.createdAt = createdAt;
   }
 
 
@@ -68,15 +75,15 @@ public class User {
 
   public void updatePassword(String newPassword){this.password = newPassword;}
 
-  public void updateStatus(UserStatus status, LocalDateTime duration) {
+  public void updateStatus(UserStatus status, Instant duration) {
     this.status = status;
     this.duration = duration;
   }
 
   // 조기 복구
-  public void activateNow(){
+  public void activateNow(Instant duration){
     this.status = UserStatus.ACTIVE;
-    this.duration = LocalDateTime.now();
+    this.duration = duration;
   }
 
   public void updateRole(UserRole role) {

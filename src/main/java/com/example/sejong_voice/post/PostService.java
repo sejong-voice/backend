@@ -12,17 +12,16 @@ import com.example.sejong_voice.post.entity.PostVotingDuration;
 import com.example.sejong_voice.post.exception.PostErrorCode;
 import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.user.entity.User;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
+import java.time.Clock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,6 +29,7 @@ import java.util.UUID;
 public class PostService {
 
   private final PostRepository postRepository;
+  private final Clock clock;
 
   @Transactional
   public Post create(
@@ -49,6 +49,7 @@ public class PostService {
         .postVotingDuration(postVotingDuration)
         .minVoteSnapshot(policy.getMinVote())
         .approveRatioSnapshot(policy.getApproveRatioThreshold())
+        .createdAt(Instant.now(clock))
         .build();
 
     log.info("게시물 생성: userId={}, councilId={}", user.getId(), council.getId());
@@ -112,14 +113,14 @@ public class PostService {
   @Transactional
   public void delete(UUID postId) {
     Post post = getById(postId);
-    post.delete();
+    post.delete(Instant.now(clock));
     log.info("게시물 삭제 완료: postId={}", postId);
   }
 
   @Transactional
   public void evaluateAndClose(UUID postId, long agreeCount, long totalCount) {
     Post post = getById(postId);
-    post.evaluateAndClose(agreeCount, totalCount);
+    post.evaluateAndClose(agreeCount, totalCount, Instant.now(clock));
     log.info(
         "게시물 투표 종료: postId={}, status={}, result={}",
         postId, post.getStatus(), post.getResultContent()
@@ -133,11 +134,11 @@ public class PostService {
       String resultContent
   ) {
     Post post = getById(postId);
-    post.updateResult(status, resultContent);
+    post.updateResult(status, resultContent, Instant.now(clock));
     log.info("게시물 결과 업데이트: postId={}, status={}", postId, status);
   }
 
-  public List<Post> findAllByStatusAndVotingEndAtBefore(PostStatus status, LocalDateTime now) {
+  public List<Post> findAllByStatusAndVotingEndAtBefore(PostStatus status, Instant now) {
     return postRepository.findAllByStatusAndVotingEndAtBefore(status, now);
   }
 }

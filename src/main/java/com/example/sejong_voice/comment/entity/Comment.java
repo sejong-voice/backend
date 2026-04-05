@@ -3,7 +3,7 @@ package com.example.sejong_voice.comment.entity;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -45,24 +45,24 @@ public class Comment {
   @Column(nullable = false)
   private CommentStatus status;
 
-  private LocalDateTime deletedAt;
+  private Instant deletedAt;
 
   @Column(nullable = false, updatable = false)
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 
   @Builder
-  public Comment(Post post, User user, Comment parent, String content) {
+  public Comment(Post post, User user, Comment parent, String content, Instant createdAt) {
     this.post = post;
     this.user = user;
     this.parent = parent;
     this.content = content;
     this.status = CommentStatus.ACTIVE;
-    this.createdAt = LocalDateTime.now();
+    this.createdAt = createdAt;
   }
 
-  public void delete() {
+  public void delete(Instant deletedAt) {
     this.status = CommentStatus.DELETED;
-    this.deletedAt = LocalDateTime.now();
+    this.deletedAt = deletedAt;
   }
 
   public void blind() {

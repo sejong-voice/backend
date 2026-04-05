@@ -6,6 +6,7 @@ import com.example.sejong_voice._config.filter.UserStatusFilter;
 import com.example.sejong_voice.auth.jwt.JwtUtil;
 import com.example.sejong_voice.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Clock;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +31,7 @@ public class SecurityConfig {
   private final JwtUtil jwtUtil;//토큰 검증용
   private final UserRepository userRepository;
   private final ObjectMapper objectMapper;
+  private final Clock clock;
   private List<String> allowedOrigins;
 
 
@@ -88,7 +90,7 @@ public class SecurityConfig {
     http.addFilterBefore(new JwtAuthenticationFilter(jwtUtil),
         UsernamePasswordAuthenticationFilter.class);
 
-    http.addFilterAfter(new UserStatusFilter(userRepository, objectMapper),
+    http.addFilterAfter(new UserStatusFilter(userRepository, objectMapper, clock),
         JwtAuthenticationFilter.class);
 
     return http.build();

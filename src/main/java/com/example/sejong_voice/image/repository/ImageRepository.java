@@ -2,7 +2,7 @@ package com.example.sejong_voice.image.repository;
 
 import com.example.sejong_voice.image.entity.Image;
 import com.example.sejong_voice.image.entity.ImageStatus;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -16,5 +16,5 @@ public interface ImageRepository extends JpaRepository<Image, UUID> {
 
   List<Image> findAllByPostIdInAndStatusOrderByDisplayOrderAsc(Collection<UUID> postIds, ImageStatus status);
 
-  List<Image> findAllByStatusAndCreatedAtBefore(ImageStatus status, LocalDateTime createdAt);
+  List<Image> findAllByStatusAndCreatedAtBefore(ImageStatus status, Instant createdAt);
 }
