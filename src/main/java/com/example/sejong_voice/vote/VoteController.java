@@ -2,6 +2,7 @@ package com.example.sejong_voice.vote;
 
 import com.example.sejong_voice._common.security.AuthUser;
 import com.example.sejong_voice._common.security.UserPrincipal;
+import com.example.sejong_voice.vote.dto.VoteDetailResponse;
 import com.example.sejong_voice.vote.dto.VoteRequest;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,5 +45,17 @@ public class VoteController {
       @PathVariable UUID postId
   ) {
     return ResponseEntity.ok(voteFacade.getSummary(postId));
+  }
+
+  @Operation(
+      summary = "투표 상세 결과 조회",
+      description = "학생회 계정 또는 SUPER 권한 사용자가 특정 게시글의 투표 상세 결과와 투표자 목록을 조회합니다."
+  )
+  @GetMapping("/details")
+  public ResponseEntity<VoteDetailResponse> getDetails(
+      @PathVariable UUID postId,
+      @AuthUser UserPrincipal userPrincipal
+  ) {
+    return ResponseEntity.ok(voteFacade.getDetails(postId, userPrincipal.getUserId()));
   }
 }

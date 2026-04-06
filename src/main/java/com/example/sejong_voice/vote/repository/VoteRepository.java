@@ -28,4 +28,13 @@ public interface VoteRepository extends JpaRepository<Vote, UUID> {
       GROUP BY v.post.id
       """)
   List<PostCountRow> countByPostIds(@Param("postIds") Collection<UUID> postIds);
+
+  @Query("""
+      SELECT v
+      FROM Vote v
+      JOIN FETCH v.user
+      WHERE v.post.id = :postId
+      ORDER BY COALESCE(v.updatedAt, v.createdAt) ASC, v.createdAt ASC
+      """)
+  List<Vote> findAllByPostIdWithUserOrderByVotedAtAsc(@Param("postId") UUID postId);
 }
