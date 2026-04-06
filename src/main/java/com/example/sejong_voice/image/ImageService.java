@@ -4,6 +4,7 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.image.config.OciObjectStorageProperties;
 import com.example.sejong_voice.image.entity.Image;
 import com.example.sejong_voice.image.entity.ImageStatus;
+import com.example.sejong_voice.image.entity.ImageTargetType;
 import com.example.sejong_voice.image.exception.ImageErrorCode;
 import com.example.sejong_voice.image.repository.ImageRepository;
 import com.example.sejong_voice.post.entity.Post;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +64,7 @@ public class ImageService {
   }
 
   @Transactional
-  public void attachImagesToPost(User user, Post post, List<UUID> imageIds) {
+  public void attachImagesToPost(User user, Post post, List<UUID> imageIds, ImageTargetType targetType) {
     if (imageIds == null || imageIds.isEmpty()) {
       return;
     }
@@ -87,22 +89,19 @@ public class ImageService {
         throw new BusinessException(ImageErrorCode.INVALID_IMAGE_STATUS);
       }
 
-      image.activate(post, order, Instant.now(clock));
+      image.activate(post, targetType, order, Instant.now(clock));
     }
 
     log.info("게시글 이미지 연결 완료: postId={}, imageCount={}", post.getId(), images.size());
   }
 
   @Transactional
-  public void syncImagesForPost(User user, Post post, List<UUID> imageIds) {
+  public void syncImagesForPost(User user, Post post, List<UUID> imageIds, ImageTargetType targetType) {
     List<UUID> requestedImageIds = imageIds == null ? List.of() : imageIds;
 
     validateImageIds(requestedImageIds);
 
-    List<Image> currentImages = imageRepository.findAllByPostIdAndStatusOrderByDisplayOrderAsc(
-        post.getId(),
-        ImageStatus.ACTIVE
-    );
+    List<Image> currentImages = findActiveImages(post.getId(), targetType);
     Map<UUID, Image> currentImagesById = currentImages.stream()
         .collect(Collectors.toMap(Image::getId, image -> image));
 
@@ -130,7 +129,8 @@ public class ImageService {
 
       boolean isCurrentPostImage = image.getStatus() == ImageStatus.ACTIVE
           && image.getPost() != null
-          && image.getPost().getId().equals(post.getId());
+          && image.getPost().getId().equals(post.getId())
+          && hasSameTargetType(image, targetType);
       boolean isAttachableTempImage = image.getStatus() == ImageStatus.TEMP && image.getPost() == null;
 
       if (!isCurrentPostImage && !isAttachableTempImage) {
@@ -152,22 +152,63 @@ public class ImageService {
         continue;
       }
 
-      image.activate(post, order, Instant.now(clock));
+      image.activate(post, targetType, order, Instant.now(clock));
     }
 
     log.info("게시글 이미지 동기화 완료: postId={}, imageCount={}", post.getId(), requestedImages.size());
   }
 
-  public List<Image> findActiveImages(UUID postId) {
-    return imageRepository.findAllByPostIdAndStatusOrderByDisplayOrderAsc(postId, ImageStatus.ACTIVE);
+  public List<Image> findActiveImages(UUID postId, ImageTargetType targetType) {
+    if (targetType == ImageTargetType.POST_CONTENT) {
+      List<Image> images = imageRepository.findAllByPostIdAndStatusAndTargetTypeIsNullOrderByDisplayOrderAsc(
+          postId,
+          ImageStatus.ACTIVE
+      );
+      images.addAll(imageRepository.findAllByPostIdAndStatusAndTargetTypeOrderByDisplayOrderAsc(
+          postId,
+          ImageStatus.ACTIVE,
+          targetType
+      ));
+      images.sort(Comparator.comparing(Image::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)));
+      return images;
+    }
+
+    return imageRepository.findAllByPostIdAndStatusAndTargetTypeOrderByDisplayOrderAsc(
+        postId,
+        ImageStatus.ACTIVE,
+        targetType
+    );
   }
 
-  public Map<UUID, List<Image>> findActiveImagesByPostIds(Collection<UUID> postIds) {
+  public Map<UUID, List<Image>> findActiveImagesByPostIds(
+      Collection<UUID> postIds,
+      ImageTargetType targetType
+  ) {
     if (postIds == null || postIds.isEmpty()) {
       return Collections.emptyMap();
     }
 
-    return imageRepository.findAllByPostIdInAndStatusOrderByDisplayOrderAsc(postIds, ImageStatus.ACTIVE)
+    List<Image> images;
+    if (targetType == ImageTargetType.POST_CONTENT) {
+      images = imageRepository.findAllByPostIdInAndStatusAndTargetTypeIsNullOrderByDisplayOrderAsc(
+          postIds,
+          ImageStatus.ACTIVE
+      );
+      images.addAll(imageRepository.findAllByPostIdInAndStatusAndTargetTypeOrderByDisplayOrderAsc(
+          postIds,
+          ImageStatus.ACTIVE,
+          targetType
+      ));
+      images.sort(Comparator.comparing(Image::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)));
+    } else {
+      images = imageRepository.findAllByPostIdInAndStatusAndTargetTypeOrderByDisplayOrderAsc(
+          postIds,
+          ImageStatus.ACTIVE,
+          targetType
+      );
+    }
+
+    return images
         .stream()
         .collect(java.util.stream.Collectors.groupingBy(
             image -> image.getPost().getId(),
@@ -218,6 +259,14 @@ public class ImageService {
     if (imageIds.size() != Set.copyOf(imageIds).size()) {
       throw new BusinessException(ImageErrorCode.INVALID_IMAGE_STATUS);
     }
+  }
+
+  private boolean hasSameTargetType(Image image, ImageTargetType targetType) {
+    if (targetType == ImageTargetType.POST_CONTENT) {
+      return image.getTargetType() == null || image.getTargetType() == ImageTargetType.POST_CONTENT;
+    }
+
+    return image.getTargetType() == targetType;
   }
 
   private String resolveOriginalFileName(MultipartFile file) {

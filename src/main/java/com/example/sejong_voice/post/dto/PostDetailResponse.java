@@ -25,7 +25,8 @@ public record PostDetailResponse(
     PostVotingDuration postVotingDuration,
     Instant createdAt,
     Instant votingEndAt,
-    List<PostImageResponse> images
+    List<PostImageResponse> images,
+    List<PostImageResponse> resultImages
 ) {
 
   public static PostDetailResponse from(Post post) {
@@ -45,6 +46,7 @@ public record PostDetailResponse(
         .createdAt(post.getCreatedAt())
         .votingEndAt(post.getVotingEndAt())
         .images(List.of())
+        .resultImages(List.of())
         .build();
   }
 
@@ -64,7 +66,29 @@ public record PostDetailResponse(
         postVotingDuration,
         createdAt,
         votingEndAt,
-        images
+        images,
+        resultImages
+    );
+  }
+
+  public PostDetailResponse withResultImages(List<PostImageResponse> resultImages) {
+    return new PostDetailResponse(
+        id,
+        userId,
+        userStudentNo,
+        councilId,
+        councilName,
+        title,
+        content,
+        status,
+        resultContent,
+        resultCreatedAt,
+        resultUpdatedAt,
+        postVotingDuration,
+        createdAt,
+        votingEndAt,
+        images,
+        resultImages
     );
   }
 }

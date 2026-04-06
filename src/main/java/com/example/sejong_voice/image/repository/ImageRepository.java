@@ -2,6 +2,7 @@ package com.example.sejong_voice.image.repository;
 
 import com.example.sejong_voice.image.entity.Image;
 import com.example.sejong_voice.image.entity.ImageStatus;
+import com.example.sejong_voice.image.entity.ImageTargetType;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -12,9 +13,26 @@ public interface ImageRepository extends JpaRepository<Image, UUID> {
 
   List<Image> findAllByIdIn(Collection<UUID> ids);
 
-  List<Image> findAllByPostIdAndStatusOrderByDisplayOrderAsc(UUID postId, ImageStatus status);
+  List<Image> findAllByPostIdAndStatusAndTargetTypeOrderByDisplayOrderAsc(
+      UUID postId,
+      ImageStatus status,
+      ImageTargetType targetType
+  );
 
-  List<Image> findAllByPostIdInAndStatusOrderByDisplayOrderAsc(Collection<UUID> postIds, ImageStatus status);
+  List<Image> findAllByPostIdAndStatusAndTargetTypeIsNullOrderByDisplayOrderAsc(UUID postId, ImageStatus status);
+
+  List<Image> findAllByPostIdInAndStatusAndTargetTypeOrderByDisplayOrderAsc(
+      Collection<UUID> postIds,
+      ImageStatus status,
+      ImageTargetType targetType
+  );
+
+  List<Image> findAllByPostIdInAndStatusAndTargetTypeIsNullOrderByDisplayOrderAsc(
+      Collection<UUID> postIds,
+      ImageStatus status
+  );
+
+  List<Image> findAllByPostIdAndStatusOrderByDisplayOrderAsc(UUID postId, ImageStatus status);
 
   List<Image> findAllByStatusAndCreatedAtBefore(ImageStatus status, Instant createdAt);
 }

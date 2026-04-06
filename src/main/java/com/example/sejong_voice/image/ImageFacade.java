@@ -4,6 +4,7 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.image.dto.ImageUploadResponse;
 import com.example.sejong_voice.image.dto.PostImageResponse;
 import com.example.sejong_voice.image.entity.Image;
+import com.example.sejong_voice.image.entity.ImageTargetType;
 import com.example.sejong_voice.image.exception.ImageErrorCode;
 import com.example.sejong_voice.image.storage.OciImageStorage;
 import com.example.sejong_voice.user.UserService;
@@ -77,15 +78,18 @@ public class ImageFacade {
   }
 
   @Transactional(readOnly = true)
-  public List<PostImageResponse> getActiveImages(UUID postId) {
-    return imageService.findActiveImages(postId).stream()
+  public List<PostImageResponse> getActiveImages(UUID postId, ImageTargetType targetType) {
+    return imageService.findActiveImages(postId, targetType).stream()
         .map(this::toPostImageResponse)
         .toList();
   }
 
   @Transactional(readOnly = true)
-  public Map<UUID, List<PostImageResponse>> getActiveImagesByPostIds(Collection<UUID> postIds) {
-    return imageService.findActiveImagesByPostIds(postIds).entrySet().stream()
+  public Map<UUID, List<PostImageResponse>> getActiveImagesByPostIds(
+      Collection<UUID> postIds,
+      ImageTargetType targetType
+  ) {
+    return imageService.findActiveImagesByPostIds(postIds, targetType).entrySet().stream()
         .collect(Collectors.toMap(
             Map.Entry::getKey,
             entry -> entry.getValue().stream()
