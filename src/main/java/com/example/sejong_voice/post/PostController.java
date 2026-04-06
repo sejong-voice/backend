@@ -136,7 +136,8 @@ public class PostController {
         postId,
         userPrincipal.getUserId(),
         request.status(),
-        request.resultContent()
+        request.resultContent(),
+        request.imageIds()
     );
     return ResponseEntity.ok().build();
   }

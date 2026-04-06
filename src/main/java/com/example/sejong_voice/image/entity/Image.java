@@ -53,6 +53,9 @@ public class Image {
   @Column(nullable = false)
   private ImageStatus status;
 
+  @Enumerated(EnumType.STRING)
+  private ImageTargetType targetType;
+
   @Column(nullable = false)
   private Instant createdAt;
 
@@ -82,9 +85,10 @@ public class Image {
     this.createdAt = createdAt;
   }
 
-  public void activate(Post post, int displayOrder, Instant activatedAt) {
+  public void activate(Post post, ImageTargetType targetType, int displayOrder, Instant activatedAt) {
     this.post = post;
     this.status = ImageStatus.ACTIVE;
+    this.targetType = targetType;
     this.displayOrder = displayOrder;
     this.activatedAt = activatedAt;
     this.deletedAt = null;

@@ -7,6 +7,7 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.image.ImageFacade;
 import com.example.sejong_voice.image.ImageService;
 import com.example.sejong_voice.image.dto.PostImageResponse;
+import com.example.sejong_voice.image.entity.ImageTargetType;
 import com.example.sejong_voice.notification.NotificationService;
 import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
@@ -53,7 +54,7 @@ public class PostFacade {
     User user = userService.getById(userId);
     Council council = councilService.getById(councilId);
     Post post = postService.create(user, council, title, content, votingDuration);
-    imageService.attachImagesToPost(user, post, imageIds);
+    imageService.attachImagesToPost(user, post, imageIds, ImageTargetType.POST_CONTENT);
 
     return post.getId();
   }
@@ -78,7 +79,10 @@ public class PostFacade {
         .map(PostListResponse::id)
         .toList();
 
-    Map<UUID, List<PostImageResponse>> imagesByPostId = imageFacade.getActiveImagesByPostIds(postIds);
+    Map<UUID, List<PostImageResponse>> imagesByPostId = imageFacade.getActiveImagesByPostIds(
+        postIds,
+        ImageTargetType.POST_CONTENT
+    );
     Map<UUID, Long> voteCountByPostId = voteService.countByPostIds(postIds);
     Map<UUID, Long> commentCountByPostId = commentService.countActiveByPostIds(postIds);
 
@@ -100,7 +104,7 @@ public class PostFacade {
 
     User user = userService.getById(userId);
     Post post = postService.getById(postId);
-    imageService.syncImagesForPost(user, post, imageIds);
+    imageService.syncImagesForPost(user, post, imageIds, ImageTargetType.POST_CONTENT);
 
     return enrichImages(PostDetailResponse.from(post));
   }
@@ -142,7 +146,13 @@ public class PostFacade {
   }
 
   @Transactional
-  public void updateResult(UUID postId, UUID userId, PostStatus status, String resultContent) {
+  public void updateResult(
+      UUID postId,
+      UUID userId,
+      PostStatus status,
+      String resultContent,
+      List<UUID> imageIds
+  ) {
     Post post = postService.getById(postId);
     boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
 
@@ -154,6 +164,10 @@ public class PostFacade {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
+    validateResultUpdatableStatus(post.getStatus());
+
+    User user = userService.getById(userId);
+    imageService.syncImagesForPost(user, post, imageIds, ImageTargetType.POST_RESULT);
     postService.updateResult(postId, status, resultContent);
   }
 
@@ -174,7 +188,11 @@ public class PostFacade {
   }
 
   private PostDetailResponse enrichImages(PostDetailResponse postResponse) {
-    return postResponse.withImages(imageFacade.getActiveImages(postResponse.id()));
+    return postResponse.withImages(
+        imageFacade.getActiveImages(postResponse.id(), ImageTargetType.POST_CONTENT)
+    ).withResultImages(
+        imageFacade.getActiveImages(postResponse.id(), ImageTargetType.POST_RESULT)
+    );
   }
 
   private PostListResponse enrichImages(
@@ -182,5 +200,13 @@ public class PostFacade {
       Map<UUID, List<PostImageResponse>> imagesByPostId
   ) {
     return postResponse.withImages(imagesByPostId.getOrDefault(postResponse.id(), List.of()));
+  }
+
+  private void validateResultUpdatableStatus(PostStatus currentStatus) {
+    if (currentStatus != PostStatus.APPROVED
+        && currentStatus != PostStatus.COMPLETED
+        && currentStatus != PostStatus.REJECTED) {
+      throw new BusinessException(PostErrorCode.RESULT_UPDATE_NOT_ALLOWED);
+    }
   }
 }
