@@ -54,7 +54,7 @@ public class SecurityConfig {
             .permitAll()//refresh는 토큰이 만료되어도 접근가능하게 해용해두어ㅑ하는데
 
             .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/posts/*/votes/details")
-            .authenticated()
+            .hasAnyRole("ADMIN", "SUPER")
 
             // GET 요청에 대해 누구나 접근 가능하도록 허용
             .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/posts/**")

@@ -72,11 +72,13 @@ public class VoteService {
   }
 
   public VoteDetailResponse getDetails(Post post) {
-    List<Vote> votes = voteRepository.findAllByPostIdWithUserOrderByCreatedAtAsc(post.getId());
+    List<Vote> votes = voteRepository.findAllByPostIdWithUserOrderByVotedAtAsc(post.getId());
     long agreeCount = votes.stream()
         .filter(vote -> vote.getChoice() == VoteChoice.AGREE)
         .count();
-    long disagreeCount = votes.size() - agreeCount;
+    long disagreeCount = votes.stream()
+        .filter(vote -> vote.getChoice() == VoteChoice.DISAGREE)
+        .count();
 
     List<VoteParticipantResponse> participants = votes.stream()
         .map(VoteParticipantResponse::from)
@@ -89,7 +91,9 @@ public class VoteService {
           long departmentAgreeCount = entry.getValue().stream()
               .filter(vote -> vote.getChoice() == VoteChoice.AGREE)
               .count();
-          long departmentDisagreeCount = entry.getValue().size() - departmentAgreeCount;
+          long departmentDisagreeCount = entry.getValue().stream()
+              .filter(vote -> vote.getChoice() == VoteChoice.DISAGREE)
+              .count();
 
           return new VoteDepartmentDistributionResponse(
               entry.getKey(),
