@@ -15,10 +15,10 @@ import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Comparator;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +64,8 @@ public class ImageService {
   }
 
   @Transactional
-  public void attachImagesToPost(User user, Post post, List<UUID> imageIds, ImageTargetType targetType) {
+  public void attachImagesToPost(User user, Post post, List<UUID> imageIds,
+      ImageTargetType targetType) {
     if (imageIds == null || imageIds.isEmpty()) {
       return;
     }
@@ -96,7 +97,8 @@ public class ImageService {
   }
 
   @Transactional
-  public void syncImagesForPost(User user, Post post, List<UUID> imageIds, ImageTargetType targetType) {
+  public void syncImagesForPost(User user, Post post, List<UUID> imageIds,
+      ImageTargetType targetType) {
     List<UUID> requestedImageIds = imageIds == null ? List.of() : imageIds;
 
     validateImageIds(requestedImageIds);
@@ -131,7 +133,8 @@ public class ImageService {
           && image.getPost() != null
           && image.getPost().getId().equals(post.getId())
           && hasSameTargetType(image, targetType);
-      boolean isAttachableTempImage = image.getStatus() == ImageStatus.TEMP && image.getPost() == null;
+      boolean isAttachableTempImage =
+          image.getStatus() == ImageStatus.TEMP && image.getPost() == null;
 
       if (!isCurrentPostImage && !isAttachableTempImage) {
         throw new BusinessException(ImageErrorCode.INVALID_IMAGE_STATUS);
@@ -159,20 +162,6 @@ public class ImageService {
   }
 
   public List<Image> findActiveImages(UUID postId, ImageTargetType targetType) {
-    if (targetType == ImageTargetType.POST_CONTENT) {
-      List<Image> images = imageRepository.findAllByPostIdAndStatusAndTargetTypeIsNullOrderByDisplayOrderAsc(
-          postId,
-          ImageStatus.ACTIVE
-      );
-      images.addAll(imageRepository.findAllByPostIdAndStatusAndTargetTypeOrderByDisplayOrderAsc(
-          postId,
-          ImageStatus.ACTIVE,
-          targetType
-      ));
-      images.sort(Comparator.comparing(Image::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)));
-      return images;
-    }
-
     return imageRepository.findAllByPostIdAndStatusAndTargetTypeOrderByDisplayOrderAsc(
         postId,
         ImageStatus.ACTIVE,
@@ -188,32 +177,16 @@ public class ImageService {
       return Collections.emptyMap();
     }
 
-    List<Image> images;
-    if (targetType == ImageTargetType.POST_CONTENT) {
-      images = imageRepository.findAllByPostIdInAndStatusAndTargetTypeIsNullOrderByDisplayOrderAsc(
-          postIds,
-          ImageStatus.ACTIVE
-      );
-      images.addAll(imageRepository.findAllByPostIdInAndStatusAndTargetTypeOrderByDisplayOrderAsc(
-          postIds,
-          ImageStatus.ACTIVE,
-          targetType
-      ));
-      images.sort(Comparator.comparing(Image::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)));
-    } else {
-      images = imageRepository.findAllByPostIdInAndStatusAndTargetTypeOrderByDisplayOrderAsc(
-          postIds,
-          ImageStatus.ACTIVE,
-          targetType
-      );
-    }
-
-    return images
+    return imageRepository.findAllByPostIdInAndStatusAndTargetTypeOrderByDisplayOrderAsc(
+            postIds,
+            ImageStatus.ACTIVE,
+            targetType
+        )
         .stream()
-        .collect(java.util.stream.Collectors.groupingBy(
+        .collect(Collectors.groupingBy(
             image -> image.getPost().getId(),
-            java.util.LinkedHashMap::new,
-            java.util.stream.Collectors.toList()
+            LinkedHashMap::new,
+            Collectors.toList()
         ));
   }
 
@@ -230,7 +203,8 @@ public class ImageService {
 
   @Transactional
   public void deleteAllByPostId(UUID postId) {
-    List<Image> images = imageRepository.findAllByPostIdAndStatusOrderByDisplayOrderAsc(postId, ImageStatus.ACTIVE);
+    List<Image> images = imageRepository.findAllByPostIdAndStatusOrderByDisplayOrderAsc(postId,
+        ImageStatus.ACTIVE);
     Instant now = Instant.now(clock);
     images.forEach(image -> image.markDeleted(now));
     log.info("게시글 이미지 삭제 처리: postId={}, imageCount={}", postId, images.size());
@@ -262,10 +236,6 @@ public class ImageService {
   }
 
   private boolean hasSameTargetType(Image image, ImageTargetType targetType) {
-    if (targetType == ImageTargetType.POST_CONTENT) {
-      return image.getTargetType() == null || image.getTargetType() == ImageTargetType.POST_CONTENT;
-    }
-
     return image.getTargetType() == targetType;
   }
 

@@ -19,17 +19,10 @@ public interface ImageRepository extends JpaRepository<Image, UUID> {
       ImageTargetType targetType
   );
 
-  List<Image> findAllByPostIdAndStatusAndTargetTypeIsNullOrderByDisplayOrderAsc(UUID postId, ImageStatus status);
-
   List<Image> findAllByPostIdInAndStatusAndTargetTypeOrderByDisplayOrderAsc(
       Collection<UUID> postIds,
       ImageStatus status,
       ImageTargetType targetType
-  );
-
-  List<Image> findAllByPostIdInAndStatusAndTargetTypeIsNullOrderByDisplayOrderAsc(
-      Collection<UUID> postIds,
-      ImageStatus status
   );
 
   List<Image> findAllByPostIdAndStatusOrderByDisplayOrderAsc(UUID postId, ImageStatus status);
