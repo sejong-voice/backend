@@ -3,11 +3,18 @@ package com.example.sejong_voice.vote;
 import com.example.sejong_voice.post.dto.PostCountRow;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;
+import com.example.sejong_voice.vote.dto.VoteDepartmentDistributionResponse;
+import com.example.sejong_voice.vote.dto.VoteDetailResponse;
+import com.example.sejong_voice.vote.dto.VoteParticipantResponse;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.Vote;
 import com.example.sejong_voice.vote.entity.VoteChoice;
 import com.example.sejong_voice.vote.repository.VoteRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -58,9 +65,59 @@ public class VoteService {
     long agreeCount = countAgree(postId);
     long disagreeCount = countDisagree(postId);
 
-    log.info("투표 요약: postId={}, agreeCount={}, disagreeCount={}", postId, agreeCount, disagreeCount);
+    log.info("투표 요약: postId={}, agreeCount={}, disagreeCount={}", postId, agreeCount,
+        disagreeCount);
 
     return VoteSummaryResponse.of(agreeCount, disagreeCount);
+  }
+
+  public VoteDetailResponse getDetails(Post post) {
+    List<Vote> votes = voteRepository.findAllByPostIdWithUserOrderByCreatedAtAsc(post.getId());
+    long agreeCount = votes.stream()
+        .filter(vote -> vote.getChoice() == VoteChoice.AGREE)
+        .count();
+    long disagreeCount = votes.size() - agreeCount;
+
+    List<VoteParticipantResponse> participants = votes.stream()
+        .map(VoteParticipantResponse::from)
+        .toList();
+
+    List<VoteDepartmentDistributionResponse> departmentDistributions = votes.stream()
+        .collect(Collectors.groupingBy(vote -> vote.getUser().getDepartment()))
+        .entrySet().stream()
+        .map(entry -> {
+          long departmentAgreeCount = entry.getValue().stream()
+              .filter(vote -> vote.getChoice() == VoteChoice.AGREE)
+              .count();
+          long departmentDisagreeCount = entry.getValue().size() - departmentAgreeCount;
+
+          return new VoteDepartmentDistributionResponse(
+              entry.getKey(),
+              departmentAgreeCount,
+              departmentDisagreeCount,
+              entry.getValue().size()
+          );
+        })
+        .sorted(Comparator
+            .comparingLong(VoteDepartmentDistributionResponse::totalCount).reversed()
+            .thenComparing(VoteDepartmentDistributionResponse::department))
+        .toList();
+
+    BigDecimal agreeRatio = votes.isEmpty()
+        ? BigDecimal.ZERO
+        : BigDecimal.valueOf(agreeCount)
+            .divide(BigDecimal.valueOf(votes.size()), 4, RoundingMode.HALF_UP);
+
+    log.info("투표 상세 조회: postId={}, totalCount={}", post.getId(), votes.size());
+
+    return VoteDetailResponse.of(
+        agreeCount,
+        disagreeCount,
+        votes.size(),
+        agreeRatio,
+        departmentDistributions,
+        participants
+    );
   }
 
   public long countAgree(UUID postId) {
