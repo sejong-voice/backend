@@ -34,6 +34,8 @@ jobs:
           push: true
           platforms: linux/arm64
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/sejong-voice:dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Create deploy directory on server
         uses: appleboy/ssh-action@v1
