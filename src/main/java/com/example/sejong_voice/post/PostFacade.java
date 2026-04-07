@@ -92,6 +92,7 @@ public class PostFacade {
     ), imagesByPostId));
   }
 
+  // TODO: 삭제
   @Transactional
   public PostDetailResponse update(
       UUID postId,
@@ -122,10 +123,8 @@ public class PostFacade {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    if (isAuthor && !isSuper && !isCouncilAdmin) {
-      if (voteService.existsByPostId(postId)) {
-        throw new BusinessException(PostErrorCode.CANNOT_DELETE_POST_WITH_VOTES);
-      }
+    if (post.getStatus() != PostStatus.VOTING) {
+      throw new BusinessException(PostErrorCode.POST_CANNOT_DELETE_VOTING_ENDED);
     }
 
     commentService.deleteAllByPostId(postId);
