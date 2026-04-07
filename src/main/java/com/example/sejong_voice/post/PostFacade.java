@@ -93,23 +93,6 @@ public class PostFacade {
   }
 
   @Transactional
-  public PostDetailResponse update(
-      UUID postId,
-      String title,
-      String content,
-      List<UUID> imageIds,
-      UUID userId
-  ) {
-    postService.update(postId, title, content, userId);
-
-    User user = userService.getById(userId);
-    Post post = postService.getById(postId);
-    imageService.syncImagesForPost(user, post, imageIds, ImageTargetType.POST_CONTENT);
-
-    return enrichImages(PostDetailResponse.from(post));
-  }
-
-  @Transactional
   public void delete(UUID postId, UUID userId) {
     Post post = postService.getById(postId);
     User user = userService.getById(userId);
@@ -122,10 +105,8 @@ public class PostFacade {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    if (isAuthor && !isSuper && !isCouncilAdmin) {
-      if (voteService.existsByPostId(postId)) {
-        throw new BusinessException(PostErrorCode.CANNOT_DELETE_POST_WITH_VOTES);
-      }
+    if (!isSuper && post.getStatus() != PostStatus.VOTING) {
+      throw new BusinessException(PostErrorCode.POST_CANNOT_DELETE_VOTING_ENDED);
     }
 
     commentService.deleteAllByPostId(postId);
