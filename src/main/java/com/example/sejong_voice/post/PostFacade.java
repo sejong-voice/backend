@@ -105,7 +105,7 @@ public class PostFacade {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    if (post.getStatus() != PostStatus.VOTING) {
+    if (!isSuper && post.getStatus() != PostStatus.VOTING) {
       throw new BusinessException(PostErrorCode.POST_CANNOT_DELETE_VOTING_ENDED);
     }
 
