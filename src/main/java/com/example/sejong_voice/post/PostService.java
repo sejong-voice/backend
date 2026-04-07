@@ -87,30 +87,6 @@ public class PostService {
   }
 
   @Transactional
-  public PostDetailResponse update(
-      UUID postId,
-      String title,
-      String content,
-      UUID currentUserId
-  ) {
-    // 1. 게시물 조회
-    Post post = postRepository.findByIdWithUser(postId)
-        .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
-
-    // 2. 권한 체크
-    if (!post.getUser().getId().equals(currentUserId)) {
-      throw new BusinessException(PostErrorCode.ACCESS_DENIED);
-    }
-
-    // 3. 내용 수정
-    post.update(title, content);
-    log.info("게시물 수정: {}", postId);
-
-    // 4. 변경된 데이터 반환
-    return PostDetailResponse.from(post);
-  }
-
-  @Transactional
   public void delete(UUID postId) {
     Post post = getById(postId);
     post.delete(Instant.now(clock));

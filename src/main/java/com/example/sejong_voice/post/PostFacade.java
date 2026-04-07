@@ -92,24 +92,6 @@ public class PostFacade {
     ), imagesByPostId));
   }
 
-  // TODO: 삭제
-  @Transactional
-  public PostDetailResponse update(
-      UUID postId,
-      String title,
-      String content,
-      List<UUID> imageIds,
-      UUID userId
-  ) {
-    postService.update(postId, title, content, userId);
-
-    User user = userService.getById(userId);
-    Post post = postService.getById(postId);
-    imageService.syncImagesForPost(user, post, imageIds, ImageTargetType.POST_CONTENT);
-
-    return enrichImages(PostDetailResponse.from(post));
-  }
-
   @Transactional
   public void delete(UUID postId, UUID userId) {
     Post post = postService.getById(postId);

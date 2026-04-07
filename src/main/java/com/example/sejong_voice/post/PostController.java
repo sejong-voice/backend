@@ -7,7 +7,6 @@ import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostResultRequest;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
-import com.example.sejong_voice.post.dto.PostUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,7 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "게시글 API", description = "게시글 생성/조회/수정/삭제 API (VOTING(투표중), APPROVED(승인됨), PENDING(투표 미달로 기각), COMPLETED(승인된 투표에 대한 응답완료), REJECTED(모종의 이유로 승인은 되었으나 답변은 하지 못하는 경우 거절)))")
+@Tag(name = "게시글 API", description = "게시글 생성/조회/삭제 API (VOTING(투표중), APPROVED(승인됨), PENDING(투표 미달로 기각), COMPLETED(승인된 투표에 대한 응답완료), REJECTED(모종의 이유로 승인은 되었으나 답변은 하지 못하는 경우 거절)))")
 @RestController
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
@@ -74,26 +73,6 @@ public class PostController {
   @GetMapping("/{postId}")
   public ResponseEntity<PostDetailResponse> get(@PathVariable UUID postId) {
     return ResponseEntity.ok(postFacade.getPost(postId));
-  }
-
-  @Operation(
-      summary = "게시글 수정",
-      description = "작성자 권한으로 게시글 제목/내용을 수정합니다."
-  )
-  @PutMapping("/{postId}")
-  public ResponseEntity<PostDetailResponse> update(
-      @PathVariable UUID postId,
-      @RequestBody @Valid PostUpdateRequest request,
-      @AuthUser UserPrincipal userPrincipal
-  ) {
-    PostDetailResponse response = postFacade.update(
-        postId,
-        request.title(),
-        request.content(),
-        request.imageIds(),
-        userPrincipal.getUserId()
-    );
-    return ResponseEntity.ok(response);
   }
 
   @Operation(
