@@ -7,13 +7,14 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.image.ImageFacade;
 import com.example.sejong_voice.image.ImageService;
 import com.example.sejong_voice.image.dto.PostImageResponse;
-import com.example.sejong_voice.image.entity.ImageTargetType;
 import com.example.sejong_voice.notification.NotificationService;
 import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
+import com.example.sejong_voice.post.dto.PostStatementResponse;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatus;
+import com.example.sejong_voice.post.entity.PostStatement;
 import com.example.sejong_voice.post.entity.PostVotingDuration;
 import com.example.sejong_voice.post.exception.PostErrorCode;
 import com.example.sejong_voice.user.UserService;
@@ -34,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostFacade {
 
   private final PostService postService;
+  private final PostStatementService postStatementService;
   private final UserService userService;
   private final CouncilService councilService;
   private final VoteService voteService;
@@ -54,7 +56,7 @@ public class PostFacade {
     User user = userService.getById(userId);
     Council council = councilService.getById(councilId);
     Post post = postService.create(user, council, title, content, votingDuration);
-    imageService.attachImagesToPost(user, post, imageIds, ImageTargetType.POST_CONTENT);
+    imageService.attachImagesToPost(user, post, imageIds);
 
     return post.getId();
   }
@@ -79,10 +81,8 @@ public class PostFacade {
         .map(PostListResponse::id)
         .toList();
 
-    Map<UUID, List<PostImageResponse>> imagesByPostId = imageFacade.getActiveImagesByPostIds(
-        postIds,
-        ImageTargetType.POST_CONTENT
-    );
+    Map<UUID, List<PostImageResponse>> imagesByPostId = imageFacade.getActivePostImagesByPostIds(
+        postIds);
     Map<UUID, Long> voteCountByPostId = voteService.countByPostIds(postIds);
     Map<UUID, Long> commentCountByPostId = commentService.countActiveByPostIds(postIds);
 
@@ -126,30 +126,59 @@ public class PostFacade {
     processClosing(postId);
   }
 
+  /**
+   * 게시글에 입장문을 생성합니다.
+   *
+   * @param postId   게시글 ID
+   * @param userId   요청한 사용자 ID
+   * @param finalStatus 첫 입장문 생성 시 확정할 최종 상태
+   * @param content  입장문 내용
+   * @param imageIds 입장문 이미지 ID 목록
+   * @throws BusinessException 접근 권한이 없거나 입장문 생성 조건을 만족하지 못한 경우
+   */
   @Transactional
-  public void updateResult(
+  public void createStatement(
       UUID postId,
       UUID userId,
-      PostStatus status,
-      String resultContent,
+      PostStatus finalStatus,
+      String content,
       List<UUID> imageIds
   ) {
-    Post post = postService.getById(postId);
+    Post post = postService.getByIdForUpdate(postId);
     boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
 
     if (!isMember) {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    if (status != PostStatus.COMPLETED && status != PostStatus.REJECTED) {
-      throw new BusinessException(PostErrorCode.ACCESS_DENIED);
+    long statementCount = postStatementService.countStatements(postId);
+    if (statementCount >= 2) {
+      throw new BusinessException(PostErrorCode.STATEMENT_LIMIT_EXCEEDED);
     }
 
-    validateResultUpdatableStatus(post.getStatus());
+    if (statementCount == 0) {
+      if (post.getStatus() != PostStatus.APPROVED) {
+        throw new BusinessException(PostErrorCode.STATEMENT_CREATE_NOT_ALLOWED);
+      }
+
+      if (finalStatus == null) {
+        throw new BusinessException(PostErrorCode.FINAL_STATUS_REQUIRED);
+      }
+
+      if (finalStatus != PostStatus.COMPLETED && finalStatus != PostStatus.REJECTED) {
+        throw new BusinessException(PostErrorCode.INVALID_FINAL_STATUS);
+      }
+      post.updateStatus(finalStatus);
+    } else if (finalStatus != null) {
+      throw new BusinessException(PostErrorCode.FINAL_STATUS_NOT_ALLOWED);
+    } else if (post.getStatus() != PostStatus.COMPLETED && post.getStatus() != PostStatus.REJECTED) {
+      throw new BusinessException(PostErrorCode.STATEMENT_CREATE_NOT_ALLOWED);
+    }
 
     User user = userService.getById(userId);
-    imageService.syncImagesForPost(user, post, imageIds, ImageTargetType.POST_RESULT);
-    postService.updateResult(postId, status, resultContent);
+    int nextSequence = (int) statementCount + 1;
+    PostStatement postStatement = postStatementService.create(post, user, nextSequence, content);
+    imageService.attachImagesToStatement(user, postStatement, imageIds);
   }
 
   @Transactional
@@ -169,11 +198,20 @@ public class PostFacade {
   }
 
   private PostDetailResponse enrichImages(PostDetailResponse postResponse) {
+    List<PostStatement> statements = postStatementService.getStatements(postResponse.id());
+    List<UUID> statementIds = statements.stream()
+        .map(PostStatement::getId)
+        .toList();
+    Map<UUID, List<PostImageResponse>> statementImagesById =
+        imageFacade.getActiveStatementImagesByStatementIds(statementIds);
+    List<PostStatementResponse> statementResponses = statements.stream()
+        .map(statement -> PostStatementResponse.from(statement)
+            .withImages(statementImagesById.getOrDefault(statement.getId(), List.of())))
+        .toList();
+
     return postResponse.withImages(
-        imageFacade.getActiveImages(postResponse.id(), ImageTargetType.POST_CONTENT)
-    ).withResultImages(
-        imageFacade.getActiveImages(postResponse.id(), ImageTargetType.POST_RESULT)
-    );
+        imageFacade.getActivePostImages(postResponse.id())
+    ).withStatements(statementResponses);
   }
 
   private PostListResponse enrichImages(
@@ -181,13 +219,5 @@ public class PostFacade {
       Map<UUID, List<PostImageResponse>> imagesByPostId
   ) {
     return postResponse.withImages(imagesByPostId.getOrDefault(postResponse.id(), List.of()));
-  }
-
-  private void validateResultUpdatableStatus(PostStatus currentStatus) {
-    if (currentStatus != PostStatus.APPROVED
-        && currentStatus != PostStatus.COMPLETED
-        && currentStatus != PostStatus.REJECTED) {
-      throw new BusinessException(PostErrorCode.RESULT_UPDATE_NOT_ALLOWED);
-    }
   }
 }

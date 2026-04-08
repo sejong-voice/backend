@@ -26,7 +26,7 @@ public class PostScheduler {
   public void autoCloseExpiredVotes() {
     log.info("[Scheduler] 만료된 투표 게시물 자동 종료 체크 시작...");
 
-    List<Post> expiredPosts = postService.findAllByStatusAndVotingEndAtBefore(
+    List<Post> expiredPosts = postService.findClosable(
         PostStatus.VOTING,
         Instant.now(clock)
     );

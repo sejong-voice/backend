@@ -71,13 +71,6 @@ public class Post {
 
   private Instant deletedAt;
 
-  @Column(columnDefinition = "TEXT")
-  private String resultContent;
-
-  private Instant resultCreatedAt;
-
-  private Instant resultUpdatedAt;
-
   @Column(nullable = false)
   private Integer viewCount;
 
@@ -162,15 +155,7 @@ public class Post {
     this.status = PostStatus.APPROVED;
   }
 
-  public void updateResult(PostStatus status, String resultContent, Instant now) {
+  public void updateStatus(PostStatus status) {
     this.status = status;
-    this.resultContent = resultContent;
-
-    if (this.resultCreatedAt == null) {
-      this.resultCreatedAt = now;
-      return;
-    }
-
-    this.resultUpdatedAt = now;
   }
 }

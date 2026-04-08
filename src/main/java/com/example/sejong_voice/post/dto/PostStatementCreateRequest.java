@@ -6,9 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
 
-public record PostResultRequest(
-    @NotNull PostStatus status,
-    @NotBlank String resultContent,
-    @NotNull List<@NotNull UUID> imageIds
+public record PostStatementCreateRequest(
+    PostStatus finalStatus,
+    @NotBlank String content,
+    @NotNull List<UUID> imageIds
 ) {
 }

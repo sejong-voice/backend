@@ -86,6 +86,11 @@ public class PostService {
         .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
   }
 
+  public Post getByIdForUpdate(UUID id) {
+    return postRepository.findByIdForUpdate(id)
+        .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
+  }
+
   @Transactional
   public void delete(UUID postId) {
     Post post = getById(postId);
@@ -98,23 +103,19 @@ public class PostService {
     Post post = getById(postId);
     post.evaluateAndClose(agreeCount, totalCount, Instant.now(clock));
     log.info(
-        "게시물 투표 종료: postId={}, status={}, result={}",
-        postId, post.getStatus(), post.getResultContent()
+        "게시물 투표 종료: postId={}, status={}",
+        postId, post.getStatus()
     );
   }
 
   @Transactional
-  public void updateResult(
-      UUID postId,
-      PostStatus status,
-      String resultContent
-  ) {
+  public void updateStatus(UUID postId, PostStatus status) {
     Post post = getById(postId);
-    post.updateResult(status, resultContent, Instant.now(clock));
-    log.info("게시물 결과 업데이트: postId={}, status={}", postId, status);
+    post.updateStatus(status);
+    log.info("게시물 처리 상태 업데이트: postId={}, status={}", postId, status);
   }
 
-  public List<Post> findAllByStatusAndVotingEndAtBefore(PostStatus status, Instant now) {
+  public List<Post> findClosable(PostStatus status, Instant now) {
     return postRepository.findAllByStatusAndVotingEndAtBefore(status, now);
   }
 }
