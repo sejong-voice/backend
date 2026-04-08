@@ -9,6 +9,6 @@ import java.util.UUID;
 public record PostStatementCreateRequest(
     PostStatus finalStatus,
     @NotBlank String content,
-    @NotNull List<UUID> imageIds
+    @NotNull List<@NotNull UUID> imageIds
 ) {
 }
