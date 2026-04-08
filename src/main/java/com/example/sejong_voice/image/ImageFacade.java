@@ -4,7 +4,6 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.image.dto.ImageUploadResponse;
 import com.example.sejong_voice.image.dto.PostImageResponse;
 import com.example.sejong_voice.image.entity.Image;
-import com.example.sejong_voice.image.entity.ImageTargetType;
 import com.example.sejong_voice.image.exception.ImageErrorCode;
 import com.example.sejong_voice.image.storage.OciImageStorage;
 import com.example.sejong_voice.user.UserService;
@@ -66,10 +65,10 @@ public class ImageFacade {
 
   @Transactional
   public void cleanupExpiredTempImages() {
-    for (Image image : imageService.findExpiredTempImages()) {
+    for (Image image : imageService.getExpiredTempImages()) {
       try {
         ociImageStorage.delete(image.getObjectName());
-        imageService.markDeleted(image);
+        imageService.deleteImage(image);
       } catch (RuntimeException e) {
         log.error("만료된 TEMP 이미지 정리 실패: imageId={}, objectName={}", image.getId(),
             image.getObjectName(), e);
@@ -78,18 +77,28 @@ public class ImageFacade {
   }
 
   @Transactional(readOnly = true)
-  public List<PostImageResponse> getActiveImages(UUID postId, ImageTargetType targetType) {
-    return imageService.findActiveImages(postId, targetType).stream()
+  public List<PostImageResponse> getActivePostImages(UUID postId) {
+    return imageService.getPostImages(postId).stream()
         .map(this::toPostImageResponse)
         .toList();
   }
 
   @Transactional(readOnly = true)
-  public Map<UUID, List<PostImageResponse>> getActiveImagesByPostIds(
-      Collection<UUID> postIds,
-      ImageTargetType targetType
-  ) {
-    return imageService.findActiveImagesByPostIds(postIds, targetType).entrySet().stream()
+  public Map<UUID, List<PostImageResponse>> getActivePostImagesByPostIds(Collection<UUID> postIds) {
+    return imageService.getPostImagesByPostIds(postIds).entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> entry.getValue().stream()
+                .map(this::toPostImageResponse)
+                .toList(),
+            (left, right) -> left,
+            LinkedHashMap::new
+        ));
+  }
+
+  @Transactional(readOnly = true)
+  public Map<UUID, List<PostImageResponse>> getActiveStatementImagesByStatementIds(Collection<UUID> statementIds) {
+    return imageService.getStatementImagesByStatementIds(statementIds).entrySet().stream()
         .collect(Collectors.toMap(
             Map.Entry::getKey,
             entry -> entry.getValue().stream()

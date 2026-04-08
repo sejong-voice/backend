@@ -19,14 +19,11 @@ public record PostDetailResponse(
     String title,
     String content,
     PostStatus status,
-    String resultContent,
-    Instant resultCreatedAt,
-    Instant resultUpdatedAt,
     PostVotingDuration postVotingDuration,
     Instant createdAt,
     Instant votingEndAt,
     List<PostImageResponse> images,
-    List<PostImageResponse> resultImages
+    List<PostStatementResponse> statements
 ) {
 
   public static PostDetailResponse from(Post post) {
@@ -39,14 +36,11 @@ public record PostDetailResponse(
         .title(post.getTitle())
         .content(post.getContent())
         .status(post.getStatus())
-        .resultContent(post.getResultContent())
-        .resultCreatedAt(post.getResultCreatedAt())
-        .resultUpdatedAt(post.getResultUpdatedAt())
         .postVotingDuration(post.getVotingDuration())
         .createdAt(post.getCreatedAt())
         .votingEndAt(post.getVotingEndAt())
         .images(List.of())
-        .resultImages(List.of())
+        .statements(List.of())
         .build();
   }
 
@@ -60,18 +54,15 @@ public record PostDetailResponse(
         title,
         content,
         status,
-        resultContent,
-        resultCreatedAt,
-        resultUpdatedAt,
         postVotingDuration,
         createdAt,
         votingEndAt,
         images,
-        resultImages
+        statements
     );
   }
 
-  public PostDetailResponse withResultImages(List<PostImageResponse> resultImages) {
+  public PostDetailResponse withStatements(List<PostStatementResponse> statements) {
     return new PostDetailResponse(
         id,
         userId,
@@ -81,14 +72,11 @@ public record PostDetailResponse(
         title,
         content,
         status,
-        resultContent,
-        resultCreatedAt,
-        resultUpdatedAt,
         postVotingDuration,
         createdAt,
         votingEndAt,
         images,
-        resultImages
+        statements
     );
   }
 }

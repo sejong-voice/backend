@@ -1,6 +1,5 @@
 package com.example.sejong_voice.image.entity;
 
-import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -33,10 +32,6 @@ public class Image {
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "post_id")
-  private Post post;
-
   @Column(nullable = false)
   private String originalFileName;
 
@@ -53,13 +48,8 @@ public class Image {
   @Column(nullable = false)
   private ImageStatus status;
 
-  @Enumerated(EnumType.STRING)
-  private ImageTargetType targetType;
-
   @Column(nullable = false)
   private Instant createdAt;
-
-  private Integer displayOrder;
 
   private Instant activatedAt;
 
@@ -68,7 +58,6 @@ public class Image {
   @Builder
   public Image(
       User user,
-      Post post,
       String originalFileName,
       String objectName,
       String contentType,
@@ -76,7 +65,6 @@ public class Image {
       Instant createdAt
   ) {
     this.user = user;
-    this.post = post;
     this.originalFileName = originalFileName;
     this.objectName = objectName;
     this.contentType = contentType;
@@ -85,23 +73,14 @@ public class Image {
     this.createdAt = createdAt;
   }
 
-  public void activate(Post post, ImageTargetType targetType, int displayOrder, Instant activatedAt) {
-    this.post = post;
+  public void activate(Instant activatedAt) {
     this.status = ImageStatus.ACTIVE;
-    this.targetType = targetType;
-    this.displayOrder = displayOrder;
     this.activatedAt = activatedAt;
     this.deletedAt = null;
   }
 
-  public void updateDisplayOrder(int displayOrder) {
-    this.displayOrder = displayOrder;
-  }
-
   public void markDeleted(Instant deletedAt) {
     this.status = ImageStatus.DELETED;
-    this.post = null;
-    this.displayOrder = null;
     this.deletedAt = deletedAt;
   }
 }

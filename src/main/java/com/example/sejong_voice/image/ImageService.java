@@ -4,18 +4,22 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.image.config.OciObjectStorageProperties;
 import com.example.sejong_voice.image.entity.Image;
 import com.example.sejong_voice.image.entity.ImageStatus;
-import com.example.sejong_voice.image.entity.ImageTargetType;
+import com.example.sejong_voice.image.entity.PostImage;
+import com.example.sejong_voice.image.entity.PostStatementImage;
 import com.example.sejong_voice.image.exception.ImageErrorCode;
 import com.example.sejong_voice.image.repository.ImageRepository;
+import com.example.sejong_voice.image.repository.PostImageRepository;
+import com.example.sejong_voice.image.repository.PostStatementImageRepository;
 import com.example.sejong_voice.post.entity.Post;
+import com.example.sejong_voice.post.entity.PostStatement;
 import com.example.sejong_voice.user.entity.User;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -41,11 +45,24 @@ public class ImageService {
   );
 
   private final ImageRepository imageRepository;
+  private final PostImageRepository postImageRepository;
+  private final PostStatementImageRepository postStatementImageRepository;
   private final OciObjectStorageProperties objectStorageProperties;
   private final Clock clock;
 
   public void validateUploadFile(MultipartFile file) {
-    validate(file);
+    if (file == null || file.isEmpty()) {
+      throw new BusinessException(ImageErrorCode.EMPTY_FILE);
+    }
+
+    String contentType = file.getContentType();
+    if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+      throw new BusinessException(ImageErrorCode.UNSUPPORTED_FILE_TYPE);
+    }
+
+    if (file.getSize() > objectStorageProperties.getMaxFileSizeBytes()) {
+      throw new BusinessException(ImageErrorCode.FILE_SIZE_EXCEEDED);
+    }
   }
 
   @Transactional
@@ -64,165 +81,113 @@ public class ImageService {
   }
 
   @Transactional
-  public void attachImagesToPost(User user, Post post, List<UUID> imageIds,
-      ImageTargetType targetType) {
-    if (imageIds == null || imageIds.isEmpty()) {
-      return;
+  public void attachImagesToPost(User user, Post post, List<UUID> imageIds) {
+    List<Image> images = getAttachableImages(user, imageIds);
+    Instant now = Instant.now(clock);
+
+    for (int order = 0; order < images.size(); order++) {
+      Image image = images.get(order);
+      image.activate(now);
+      postImageRepository.save(
+          PostImage.builder()
+              .post(post)
+              .image(image)
+              .displayOrder(order)
+              .createdAt(now)
+              .build()
+      );
     }
-
-    validateImageIds(imageIds);
-
-    List<Image> images = imageRepository.findAllByIdIn(imageIds);
-    if (images.size() != imageIds.size()) {
-      throw new BusinessException(ImageErrorCode.IMAGE_NOT_FOUND);
-    }
-
-    Map<UUID, Image> imagesById = images.stream()
-        .collect(Collectors.toMap(Image::getId, image -> image));
-
-    for (int order = 0; order < imageIds.size(); order++) {
-      Image image = imagesById.get(imageIds.get(order));
-      if (!image.getUser().getId().equals(user.getId())) {
-        throw new BusinessException(ImageErrorCode.IMAGE_ACCESS_DENIED);
-      }
-
-      if (image.getStatus() != ImageStatus.TEMP || image.getPost() != null) {
-        throw new BusinessException(ImageErrorCode.INVALID_IMAGE_STATUS);
-      }
-
-      image.activate(post, targetType, order, Instant.now(clock));
-    }
-
     log.info("게시글 이미지 연결 완료: postId={}, imageCount={}", post.getId(), images.size());
   }
 
   @Transactional
-  public void syncImagesForPost(User user, Post post, List<UUID> imageIds,
-      ImageTargetType targetType) {
-    List<UUID> requestedImageIds = imageIds == null ? List.of() : imageIds;
+  public void attachImagesToStatement(User user, PostStatement postStatement, List<UUID> imageIds) {
+    List<Image> images = getAttachableImages(user, imageIds);
+    Instant now = Instant.now(clock);
 
-    validateImageIds(requestedImageIds);
-
-    List<Image> currentImages = findActiveImages(post.getId(), targetType);
-    Map<UUID, Image> currentImagesById = currentImages.stream()
-        .collect(Collectors.toMap(Image::getId, image -> image));
-
-    if (requestedImageIds.isEmpty()) {
-      Instant now = Instant.now(clock);
-      currentImages.forEach(image -> image.markDeleted(now));
-      log.info("게시글 이미지 동기화 완료: postId={}, imageCount=0", post.getId());
-      return;
+    for (int order = 0; order < images.size(); order++) {
+      Image image = images.get(order);
+      image.activate(now);
+      postStatementImageRepository.save(
+          PostStatementImage.builder()
+              .postStatement(postStatement)
+              .image(image)
+              .displayOrder(order)
+              .createdAt(now)
+              .build()
+      );
     }
-
-    List<Image> requestedImages = imageRepository.findAllByIdIn(requestedImageIds);
-    if (requestedImages.size() != requestedImageIds.size()) {
-      throw new BusinessException(ImageErrorCode.IMAGE_NOT_FOUND);
-    }
-
-    Map<UUID, Image> requestedImagesById = requestedImages.stream()
-        .collect(Collectors.toMap(Image::getId, image -> image));
-
-    for (UUID imageId : requestedImageIds) {
-      Image image = requestedImagesById.get(imageId);
-
-      if (!image.getUser().getId().equals(user.getId())) {
-        throw new BusinessException(ImageErrorCode.IMAGE_ACCESS_DENIED);
-      }
-
-      boolean isCurrentPostImage = image.getStatus() == ImageStatus.ACTIVE
-          && image.getPost() != null
-          && image.getPost().getId().equals(post.getId())
-          && hasSameTargetType(image, targetType);
-      boolean isAttachableTempImage =
-          image.getStatus() == ImageStatus.TEMP && image.getPost() == null;
-
-      if (!isCurrentPostImage && !isAttachableTempImage) {
-        throw new BusinessException(ImageErrorCode.INVALID_IMAGE_STATUS);
-      }
-    }
-
-    for (Image currentImage : currentImages) {
-      if (!requestedImagesById.containsKey(currentImage.getId())) {
-        currentImage.markDeleted(Instant.now(clock));
-      }
-    }
-
-    for (int order = 0; order < requestedImageIds.size(); order++) {
-      Image image = requestedImagesById.get(requestedImageIds.get(order));
-
-      if (currentImagesById.containsKey(image.getId())) {
-        image.updateDisplayOrder(order);
-        continue;
-      }
-
-      image.activate(post, targetType, order, Instant.now(clock));
-    }
-
-    log.info("게시글 이미지 동기화 완료: postId={}, imageCount={}", post.getId(), requestedImages.size());
+    log.info("입장문 이미지 연결 완료: statementId={}, imageCount={}", postStatement.getId(), images.size());
   }
 
-  public List<Image> findActiveImages(UUID postId, ImageTargetType targetType) {
-    return imageRepository.findAllByPostIdAndStatusAndTargetTypeOrderByDisplayOrderAsc(
-        postId,
-        ImageStatus.ACTIVE,
-        targetType
-    );
+  public List<Image> getPostImages(UUID postId) {
+    return postImageRepository.findAllByPostIdOrderByDisplayOrderAsc(postId).stream()
+        .map(PostImage::getImage)
+        .filter(image -> image.getStatus() == ImageStatus.ACTIVE)
+        .toList();
   }
 
-  public Map<UUID, List<Image>> findActiveImagesByPostIds(
-      Collection<UUID> postIds,
-      ImageTargetType targetType
-  ) {
+  public Map<UUID, List<Image>> getPostImagesByPostIds(Collection<UUID> postIds) {
     if (postIds == null || postIds.isEmpty()) {
       return Collections.emptyMap();
     }
 
-    return imageRepository.findAllByPostIdInAndStatusAndTargetTypeOrderByDisplayOrderAsc(
-            postIds,
-            ImageStatus.ACTIVE,
-            targetType
-        )
-        .stream()
+    return postImageRepository.findAllByPostIdInOrderByDisplayOrderAsc(postIds).stream()
+        .filter(mapping -> mapping.getImage().getStatus() == ImageStatus.ACTIVE)
         .collect(Collectors.groupingBy(
-            image -> image.getPost().getId(),
+            mapping -> mapping.getPost().getId(),
             LinkedHashMap::new,
-            Collectors.toList()
+            Collectors.mapping(PostImage::getImage, Collectors.toList())
         ));
   }
 
-  public List<Image> findExpiredTempImages() {
+  public Map<UUID, List<Image>> getStatementImagesByStatementIds(
+      Collection<UUID> postStatementIds) {
+    if (postStatementIds == null || postStatementIds.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    return postStatementImageRepository.findAllByPostStatementIdInOrderByPostStatementIdAscDisplayOrderAsc(
+            postStatementIds)
+        .stream()
+        .filter(mapping -> mapping.getImage().getStatus() == ImageStatus.ACTIVE)
+        .collect(Collectors.groupingBy(
+            mapping -> mapping.getPostStatement().getId(),
+            LinkedHashMap::new,
+            Collectors.mapping(PostStatementImage::getImage, Collectors.toList())
+        ));
+  }
+
+  public List<Image> getExpiredTempImages() {
     Instant cutoff = Instant.now(clock)
         .minus(Duration.ofHours(objectStorageProperties.getTempImageRetentionHours()));
     return imageRepository.findAllByStatusAndCreatedAtBefore(ImageStatus.TEMP, cutoff);
   }
 
   @Transactional
-  public void markDeleted(Image image) {
+  public void deleteImage(Image image) {
     image.markDeleted(Instant.now(clock));
   }
 
   @Transactional
   public void deleteAllByPostId(UUID postId) {
-    List<Image> images = imageRepository.findAllByPostIdAndStatusOrderByDisplayOrderAsc(postId,
-        ImageStatus.ACTIVE);
+    List<Image> postImages = postImageRepository.findAllByPostIdOrderByDisplayOrderAsc(postId)
+        .stream()
+        .map(PostImage::getImage)
+        .toList();
+    List<Image> statementImages = postStatementImageRepository.findAllByPostStatementPostId(postId)
+        .stream()
+        .map(PostStatementImage::getImage)
+        .toList();
+
     Instant now = Instant.now(clock);
-    images.forEach(image -> image.markDeleted(now));
-    log.info("게시글 이미지 삭제 처리: postId={}, imageCount={}", postId, images.size());
-  }
+    postImages.forEach(image -> image.markDeleted(now));
+    statementImages.forEach(image -> image.markDeleted(now));
+    postImageRepository.deleteAllByPostId(postId);
+    postStatementImageRepository.deleteAllByPostStatementPostId(postId);
 
-  private void validate(MultipartFile file) {
-    if (file == null || file.isEmpty()) {
-      throw new BusinessException(ImageErrorCode.EMPTY_FILE);
-    }
-
-    String contentType = file.getContentType();
-    if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-      throw new BusinessException(ImageErrorCode.UNSUPPORTED_FILE_TYPE);
-    }
-
-    if (file.getSize() > objectStorageProperties.getMaxFileSizeBytes()) {
-      throw new BusinessException(ImageErrorCode.FILE_SIZE_EXCEEDED);
-    }
+    log.info("게시글 이미지 삭제 처리: postId={}, imageCount={}", postId,
+        postImages.size() + statementImages.size());
   }
 
   private void validateImageIds(List<UUID> imageIds) {
@@ -235,8 +200,37 @@ public class ImageService {
     }
   }
 
-  private boolean hasSameTargetType(Image image, ImageTargetType targetType) {
-    return image.getTargetType() == targetType;
+  private List<Image> getAttachableImages(User user, List<UUID> imageIds) {
+    List<UUID> requestedImageIds = imageIds == null ? List.of() : imageIds;
+    if (requestedImageIds.isEmpty()) {
+      return List.of();
+    }
+
+    validateImageIds(requestedImageIds);
+
+    List<Image> images = imageRepository.findAllByIdIn(requestedImageIds);
+    if (images.size() != requestedImageIds.size()) {
+      throw new BusinessException(ImageErrorCode.IMAGE_NOT_FOUND);
+    }
+
+    Map<UUID, Image> imagesById = images.stream()
+        .collect(Collectors.toMap(Image::getId, image -> image));
+
+    List<Image> orderedImages = requestedImageIds.stream()
+        .map(imagesById::get)
+        .toList();
+
+    for (Image image : orderedImages) {
+      if (!image.getUser().getId().equals(user.getId())) {
+        throw new BusinessException(ImageErrorCode.IMAGE_ACCESS_DENIED);
+      }
+
+      if (image.getStatus() != ImageStatus.TEMP) {
+        throw new BusinessException(ImageErrorCode.INVALID_IMAGE_STATUS);
+      }
+    }
+
+    return orderedImages;
   }
 
   private String resolveOriginalFileName(MultipartFile file) {

@@ -5,8 +5,8 @@ import com.example.sejong_voice._common.security.UserPrincipal;
 import com.example.sejong_voice.post.dto.PostCreateRequest;
 import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
-import com.example.sejong_voice.post.dto.PostResultRequest;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
+import com.example.sejong_voice.post.dto.PostStatementCreateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -101,23 +101,32 @@ public class PostController {
     return ResponseEntity.ok().build();
   }
 
+  /**
+   * 게시글의 입장문을 생성합니다.
+   *
+   * @param postId 게시글 ID
+   * @param request 입장문 생성 요청
+   * @param userPrincipal 인증된 사용자 정보
+   * @return 생성 결과 응답
+   * @throws com.example.sejong_voice.exception.BusinessException 입장문 생성 조건을 만족하지 못한 경우
+   */
   @Operation(
-      summary = "게시글 처리 결과(입장문) 등록",
-      description = "게시글 상태/결과 내용을 등록 또는 수정합니다."
+      summary = "게시글 입장문 생성",
+      description = "입장문을 생성합니다. 첫 입장문 생성 시에는 최종 상태를 함께 확정합니다. 수정 및 삭제는 지원하지 않습니다."
   )
-  @PutMapping("/{postId}/result")
-  public ResponseEntity<Void> updateResult(
+  @PostMapping("/{postId}/statements")
+  public ResponseEntity<Void> createStatement(
       @PathVariable UUID postId,
-      @RequestBody @Valid PostResultRequest request,
+      @RequestBody @Valid PostStatementCreateRequest request,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    postFacade.updateResult(
+    postFacade.createStatement(
         postId,
         userPrincipal.getUserId(),
-        request.status(),
-        request.resultContent(),
+        request.finalStatus(),
+        request.content(),
         request.imageIds()
     );
-    return ResponseEntity.ok().build();
+    return ResponseEntity.status(HttpStatus.CREATED).build();
   }
 }
