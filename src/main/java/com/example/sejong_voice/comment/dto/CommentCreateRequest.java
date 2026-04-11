@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public record CommentCreateRequest(
     @NotNull UUID postId,
-    UUID parentId,
+    UUID rootCommentId,
     @NotBlank String content
 ) {
 

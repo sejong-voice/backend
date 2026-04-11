@@ -32,11 +32,12 @@ public class Comment {
   private User user;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "parent_id")
-  private Comment parent;
+  @JoinColumn(name = "root_id")
+  private Comment rootComment;
 
-  @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
-  private List<Comment> children = new ArrayList<>();
+  @OneToMany(mappedBy = "rootComment", cascade = CascadeType.ALL)
+  @OrderBy("createdAt ASC")
+  private List<Comment> replies = new ArrayList<>();
 
   @Column(nullable = false, columnDefinition = "TEXT")
   private String content;
@@ -51,10 +52,10 @@ public class Comment {
   private Instant createdAt;
 
   @Builder
-  public Comment(Post post, User user, Comment parent, String content, Instant createdAt) {
+  public Comment(Post post, User user, Comment rootComment, String content, Instant createdAt) {
     this.post = post;
     this.user = user;
-    this.parent = parent;
+    this.rootComment = rootComment;
     this.content = content;
     this.status = CommentStatus.ACTIVE;
     this.createdAt = createdAt;

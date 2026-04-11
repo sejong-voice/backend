@@ -22,8 +22,8 @@ public interface PostRepository extends JpaRepository<Post, UUID>, PostRepositor
   @Query("select p from Post p where p.id = :id and p.deletedAt is null")
   Optional<Post> findByIdForUpdate(@Param("id") UUID id);
 
-  @Query("select p from Post p join fetch p.user where p.id = :id and p.deletedAt is null")
-  Optional<Post> findByIdWithUser(@Param("id") UUID id);
+  @Query("select p.user.id from Post p where p.id = :id and p.deletedAt is null")
+  Optional<UUID> findUserIdById(@Param("id") UUID id);
 
   List<Post> findAllByStatusAndVotingEndAtBefore(PostStatus status, Instant now);
 }
