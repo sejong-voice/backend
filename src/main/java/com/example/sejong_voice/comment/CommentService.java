@@ -98,14 +98,13 @@ public class CommentService {
         anonymousNumberByUserId
     );
 
-    long displayableRootCommentCount = commentRepository.countDisplayableRootByPostId(postId);
     long activeCommentCount = commentRepository.countActiveByPostId(postId);
 
     return CommentPageResponse.of(
         responses,
         pageable.getPageNumber(),
         pageable.getPageSize(),
-        displayableRootCommentCount,
+        rootPage.getTotalElements(),
         activeCommentCount
     );
   }

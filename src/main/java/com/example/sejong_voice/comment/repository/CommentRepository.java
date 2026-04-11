@@ -91,32 +91,6 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
   long countActiveByPostId(@Param("postId") UUID postId);
 
   @Query("""
-      SELECT COUNT(c)
-      FROM Comment c
-      WHERE c.post.id = :postId
-        AND c.rootComment IS NULL
-        AND c.status = com.example.sejong_voice.comment.entity.CommentStatus.ACTIVE
-      """)
-  long countActiveRootByPostId(@Param("postId") UUID postId);
-
-  @Query("""
-      SELECT COUNT(c)
-      FROM Comment c
-      WHERE c.post.id = :postId
-        AND c.rootComment IS NULL
-        AND (
-          c.status = com.example.sejong_voice.comment.entity.CommentStatus.ACTIVE
-          OR EXISTS (
-            SELECT 1
-            FROM Comment r
-            WHERE r.rootComment = c
-              AND r.status = com.example.sejong_voice.comment.entity.CommentStatus.ACTIVE
-          )
-        )
-      """)
-  long countDisplayableRootByPostId(@Param("postId") UUID postId);
-
-  @Query("""
       SELECT new com.example.sejong_voice.post.dto.PostCountRow(c.post.id, COUNT(c))
       FROM Comment c
       WHERE c.post.id IN :postIds
