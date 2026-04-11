@@ -3,13 +3,16 @@ package com.example.sejong_voice.comment;
 import com.example.sejong_voice._common.security.AuthUser;
 import com.example.sejong_voice._common.security.UserPrincipal;
 import com.example.sejong_voice.comment.dto.CommentCreateRequest;
-import com.example.sejong_voice.comment.dto.CommentResponse;
+import com.example.sejong_voice.comment.dto.CommentPageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +37,7 @@ public class CommentController {
     UUID id = commentFacade.create(
         userPrincipal.getUserId(),
         request.postId(),
-        request.parentId(),
+        request.rootCommentId(),
         request.content()
     );
     return ResponseEntity.status(HttpStatus.CREATED).body(id);
@@ -42,15 +45,16 @@ public class CommentController {
 
   @Operation(
       summary = "게시글 댓글 목록 조회",
-      description = "특정 게시글의 댓글 목록을 조회합니다. ACTIVE(보여지는 댓글),DELETED(삭제할 댓글),BLINDED(가림 처리한 댓글). ACTIVE 상태만 필터링해서 프론트로 보내줄거임"
+      description = "특정 게시글의 댓글 목록을 조회합니다. ACTIVE(활성 댓글),DELETED(삭제 댓글),BLINDED(가린 댓글)"
   )
   @GetMapping("/post/{postId}")
-  public ResponseEntity<List<CommentResponse>> get(
+  public ResponseEntity<CommentPageResponse> getAllByPostId(
       @PathVariable UUID postId,
+      @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable,
       @AuthUser UserPrincipal userPrincipal
   ) {
     UUID currentUserId = userPrincipal != null ? userPrincipal.getUserId() : null;
-    return ResponseEntity.ok(commentFacade.getByPostId(postId, currentUserId));
+    return ResponseEntity.ok(commentFacade.getAllByPostId(postId, currentUserId, pageable));
   }
 
   @Operation(

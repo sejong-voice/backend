@@ -1,7 +1,9 @@
 package com.example.sejong_voice.comment;
 
+import com.example.sejong_voice.comment.dto.CommentPageResponse;
 import com.example.sejong_voice.comment.dto.CommentResponse;
 import com.example.sejong_voice.comment.entity.Comment;
+import com.example.sejong_voice.comment.entity.CommentStatus;
 import com.example.sejong_voice.comment.exception.CommentErrorCode;
 import com.example.sejong_voice.comment.repository.CommentRepository;
 import com.example.sejong_voice.exception.BusinessException;
@@ -11,12 +13,15 @@ import com.example.sejong_voice.user.entity.User;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,41 +32,92 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommentService {
 
   private final CommentRepository commentRepository;
+  private final CommentResponseAssembler commentResponseAssembler;
   private final Clock clock;
 
   @Transactional
   public UUID create(
       User user,
       Post post,
-      UUID parentId,
+      UUID rootCommentId,
       String content
   ) {
-    Comment parent = null;
-    if (parentId != null) {
-      parent = commentRepository.findById(parentId)
+    Comment rootComment = null;
+    if (rootCommentId != null) {
+      rootComment = commentRepository.findById(rootCommentId)
           .orElseThrow(() -> new BusinessException(CommentErrorCode.COMMENT_NOT_FOUND));
+
+      if (rootComment.getRootComment() != null) {
+        throw new BusinessException(CommentErrorCode.ROOT_COMMENT_REQUIRED);
+      }
+
+      if (!rootComment.getPost().getId().equals(post.getId())) {
+        throw new BusinessException(CommentErrorCode.ROOT_COMMENT_POST_MISMATCH);
+      }
+
+      if (rootComment.getStatus() != CommentStatus.ACTIVE) {
+        throw new BusinessException(CommentErrorCode.ROOT_COMMENT_NOT_ACTIVE);
+      }
     }
 
     Comment comment = Comment.builder()
         .user(user)
         .post(post)
-        .parent(parent)
+        .rootComment(rootComment)
         .content(content)
         .createdAt(Instant.now(clock))
         .build();
 
-    Comment saved = commentRepository.save(comment);
-    log.info("댓글 생성: commentId={}, userId={}, postId={}", saved.getId(), user.getId(), post.getId());
+    UUID id = commentRepository.save(comment).getId();
+    log.info("댓글 생성: commentId={}", id);
 
-    return saved.getId();
+    return id;
   }
 
-  public List<CommentResponse> getByPostId(UUID postId, UUID currentUserId) {
-    List<Comment> commentList = commentRepository.findAllActiveByPostIdWithUserOrderByCreatedAtAsc(postId);
-    return commentList.stream()
-        .filter(comment -> comment.getParent() == null)
-        .map(comment -> CommentResponse.from(comment, currentUserId))
+  public CommentPageResponse getAllByPost(Post post, UUID currentUserId, Pageable pageable) {
+    UUID postId = post.getId();
+    UUID postAuthorId = post.getUser().getId();
+
+    Page<Comment> rootPage = commentRepository.findDisplayableRootCommentsByPostId(postId, pageable);
+
+    List<UUID> rootCommentIds = rootPage.getContent().stream()
+        .map(Comment::getId)
         .toList();
+
+    List<Comment> replies = rootCommentIds.isEmpty()
+        ? List.of()
+        : commentRepository.findActiveRepliesByRootCommentIds(rootCommentIds);
+
+    Map<UUID, Integer> anonymousNumberByUserId = createAnonymousNumberByUserId(postId);
+
+    List<CommentResponse> responses = commentResponseAssembler.assemble(
+        rootPage.getContent(),
+        replies,
+        currentUserId,
+        postAuthorId,
+        anonymousNumberByUserId
+    );
+
+    long activeCommentCount = commentRepository.countActiveByPostId(postId);
+
+    return CommentPageResponse.of(
+        responses,
+        pageable.getPageNumber(),
+        pageable.getPageSize(),
+        rootPage.getTotalElements(),
+        activeCommentCount
+    );
+  }
+
+  private Map<UUID, Integer> createAnonymousNumberByUserId(UUID postId) {
+    List<UUID> authorIds = commentRepository.findCommentAuthorIdsByPostIdOrderByFirstCommentAt(postId);
+    Map<UUID, Integer> anonymousNumberByUserId = new LinkedHashMap<>();
+
+    for (UUID authorId : authorIds) {
+      anonymousNumberByUserId.put(authorId, anonymousNumberByUserId.size() + 1);
+    }
+
+    return anonymousNumberByUserId;
   }
 
   public Map<UUID, Long> countActiveByPostIds(Collection<UUID> postIds) {

@@ -2,36 +2,73 @@ package com.example.sejong_voice.comment.dto;
 
 import com.example.sejong_voice.comment.entity.Comment;
 import com.example.sejong_voice.comment.entity.CommentStatus;
-
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record CommentResponse(
     UUID id,
-    String userName,
+    Integer anonymousNumber,
     String content,
     CommentStatus status,
+    boolean postAuthor,
     boolean canDelete,
-    List<CommentResponse> children,
-    Instant createdAt
+    Instant createdAt,
+    List<ReplyResponse> replies
 ) {
 
-  public static CommentResponse from(Comment comment, UUID currentUserId) {
+  public static CommentResponse from(
+      Comment comment,
+      UUID currentUserId,
+      UUID postAuthorId,
+      Map<UUID, Integer> anonymousNumberByUserId,
+      List<ReplyResponse> replies
+  ) {
     return new CommentResponse(
         comment.getId(),
-        comment.getUser().getName(),
-        comment.getStatus() == CommentStatus.ACTIVE ? comment.getContent() :
-            (comment.getStatus() == CommentStatus.DELETED ? "삭제된 댓글입니다." : "숨김 처리된 댓글입니다."),
+        resolveAnonymousNumber(comment, anonymousNumberByUserId),
+        resolveDisplayContent(comment),
         comment.getStatus(),
-        comment.getUser().getId().equals(currentUserId),
-        comment.getChildren().stream()
-            .filter(child -> child.getStatus()
-                == CommentStatus.ACTIVE)// 조회 제약뿐만 아니라, 반환값 만들때도 2중으로 status제약
-            .map(child -> CommentResponse.from(child, currentUserId))
-            .toList()
-        ,
-        comment.getCreatedAt()
+        isPostAuthor(comment, postAuthorId),
+        canDelete(comment, currentUserId),
+        comment.getCreatedAt(),
+        replies
     );
+  }
+
+  static Integer resolveAnonymousNumber(
+      Comment comment,
+      Map<UUID, Integer> anonymousNumberByUserId
+  ) {
+    if (comment.getStatus() != CommentStatus.ACTIVE) {
+      return null;
+    }
+
+    return anonymousNumberByUserId.get(comment.getUser().getId());
+  }
+
+  static boolean isPostAuthor(Comment comment, UUID postAuthorId) {
+    if (comment.getStatus() != CommentStatus.ACTIVE) {
+      return false;
+    }
+
+    return comment.getUser().getId().equals(postAuthorId);
+  }
+
+  static boolean canDelete(Comment comment, UUID currentUserId) {
+    if (comment.getStatus() != CommentStatus.ACTIVE) {
+      return false;
+    }
+
+    return comment.getUser().getId().equals(currentUserId);
+  }
+
+  static String resolveDisplayContent(Comment comment) {
+    return switch (comment.getStatus()) {
+      case ACTIVE -> comment.getContent();
+      case DELETED -> "삭제된 댓글입니다.";
+      case BLINDED -> "숨김 처리된 댓글입니다.";
+    };
   }
 }
