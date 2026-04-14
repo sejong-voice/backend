@@ -338,7 +338,7 @@ public class AuthServiceTest {
 
     assertEquals(studentNo, response.studentNo());
     assertEquals("NEW_ACCESS_TOKEN", response.accessToken());
-    assertEquals(jwtProperties.getAccessTokenExpiration(), response.expiresIn());
+    assertEquals(jwtProperties.getAccessTokenExpiration()/1000, response.expiresIn());
     verify(refreshTokenRepository, never()).deleteByUser(user);
   }
 
