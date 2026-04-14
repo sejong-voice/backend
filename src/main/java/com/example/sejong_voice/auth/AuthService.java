@@ -154,7 +154,7 @@ public class AuthService {
     );
 
     return new RefreshResponse(newUser.getStudentNo(), newAccessToken,
-        jwtProperties.getAccessTokenExpiration()//3600L
+        jwtProperties.getAccessTokenExpiration() / 1000
     );
   }
 
