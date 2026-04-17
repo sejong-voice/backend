@@ -15,6 +15,8 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
   private static final Instant EPOCH = Instant.EPOCH;
+  private static final Instant PERMANENT_BAN_UNTIL = Instant.parse("9999-12-31T23:59:59Z");
+
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -71,6 +73,9 @@ public class User {
   public static Instant activeDuration() {
     return EPOCH;
   }
+  public static Instant withdrawnDuration() {
+    return PERMANENT_BAN_UNTIL;
+  }
 
 
   public void updateDepartment(DepartmentRequest newDepartment) {
@@ -82,6 +87,11 @@ public class User {
   public void updateStatus(UserStatus status, Instant duration) {
     this.status = status;
     this.duration = duration;
+  }
+
+  public void withdrawNow() {// 영구정지 메서드
+    this.status = UserStatus.WITHDRAWN;
+    this.duration = PERMANENT_BAN_UNTIL;
   }
 
   // 조기 복구

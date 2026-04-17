@@ -37,13 +37,13 @@ public class AdminController {
   //상태 변경
   @Operation(
       summary = "사용자 상태 변경",
-      description = "관리자가 특정 사용자의 상태(정지 등)와 기간을 변경합니다. 계정 제재에 사용. ACTIVE(활동 상태), SUSPENDED(기한 정지), WITHDRAWN(영구정지) "
+      description = "관리자가 특정 사용자의 상태(정지 등)와 기간을 day를 기준으로 입력 받습니다. Suspend,Withdraw에만 사용가능. Active는 반영안됨 계정 제재에 사용. ACTIVE(활동 상태), SUSPENDED(기한 정지), WITHDRAWN(영구정지) "
   )
   @PatchMapping("/user/{studentNo}/status")
   public ResponseEntity<Void> updateStatus(
       @PathVariable String studentNo, //targetUser
-      @RequestBody UserStatusRequest newStatus) {
-    authService.updateStatus(studentNo, newStatus.getStatus(), newStatus.getDuration());
+      @Valid @RequestBody UserStatusRequest newStatus) {
+    authService.updateStatus(studentNo, newStatus.getStatus(), newStatus.getDurationDays());
     return ResponseEntity.ok().build();
   }
 

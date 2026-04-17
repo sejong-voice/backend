@@ -1,6 +1,7 @@
 package com.example.sejong_voice.auth.dto;
 
 import com.example.sejong_voice.user.entity.UserStatus;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,5 +16,5 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class UserStatusRequest {
     @NotNull UserStatus status;
-    @NotNull LocalDateTime duration;
+    @NotNull @Min(0) Integer durationDays;
 }

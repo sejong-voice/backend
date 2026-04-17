@@ -11,14 +11,15 @@ import com.example.sejong_voice.user.entity.UserStatus;
 import com.example.sejong_voice.auth.jwt.JwtProperties;
 import com.example.sejong_voice.auth.jwt.JwtUtil;
 import com.example.sejong_voice.user.UserRepository;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -74,7 +75,7 @@ public class AuthService {
     }
 
     // 5. 계정 상태 체크 (정지 여부, duration 만료하면 acitvate+duration 초기화)
-    if (user.getStatus() == UserStatus.SUSPENDED) {
+    if (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.WITHDRAWN) {
       Instant now = Instant.now(clock);
       if( now.isBefore(user.getDuration())){
         throw new BusinessException(AuthErrorCode.USER_SUSPENDED);
@@ -182,14 +183,22 @@ public class AuthService {
   public void updateStatus(
           String targetStudentNo,
           UserStatus newStatus,
-          LocalDateTime newDuration
+          int newDurationdays
   ) {
     User targetUser = userRepository.findByStudentNo(targetStudentNo)
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
-    targetUser.updateStatus(newStatus, TimeUtils.toUtcInstant(newDuration));
 
-    // 제재suspended이면 refreshToken 즉시파기
-    if (newStatus.equals(UserStatus.SUSPENDED)) {
+
+    long suspendSeconds = newDurationdays * 24L * 60 * 60; // int 오버플로우 방지용 long
+    Instant suspendedUntilUtc = Instant.now(clock).plusSeconds(suspendSeconds); // UTC 기준
+
+
+    // 제재suspended, withdrawn일때만 duration업데이트 및 refreshToken 즉시파기
+    if (newStatus.equals(UserStatus.SUSPENDED)) {// 제재 기한 제공
+      targetUser.updateStatus(newStatus, suspendedUntilUtc);
+      refreshTokenRepository.deleteByUser(targetUser);
+    } else if (newStatus.equals(UserStatus.WITHDRAWN)) { // 영구 정지
+      targetUser.withdrawNow();
       refreshTokenRepository.deleteByUser(targetUser);
     }
   }

@@ -440,10 +440,67 @@ public class AuthServiceTest {
 
 
   //유저 상태 변경 ***************************************
+  @Test
+  void 유저상태변경_SUSPENDED_일수기반으로_정지기한설정_토큰삭제() {
+    //given
+    String studentNo = "20201234";
+    User user = buildUser(studentNo, "ENC_PW");
+    int durationDays = 5;
+    when(userRepository.findByStudentNo(studentNo)).thenReturn(Optional.of(user));
+
+    //when
+    authService.updateStatus(studentNo,UserStatus.SUSPENDED, durationDays);
+
+    //then
+    Instant expected = Instant.now(fixedClock).plusSeconds(durationDays * 24L * 60 * 60);
+    assertEquals(user.getStatus(),UserStatus.SUSPENDED);
+    assertEquals(expected, user.getDuration());
+    verify(refreshTokenRepository).deleteByUser(user);
+  }
 
 
 
-  //유저 상태 조기 복구
+  @Test
+  void 유저상태변경_ACTIVE_정지기한미반영_토큰삭제안함() {
+    // given
+    String studentNo = "20201234";
+    User user = buildUser(studentNo, "ENC_PW");
+
+    Instant beforeDuration = Instant.now(fixedClock).plusSeconds(3600);
+    user.updateStatus(UserStatus.SUSPENDED, beforeDuration);
+
+    when(userRepository.findByStudentNo(studentNo)).thenReturn(Optional.of(user));
+
+    // when
+    authService.updateStatus(studentNo, UserStatus.ACTIVE, 2);
+
+    // then (ACTIVE는 현재 로직상 no-op)
+    assertEquals(UserStatus.SUSPENDED, user.getStatus());
+    assertEquals(beforeDuration, user.getDuration());
+    verify(refreshTokenRepository, never()).deleteByUser(any(User.class));
+  }
+
+  @Test
+  void 유저상태변경_WITHDRAWN_일수기반기한설정_토큰삭제() {
+    // given
+    String studentNo = "20201234";
+    User user = buildUser(studentNo, "ENC_PW");
+    int durationDays = 10;
+
+    when(userRepository.findByStudentNo(studentNo)).thenReturn(Optional.of(user));
+
+    // when
+    authService.updateStatus(studentNo, UserStatus.WITHDRAWN, durationDays);
+
+    // then
+    assertEquals(UserStatus.WITHDRAWN, user.getStatus());
+    assertEquals(User.withdrawnDuration(), user.getDuration()); // 영구 정지 기한이 제대로 반영됐는지 확인
+    verify(refreshTokenRepository).deleteByUser(user);
+  }
+
+
+
+    //유저 상태 조기 복구
   @Test
   void 조기복구_성공시_ACTIVE와_EPOCH로_변경() {
     // given
