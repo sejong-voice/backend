@@ -15,5 +15,5 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class UserStatusRequest {
     @NotNull UserStatus status;
-    @NotNull LocalDateTime duration;
+    @NotNull Integer durationDays;
 }
