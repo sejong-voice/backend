@@ -42,7 +42,7 @@ public class AdminController {
   @PatchMapping("/user/{studentNo}/status")
   public ResponseEntity<Void> updateStatus(
       @PathVariable String studentNo, //targetUser
-      @RequestBody UserStatusRequest newStatus) {
+      @Valid @RequestBody UserStatusRequest newStatus) {
     authService.updateStatus(studentNo, newStatus.getStatus(), newStatus.getDurationDays());
     return ResponseEntity.ok().build();
   }
