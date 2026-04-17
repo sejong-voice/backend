@@ -75,7 +75,7 @@ public class AuthService {
     }
 
     // 5. 계정 상태 체크 (정지 여부, duration 만료하면 acitvate+duration 초기화)
-    if (user.getStatus() == UserStatus.SUSPENDED) {
+    if (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.WITHDRAWN) {
       Instant now = Instant.now(clock);
       if( now.isBefore(user.getDuration())){
         throw new BusinessException(AuthErrorCode.USER_SUSPENDED);
