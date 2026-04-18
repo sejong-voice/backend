@@ -212,6 +212,61 @@ public class AuthServiceTest {
     System.out.println("expectedExpiry = " + expectedExpiry);
   }
 
+
+  @Test
+  void 기존유저_DB비번불일치_SSO재검증성공이면_비번update후_토큰발급() {
+    // given
+    String studentNo = "20201234";
+    String newRawPassword = "newPw";
+    User user = buildUser(studentNo, "ENC_OLD");
+
+    when(userRepository.findByStudentNo(studentNo)).thenReturn(Optional.of(user));
+    when(passwordEncoder.matches(newRawPassword, "ENC_OLD")).thenReturn(false);
+    when(schoolAuthClient.getStudentProfile(any(SsoRequest.class))).thenReturn(
+            new SsoResponse(
+                    new SsoUser("1", studentNo, "student", "홍길동", "컴퓨터공학과", 2),
+                    new SsoAuthResult(true, true, "OK", Map.of())
+            )
+    );
+    when(passwordEncoder.encode(newRawPassword)).thenReturn("ENC_NEW");
+    when(jwtUtil.generateToken(anyString(), eq(studentNo), anyString(),
+            eq(jwtProperties.getAccessTokenExpiration()))).thenReturn("ACCESS_TOKEN");
+    when(jwtUtil.generateToken(anyString(), eq(studentNo), anyString(),
+            eq(jwtProperties.getRefreshTokenExpiration()))).thenReturn("REFRESH_TOKEN");
+    when(refreshTokenRepository.findByUser(any(User.class))).thenReturn(Optional.empty());
+
+    // when
+    LoginResponse response = authService.login(studentNo, newRawPassword);
+
+    // then
+    assertEquals("ENC_NEW", user.getPassword());
+    assertEquals("ACCESS_TOKEN", response.accessToken());
+    assertEquals(jwtProperties.getAccessTokenExpiration() / 1000, response.expiresIn());
+    verify(userRepository).save(user); // 비밀번호 업데이트
+    verify(refreshTokenRepository).save(any(RefreshToken.class));
+  }
+
+  @Test
+  void 신규유저_로그인중_SSO실패면_SSO_AUTH_FAILED_예외() {
+    String studentNo = "20201234";
+    String rawPassword = "newPw";
+
+    when(userRepository.findByStudentNo(studentNo)).thenReturn(Optional.empty());
+    when(schoolAuthClient.getStudentProfile(any(SsoRequest.class)))
+            .thenThrow(new BusinessException(AuthErrorCode.SSO_AUTH_FAILED));
+
+    BusinessException ex = assertThrows(
+            BusinessException.class,
+            () -> authService.login(studentNo, rawPassword)
+    );
+
+    assertSame(AuthErrorCode.SSO_AUTH_FAILED, ex.getErrorCode());
+    verify(userRepository, never()).save(any(User.class));
+    verify(jwtUtil, never()).generateToken(anyString(), anyString(), anyString(), anyLong());
+    verify(refreshTokenRepository, never()).save(any(RefreshToken.class));
+  }
+
+
   @Test
   void 정지계정_정지기간안이면_USER_SUSPENDED() {
     // given: 정지 계정이며 정지 종료 시각이 아직 미래
@@ -262,9 +317,30 @@ public class AuthServiceTest {
     System.out.println("user.getDuration() = " + user.getDuration());
   }
 
+  @Test
+  void WITHDRAWN_영구정지_USER_SUSPENDED() {
+    // given
+    String studentNo = "20201234";
+    User user = buildUser(studentNo, "ENC_PW");
+    user.updateStatus(UserStatus.WITHDRAWN, Instant.now(fixedClock).plusSeconds(60000));
+
+    when(userRepository.findByStudentNo(studentNo)).thenReturn(Optional.of(user));
+    when(passwordEncoder.matches("pw", "ENC_PW")).thenReturn(true);
+
+    // when
+    BusinessException ex = assertThrows(
+            BusinessException.class,
+            () -> authService.login(studentNo, "pw")
+    );
+
+    // then
+    assertSame(AuthErrorCode.USER_SUSPENDED, ex.getErrorCode());
+    verify(jwtUtil, never()).generateToken(anyString(), anyString(), anyString(), anyLong());
+  }
 
 
-  //logout
+
+    //logout
   @Test
   void 로그아웃_성공_시_해당유저_refreshToken_삭제() {
     // given
@@ -458,8 +534,6 @@ public class AuthServiceTest {
     verify(refreshTokenRepository).deleteByUser(user);
   }
 
-
-
   @Test
   void 유저상태변경_ACTIVE_정지기한미반영_토큰삭제안함() {
     // given
@@ -498,6 +572,20 @@ public class AuthServiceTest {
     verify(refreshTokenRepository).deleteByUser(user);
   }
 
+
+  @Test
+  void 유저상태변경_대상유저없으면_USER_NOT_FOUND() {
+    String targetStudentNo = "2023888888";
+    when(userRepository.findByStudentNo(targetStudentNo)).thenReturn(Optional.empty());
+
+    BusinessException ex = assertThrows(
+            BusinessException.class,
+            ()-> authService.updateStatus(targetStudentNo,UserStatus.SUSPENDED,7)
+    );
+
+    assertEquals(AuthErrorCode.USER_NOT_FOUND, ex.getErrorCode());
+    verify(refreshTokenRepository, never()).deleteByUser(any(User.class));
+  }
 
 
     //유저 상태 조기 복구
