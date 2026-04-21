@@ -46,6 +46,14 @@ public class UserStatusFilter extends OncePerRequestFilter {
 
         // 2) 비로그인 요청이거나 principal 타입이 UserPrincipal이 아니면
         //    이 필터에서는 검사할 게 없으므로 다음 필터로 통과
+        //        다만 Authentication이 UserPrincipal일 때만 DB 상태 검사
+        //authentication == null
+            //아직 로그인 인증 정보가 없음(비로그인/토큰 없음/토큰 무효 등)
+            //검사할 사용자 자체가 없으니 그냥 통과
+        //authentication.getPrincipal() instanceof UserPrincipal가 아님
+            //인증 정보는 있지만, 우리 앱이 기대하는 사용자 타입(UserPrincipal)이 아님
+            //이 필터는 UserPrincipal 기준으로만 DB 상태를 검사하므로 그냥 통과
+
         if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
             filterChain.doFilter(request, response);
             return;
