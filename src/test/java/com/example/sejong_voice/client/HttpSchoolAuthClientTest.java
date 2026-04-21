@@ -2,7 +2,7 @@ package com.example.sejong_voice.client;
 
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static reactor.core.publisher.Mono.when;
 
 
 import com.example.sejong_voice.auth.client.HttpSchoolAuthClient;
@@ -20,8 +20,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
-
-import static reactor.core.publisher.Mono.when;
 
 @ExtendWith(MockitoExtension.class)
 class HttpSchoolAuthClientTest {
