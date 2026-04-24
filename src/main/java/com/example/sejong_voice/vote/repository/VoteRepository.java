@@ -37,4 +37,16 @@ public interface VoteRepository extends JpaRepository<Vote, UUID> {
       ORDER BY COALESCE(v.updatedAt, v.createdAt) ASC, v.createdAt ASC
       """)
   List<Vote> findAllByPostIdWithUserOrderByVotedAtAsc(@Param("postId") UUID postId);
+
+  @Query("""
+    select v
+    from Vote v
+    join fetch v.user
+    where v.post.id = :postId and v.choice = :choice
+    ORDER BY COALESCE(v.updatedAt, v.createdAt) ASC, v.createdAt ASC
+""")
+  List<Vote> findAllByPostIdAndChoiceWithUserOrderByVotedAtTimeAsc(
+      UUID postId,
+      VoteChoice choice
+  );
 }

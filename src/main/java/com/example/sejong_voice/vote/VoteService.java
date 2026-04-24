@@ -3,9 +3,9 @@ package com.example.sejong_voice.vote;
 import com.example.sejong_voice.post.dto.PostCountRow;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;
+import com.example.sejong_voice.vote.dto.VoteAgreeVoterResponse;
 import com.example.sejong_voice.vote.dto.VoteDepartmentDistributionResponse;
-import com.example.sejong_voice.vote.dto.VoteDetailResponse;
-import com.example.sejong_voice.vote.dto.VoteParticipantResponse;
+import com.example.sejong_voice.vote.dto.VoteStatisticsResponse;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.Vote;
 import com.example.sejong_voice.vote.entity.VoteChoice;
@@ -59,7 +59,7 @@ public class VoteService {
   }
 
   /**
-   * 투표 현황 조회 (통계)
+   * 투표 현황 요약 조회
    */
   public VoteSummaryResponse getSummary(UUID postId) {
     long agreeCount = countAgree(postId);
@@ -71,7 +71,7 @@ public class VoteService {
     return VoteSummaryResponse.of(agreeCount, disagreeCount);
   }
 
-  public VoteDetailResponse getDetails(Post post) {
+  public VoteStatisticsResponse getStatistics(Post post) {
     List<Vote> votes = voteRepository.findAllByPostIdWithUserOrderByVotedAtAsc(post.getId());
     long agreeCount = votes.stream()
         .filter(vote -> vote.getChoice() == VoteChoice.AGREE)
@@ -79,10 +79,6 @@ public class VoteService {
     long disagreeCount = votes.stream()
         .filter(vote -> vote.getChoice() == VoteChoice.DISAGREE)
         .count();
-
-    List<VoteParticipantResponse> participants = votes.stream()
-        .map(VoteParticipantResponse::from)
-        .toList();
 
     List<VoteDepartmentDistributionResponse> departmentDistributions = votes.stream()
         .collect(Collectors.groupingBy(vote -> vote.getUser().getDepartment()))
@@ -112,16 +108,23 @@ public class VoteService {
         : BigDecimal.valueOf(agreeCount)
             .divide(BigDecimal.valueOf(votes.size()), 4, RoundingMode.HALF_UP);
 
-    log.info("투표 상세 조회: postId={}, totalCount={}", post.getId(), votes.size());
+    log.info("투표 통계 조회: postId={}, totalCount={}", post.getId(), votes.size());
 
-    return VoteDetailResponse.of(
+    return VoteStatisticsResponse.of(
         agreeCount,
         disagreeCount,
         votes.size(),
         agreeRatio,
-        departmentDistributions,
-        participants
+        departmentDistributions
     );
+  }
+
+  public List<VoteAgreeVoterResponse> getAgreeVoters(Post post) {
+    log.info("투표 찬성자 명단 조회: postId={}", post.getId());
+    return voteRepository.findAllByPostIdAndChoiceWithUserOrderByVotedAtTimeAsc(post.getId(), VoteChoice.AGREE)
+        .stream()
+        .map(VoteAgreeVoterResponse::from)
+        .toList();
   }
 
   public long countAgree(UUID postId) {
@@ -142,9 +145,5 @@ public class VoteService {
             PostCountRow::postId,
             PostCountRow::count
         ));
-  }
-
-  public boolean existsByPostId(UUID postId) {
-    return voteRepository.existsByPostId(postId);
   }
 }

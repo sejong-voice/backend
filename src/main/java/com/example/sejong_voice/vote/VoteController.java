@@ -2,7 +2,8 @@ package com.example.sejong_voice.vote;
 
 import com.example.sejong_voice._common.security.AuthUser;
 import com.example.sejong_voice._common.security.UserPrincipal;
-import com.example.sejong_voice.vote.dto.VoteDetailResponse;
+import com.example.sejong_voice.vote.dto.VoteAgreeVoterResponse;
+import com.example.sejong_voice.vote.dto.VoteStatisticsResponse;
 import com.example.sejong_voice.vote.dto.VoteRequest;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "투표 API", description = "게시글 투표 및 집계 조회 API")
@@ -37,8 +39,8 @@ public class VoteController {
   }
 
   @Operation(
-      summary = "투표 집계 조회",
-      description = "특정 게시글의 현재 투표 집계 정보를 조회합니다."
+      summary = "투표 요약 조회",
+      description = "특정 게시글의 현재 찬성 수, 반대 수, 총 투표 수를 조회합니다."
   )
   @GetMapping("/summary")
   public ResponseEntity<VoteSummaryResponse> getSummary(
@@ -48,14 +50,26 @@ public class VoteController {
   }
 
   @Operation(
-      summary = "투표 상세 결과 조회",
-      description = "학생회 계정 또는 SUPER 권한 사용자가 특정 게시글의 투표 상세 결과와 투표자 목록을 조회합니다."
+      summary = "투표 통계 조회",
+      description = "학생회 계정 또는 SUPER 권한 사용자가 특정 게시글의 찬성 수, 반대 수, 찬성 비율, 학과별 투표 분포를 조회합니다."
   )
-  @GetMapping("/details")
-  public ResponseEntity<VoteDetailResponse> getDetails(
+  @GetMapping("/statistics")
+  public ResponseEntity<VoteStatisticsResponse> getStatistics(
       @PathVariable UUID postId,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    return ResponseEntity.ok(voteFacade.getDetails(postId, userPrincipal.getUserId()));
+    return ResponseEntity.ok(voteFacade.getStatistics(postId, userPrincipal.getUserId()));
+  }
+
+  @Operation(
+      summary = "투표 찬성자 명단 조회",
+      description = "학생회 계정 또는 SUPER 권한 사용자가 특정 게시글에 찬성한 참여자 명단을 조회합니다."
+  )
+  @GetMapping("/agree-voters")
+  public ResponseEntity<List<VoteAgreeVoterResponse>> getAgreeVoters(
+      @PathVariable UUID postId,
+      @AuthUser UserPrincipal userPrincipal
+  ) {
+    return ResponseEntity.ok(voteFacade.getAgreeVoters(postId, userPrincipal.getUserId()));
   }
 }

@@ -55,6 +55,8 @@ public class SecurityConfig {
 
             .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/posts/*/votes/details")
             .hasAnyRole("ADMIN", "SUPER")
+            .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/posts/*/votes/agree-participants")
+            .hasAnyRole("ADMIN", "SUPER")
 
             // GET 요청에 대해 누구나 접근 가능하도록 허용
             .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/posts/**")
