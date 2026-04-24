@@ -7,7 +7,8 @@ import com.example.sejong_voice.vote.exception.VoteErrorCode;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.user.UserService;
-import com.example.sejong_voice.vote.dto.VoteDetailResponse;
+import com.example.sejong_voice.vote.dto.VoteAgreeVoterResponse;
+import com.example.sejong_voice.vote.dto.VoteStatisticsResponse;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.VoteChoice;
 import com.example.sejong_voice.council.CouncilService;
@@ -15,6 +16,7 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.post.exception.PostErrorCode;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +38,8 @@ public class VoteFacade {
     User user = userService.getById(userId);
     Post post = postService.getById(postId);
 
-    if (post.getStatus() != PostStatus.VOTING || !Instant.now(clock).isBefore(post.getVotingEndAt())) {
+    if (post.getStatus() != PostStatus.VOTING
+        || !Instant.now(clock).isBefore(post.getVotingEndAt())) {
       throw new BusinessException(VoteErrorCode.VOTE_CLOSED);
     }
 
@@ -49,7 +52,18 @@ public class VoteFacade {
   }
 
   @Transactional(readOnly = true)
-  public VoteDetailResponse getDetails(UUID postId, UUID userId) {
+  public VoteStatisticsResponse getStatistics(UUID postId, UUID userId) {
+    Post post = getPostForVoteResult(postId, userId);
+    return voteService.getStatistics(post);
+  }
+
+  @Transactional(readOnly = true)
+  public List<VoteAgreeVoterResponse> getAgreeVoters(UUID postId, UUID userId) {
+    Post post = getPostForVoteResult(postId, userId);
+    return voteService.getAgreeVoters(post);
+  }
+
+  private Post getPostForVoteResult(UUID postId, UUID userId) {
     Post post = postService.getById(postId);
     User user = userService.getById(userId);
 
@@ -65,7 +79,6 @@ public class VoteFacade {
         && post.getStatus() != PostStatus.REJECTED) {
       throw new BusinessException(PostErrorCode.VOTE_DETAILS_NOT_AVAILABLE);
     }
-
-    return voteService.getDetails(post);
+    return post;
   }
 }
