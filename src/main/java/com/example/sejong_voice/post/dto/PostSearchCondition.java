@@ -6,6 +6,7 @@ import java.util.UUID;
 public record PostSearchCondition(
     PostStatus status,
     UUID councilId,
+    UUID categoryId,
     String keyword,
     Boolean mine,
     Boolean assignedToMe,
@@ -15,7 +16,7 @@ public record PostSearchCondition(
 
   public PostSearchCondition withCurrentUserId(UUID currentUserId) {
     return new PostSearchCondition(
-        status, councilId, keyword, mine, assignedToMe, currentUserId
+        status, councilId, categoryId, keyword, mine, assignedToMe, currentUserId
     );
   }
 }
