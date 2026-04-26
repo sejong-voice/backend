@@ -2,6 +2,7 @@ package com.example.sejong_voice.post.repository;
 
 import static com.example.sejong_voice.council.entity.QCouncilMember.councilMember;
 import static com.example.sejong_voice.post.entity.QPost.post;
+import static com.example.sejong_voice.category.entity.QCategory.category;
 
 import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
@@ -31,9 +32,11 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
         .selectFrom(post)
         .join(post.user).fetchJoin()
         .join(post.council).fetchJoin()
+        .join(post.category, category).fetchJoin()
         .where(
             statusEq(condition.status()),
             responsibleCouncilEq(condition.councilId()),
+            categoryEq(condition.categoryId()),
             assignedToMe(condition.assignedToMe(), condition.currentUserId()),
             keywordContains(condition.keyword()),
             isMine(condition.mine(), condition.currentUserId()),
@@ -52,6 +55,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
         .where(
             statusEq(condition.status()),
             responsibleCouncilEq(condition.councilId()),
+            categoryEq(condition.categoryId()),
             assignedToMe(condition.assignedToMe(), condition.currentUserId()),
             keywordContains(condition.keyword()),
             isMine(condition.mine(), condition.currentUserId()),
@@ -74,6 +78,10 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
 
   private BooleanExpression responsibleCouncilEq(UUID councilId) {
     return councilId != null ? post.council.id.eq(councilId) : null;
+  }
+
+  private BooleanExpression categoryEq(UUID categoryId) {
+    return categoryId != null ? post.category.id.eq(categoryId) : null;
   }
 
   private BooleanExpression assignedToMe(Boolean assignedToMe, UUID currentUserId) {

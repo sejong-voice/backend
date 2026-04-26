@@ -1,5 +1,6 @@
 package com.example.sejong_voice.post.entity;
 
+import com.example.sejong_voice.category.entity.Category;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.Column;
@@ -38,6 +39,10 @@ public class Post {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "council_id", nullable = false)
   private Council council;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "category_id", nullable = false)
+  private Category category;
 
   @Column(nullable = false)
   private String title;
@@ -82,6 +87,7 @@ public class Post {
   public Post(
       User user,
       Council council,
+      Category category,
       String title,
       String content,
       PostVotingDuration postVotingDuration,
@@ -91,6 +97,7 @@ public class Post {
   ) {
     this.user = user;
     this.council = council;
+    this.category = category;
     this.title = title;
     this.content = content;
     this.votingDuration = postVotingDuration;
@@ -109,11 +116,6 @@ public class Post {
 
   public void incrementViewCount() {
     this.viewCount++;
-  }
-
-  public void update(String newTitle, String newContent) {
-    this.title = newTitle;
-    this.content = newContent;
   }
 
   public void delete(Instant deletedAt) {

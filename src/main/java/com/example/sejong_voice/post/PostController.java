@@ -19,7 +19,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "게시글 API", description = "게시글 생성/조회/삭제 API (VOTING(투표중), APPROVED(승인됨), PENDING(투표 미달로 기각), COMPLETED(승인된 투표에 대한 응답완료), REJECTED(모종의 이유로 승인은 되었으나 답변은 하지 못하는 경우 거절)))")
 @RestController
@@ -43,6 +50,7 @@ public class PostController {
         request.title(),
         request.content(),
         request.councilId(),
+        request.categoryId(),
         request.postVotingDuration(),
         request.imageIds()
     );
@@ -55,7 +63,7 @@ public class PostController {
       description = "조건/페이징 기반으로 게시글 목록을 조회합니다.ACTIVE(보여지는 게시글),DELETED(삭제할 게시글),BLINDED(가림 처리한 게시글). ACTIVE 상태만 필터링해서 프론트로 보내줄거임"
   )
   @GetMapping
-  public ResponseEntity<Page<PostListResponse>> getList(
+  public ResponseEntity<Page<PostListResponse>> getPosts(
       @ParameterObject @ModelAttribute PostSearchCondition condition,
       @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
       @AuthUser UserPrincipal userPrincipal
@@ -63,7 +71,7 @@ public class PostController {
     UUID currentUserId = (userPrincipal != null) ? userPrincipal.getUserId() : null;
     PostSearchCondition postSearchCondition = condition.withCurrentUserId(currentUserId);
 
-    return ResponseEntity.ok(postFacade.getList(postSearchCondition, pageable));
+    return ResponseEntity.ok(postFacade.getPosts(postSearchCondition, pageable));
   }
 
   @Operation(

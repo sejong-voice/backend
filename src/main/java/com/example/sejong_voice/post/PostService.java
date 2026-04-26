@@ -1,5 +1,6 @@
 package com.example.sejong_voice.post;
 
+import com.example.sejong_voice.category.entity.Category;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.policy.entity.CouncilPolicy;
 import com.example.sejong_voice.exception.BusinessException;
@@ -35,6 +36,7 @@ public class PostService {
   public Post create(
       User user,
       Council council,
+      Category category,
       String title,
       String content,
       PostVotingDuration postVotingDuration
@@ -44,6 +46,7 @@ public class PostService {
     Post post = Post.builder()
         .user(user)
         .council(council)
+        .category(category)
         .title(title)
         .content(content)
         .postVotingDuration(postVotingDuration)
@@ -52,7 +55,12 @@ public class PostService {
         .createdAt(Instant.now(clock))
         .build();
 
-    log.info("게시물 생성: userId={}, councilId={}", user.getId(), council.getId());
+    log.info(
+        "게시물 생성: userId={}, councilId={}, categoryId={}",
+        user.getId(),
+        council.getId(),
+        category.getId()
+    );
     return postRepository.save(post);
   }
 
@@ -68,7 +76,7 @@ public class PostService {
     return PostDetailResponse.from(post);
   }
 
-  public Page<PostListResponse> getList(PostSearchCondition condition, Pageable pageable) {
+  public Page<PostListResponse> getPosts(PostSearchCondition condition, Pageable pageable) {
     Page<PostListResponse> postList = postRepository.search(condition, pageable);
 
     log.info(
@@ -106,13 +114,6 @@ public class PostService {
         "게시물 투표 종료: postId={}, status={}",
         postId, post.getStatus()
     );
-  }
-
-  @Transactional
-  public void updateStatus(UUID postId, PostStatus status) {
-    Post post = getById(postId);
-    post.updateStatus(status);
-    log.info("게시물 처리 상태 업데이트: postId={}, status={}", postId, status);
   }
 
   public List<Post> findClosable(PostStatus status, Instant now) {

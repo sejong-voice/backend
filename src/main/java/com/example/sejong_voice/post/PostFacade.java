@@ -1,5 +1,7 @@
 package com.example.sejong_voice.post;
 
+import com.example.sejong_voice.category.CategoryService;
+import com.example.sejong_voice.category.entity.Category;
 import com.example.sejong_voice.comment.CommentService;
 import com.example.sejong_voice.council.CouncilService;
 import com.example.sejong_voice.council.entity.Council;
@@ -36,6 +38,7 @@ public class PostFacade {
 
   private final PostService postService;
   private final PostStatementService postStatementService;
+  private final CategoryService categoryService;
   private final UserService userService;
   private final CouncilService councilService;
   private final VoteService voteService;
@@ -50,12 +53,14 @@ public class PostFacade {
       String title,
       String content,
       UUID councilId,
+      UUID categoryId,
       PostVotingDuration votingDuration,
       List<UUID> imageIds
   ) {
     User user = userService.getById(userId);
     Council council = councilService.getById(councilId);
-    Post post = postService.create(user, council, title, content, votingDuration);
+    Category category = categoryService.getById(categoryId);
+    Post post = postService.create(user, council, category, title, content, votingDuration);
     imageService.attachImagesToPost(user, post, imageIds);
 
     return post.getId();
@@ -67,7 +72,7 @@ public class PostFacade {
   }
 
   @Transactional(readOnly = true)
-  public Page<PostListResponse> getList(PostSearchCondition condition, Pageable pageable) {
+  public Page<PostListResponse> getPosts(PostSearchCondition condition, Pageable pageable) {
     if (Boolean.TRUE.equals(condition.assignedToMe())) {
       UUID currentUserId = condition.currentUserId();
 
@@ -76,7 +81,7 @@ public class PostFacade {
       }
     }
 
-    Page<PostListResponse> postPage = postService.getList(condition, pageable);
+    Page<PostListResponse> postPage = postService.getPosts(condition, pageable);
     List<UUID> postIds = postPage.getContent().stream()
         .map(PostListResponse::id)
         .toList();

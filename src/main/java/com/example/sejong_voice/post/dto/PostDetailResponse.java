@@ -16,6 +16,8 @@ public record PostDetailResponse(
     String userStudentNo,
     UUID councilId,
     String councilName,
+    UUID categoryId,
+    String categoryName,
     String title,
     String content,
     PostStatus status,
@@ -33,6 +35,8 @@ public record PostDetailResponse(
         .userStudentNo(post.getUser().getStudentNo())
         .councilId(post.getCouncil().getId())
         .councilName(post.getCouncil().getName())
+        .categoryId(post.getCategory().getId())
+        .categoryName(post.getCategory().getName())
         .title(post.getTitle())
         .content(post.getContent())
         .status(post.getStatus())
@@ -51,6 +55,8 @@ public record PostDetailResponse(
         userStudentNo,
         councilId,
         councilName,
+        categoryId,
+        categoryName,
         title,
         content,
         status,
@@ -69,6 +75,8 @@ public record PostDetailResponse(
         userStudentNo,
         councilId,
         councilName,
+        categoryId,
+        categoryName,
         title,
         content,
         status,

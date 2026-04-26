@@ -16,6 +16,8 @@ public record PostListResponse(
     String userStudentNo,
     UUID councilId,
     String councilName,
+    UUID categoryId,
+    String categoryName,
     String title,
     String content,
     PostStatus status,
@@ -38,6 +40,8 @@ public record PostListResponse(
         .userStudentNo(post.getUser().getStudentNo())
         .councilId(post.getCouncil().getId())
         .councilName(post.getCouncil().getName())
+        .categoryId(post.getCategory().getId())
+        .categoryName(post.getCategory().getName())
         .title(post.getTitle())
         .content(post.getContent())
         .status(post.getStatus())
@@ -57,6 +61,8 @@ public record PostListResponse(
         .userStudentNo(userStudentNo)
         .councilId(councilId)
         .councilName(councilName)
+        .categoryId(categoryId)
+        .categoryName(categoryName)
         .title(title)
         .content(content)
         .status(status)
@@ -76,6 +82,8 @@ public record PostListResponse(
         .userStudentNo(userStudentNo)
         .councilId(councilId)
         .councilName(councilName)
+        .categoryId(categoryId)
+        .categoryName(categoryName)
         .title(title)
         .content(content)
         .status(status)

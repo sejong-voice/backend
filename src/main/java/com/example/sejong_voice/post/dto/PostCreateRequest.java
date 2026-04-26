@@ -10,6 +10,7 @@ public record PostCreateRequest(
     @NotBlank String title,
     @NotBlank String content,
     @NotNull UUID councilId,
+    @NotNull UUID categoryId,
     @NotNull PostVotingDuration postVotingDuration,
     @NotNull List<@NotNull UUID> imageIds
 ) {
