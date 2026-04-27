@@ -13,6 +13,8 @@ import com.example.sejong_voice.post.entity.PostVotingDuration;
 import com.example.sejong_voice.post.exception.PostErrorCode;
 import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.user.entity.User;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -107,13 +110,55 @@ public class PostService {
   }
 
   @Transactional
-  public void evaluateAndClose(UUID postId, long agreeCount, long totalCount) {
+  public void close(UUID postId, long agreeCount, long totalCount) {
     Post post = getById(postId);
-    post.evaluateAndClose(agreeCount, totalCount, Instant.now(clock));
+    if (post.getStatus() != PostStatus.VOTING) {
+      return;
+    }
+
+    post.close(Instant.now(clock));
+    if (meetsApprovalCriteria(post, agreeCount, totalCount)) {
+      post.updateStatus(PostStatus.APPROVED);
+    } else {
+      post.updateStatus(PostStatus.PENDING);
+    }
+
     log.info(
         "게시물 투표 종료: postId={}, status={}",
         postId, post.getStatus()
     );
+  }
+
+  @Transactional
+  public void closeEarly(UUID postId, long agreeCount, long totalCount) {
+    Post post = getById(postId);
+
+    if (!meetsApprovalCriteria(post, agreeCount, totalCount)) {
+      throw new BusinessException(PostErrorCode.EARLY_CLOSE_NOT_AVAILABLE);
+    }
+
+    post.close(Instant.now(clock));
+    post.updateStatus(PostStatus.APPROVED);
+    log.info("게시물 조기 종료 승인: postId={}, status={}", postId, post.getStatus());
+  }
+
+  private boolean meetsApprovalCriteria(Post post, long agreeCount, long totalCount) {
+    if (post.getStatus() != PostStatus.VOTING) {
+      return false;
+    }
+
+    if (totalCount < post.getMinVoteSnapshot()) {
+      return false;
+    }
+
+    if (totalCount <= 0) {
+      return false;
+    }
+
+    BigDecimal requiredAgreeCount = post.getApproveRatioSnapshot()
+        .multiply(BigDecimal.valueOf(totalCount));
+
+    return BigDecimal.valueOf(agreeCount).compareTo(requiredAgreeCount) >= 0;
   }
 
   public List<Post> findClosable(PostStatus status, Instant now) {

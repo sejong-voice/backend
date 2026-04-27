@@ -126,17 +126,21 @@ public class PostFacade {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    processClosing(postId);
+    long agreeCount = voteService.countAgree(postId);
+    long totalCount = agreeCount + voteService.countDisagree(postId);
+
+    postService.closeEarly(postId, agreeCount, totalCount);
+    notificationService.createPostApprovedNotifications(post);
   }
 
   /**
    * 게시글에 입장문을 생성합니다.
    *
-   * @param postId   게시글 ID
-   * @param userId   요청한 사용자 ID
+   * @param postId      게시글 ID
+   * @param userId      요청한 사용자 ID
    * @param finalStatus 첫 입장문 생성 시 확정할 최종 상태
-   * @param content  입장문 내용
-   * @param imageIds 입장문 이미지 ID 목록
+   * @param content     입장문 내용
+   * @param imageIds    입장문 이미지 ID 목록
    * @throws BusinessException 접근 권한이 없거나 입장문 생성 조건을 만족하지 못한 경우
    */
   @Transactional
@@ -174,7 +178,8 @@ public class PostFacade {
       post.updateStatus(finalStatus);
     } else if (finalStatus != null) {
       throw new BusinessException(PostErrorCode.FINAL_STATUS_NOT_ALLOWED);
-    } else if (post.getStatus() != PostStatus.COMPLETED && post.getStatus() != PostStatus.REJECTED) {
+    } else if (post.getStatus() != PostStatus.COMPLETED
+        && post.getStatus() != PostStatus.REJECTED) {
       throw new BusinessException(PostErrorCode.STATEMENT_CREATE_NOT_ALLOWED);
     }
 
@@ -192,7 +197,7 @@ public class PostFacade {
     long agreeCount = voteService.countAgree(postId);
     long totalCount = agreeCount + voteService.countDisagree(postId);
 
-    postService.evaluateAndClose(postId, agreeCount, totalCount);
+    postService.close(postId, agreeCount, totalCount);
 
     PostStatus afterStatus = post.getStatus();
     if (beforeStatus != PostStatus.APPROVED && afterStatus == PostStatus.APPROVED) {
