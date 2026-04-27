@@ -86,15 +86,13 @@ public class PostFacade {
         .map(PostListResponse::id)
         .toList();
 
-    Map<UUID, List<PostImageResponse>> imagesByPostId = imageFacade.getActivePostImagesByPostIds(
-        postIds);
     Map<UUID, Long> voteCountByPostId = voteService.countByPostIds(postIds);
     Map<UUID, Long> commentCountByPostId = commentService.countActiveByPostIds(postIds);
 
-    return postPage.map(response -> enrichImages(response.withCounts(
+    return postPage.map(response -> response.withCounts(
         voteCountByPostId.getOrDefault(response.id(), 0L),
         commentCountByPostId.getOrDefault(response.id(), 0L)
-    ), imagesByPostId));
+    ));
   }
 
   @Transactional
@@ -217,12 +215,5 @@ public class PostFacade {
     return postResponse.withImages(
         imageFacade.getActivePostImages(postResponse.id())
     ).withStatements(statementResponses);
-  }
-
-  private PostListResponse enrichImages(
-      PostListResponse postResponse,
-      Map<UUID, List<PostImageResponse>> imagesByPostId
-  ) {
-    return postResponse.withImages(imagesByPostId.getOrDefault(postResponse.id(), List.of()));
   }
 }
