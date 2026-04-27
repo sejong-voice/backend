@@ -28,6 +28,7 @@ public record PostListResponse(
     Instant votingEndAt,
     List<PostImageResponse> images
 ) {
+  private static final int MASK_SUFFIX_LENGTH = 3;
 
   public static PostListResponse from(Post post) {
     return from(post, 0L, 0L);
@@ -37,7 +38,7 @@ public record PostListResponse(
     return PostListResponse.builder()
         .id(post.getId())
         .userId(post.getUser().getId())
-        .userStudentNo(post.getUser().getStudentNo())
+        .userStudentNo(maskStudentNo(post.getUser().getStudentNo()))
         .councilId(post.getCouncil().getId())
         .councilName(post.getCouncil().getName())
         .categoryId(post.getCategory().getId())
@@ -52,6 +53,10 @@ public record PostListResponse(
         .votingEndAt(post.getVotingEndAt())
         .images(List.of())
         .build();
+  }
+
+  private static String maskStudentNo(String studentNo) {
+    return studentNo.substring(0, studentNo.length() - MASK_SUFFIX_LENGTH) + "***";
   }
 
   public PostListResponse withCounts(long voteCount, long commentCount) {
