@@ -1,6 +1,6 @@
 package com.example.sejong_voice.user.entity;
 
-import com.example.sejong_voice.auth.dto.DepartmentRequest;
+import com.example.sejong_voice.affiliation.Affiliation;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -32,8 +32,12 @@ public class User {
   @Column(name = "name", length = 60, nullable = false)
   private String name;
 
-  @Column(name = "department", nullable = false)
-  private String department;
+//  @Column(name = "department", nullable = false)
+//  private String department;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "affiliation_id", nullable = false)
+  private Affiliation affiliation;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -49,18 +53,22 @@ public class User {
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 
+
+  //affiliation 레포에서 맞는 소속id를 찾아서 넣어주면 됨...? name으로 찾아서 affiliation_id를 넣어줌
+  //builder에서는 affiliation객체 자체를 넣어도 되는건가??
+
   @Builder
   public User(
       String studentNo,
       String name,
-      String department,
+      Affiliation affiliation,
       String password,
       Instant duration,
       Instant createdAt
   ) {
     this.studentNo = studentNo;
     this.name = name;
-    this.department = department;
+    this.affiliation = affiliation;
     this.password = password;
 
     // 생성 시점의 기본값 정의
@@ -70,16 +78,13 @@ public class User {
     this.createdAt = createdAt;
   }
 
+
+
   public static Instant activeDuration() {
     return EPOCH;
   }
   public static Instant withdrawnDuration() {
     return PERMANENT_BAN_UNTIL;
-  }
-
-
-  public void updateDepartment(DepartmentRequest newDepartment) {
-    this.department = newDepartment.department();
   }
 
   public void updatePassword(String newPassword){this.password = newPassword;}

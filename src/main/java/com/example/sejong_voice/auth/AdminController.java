@@ -1,7 +1,6 @@
 package com.example.sejong_voice.auth;
 
 
-import com.example.sejong_voice.auth.dto.DepartmentRequest;
 import com.example.sejong_voice.auth.dto.RoleUpdateRequest;
 import com.example.sejong_voice.auth.dto.UserStatusRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,19 +19,6 @@ public class AdminController {
 
   private final AuthService authService;
 
-  // 학과 수정 -> 만약에 전과를 하면 수정하는 방식으로 하려고 했는데, 사실 전과하면 sso에서 mayjor값이 변경되기 때문에 안써도 되긴함
-  @Operation(
-      summary = "사용자 학과 변경",
-      description = "관리자가 특정 사용자의 학과 정보를 변경합니다. 현재 사용하지 않는 api"
-  )
-  @PatchMapping("/user/{studentNo}/department")
-  public ResponseEntity<Void> updateDepartment(
-      @PathVariable String studentNo, //targetUser
-      @Valid @RequestBody DepartmentRequest newDepartment) {
-
-    authService.updateDepartment(studentNo, newDepartment);
-    return ResponseEntity.ok().build();
-  }
 
   //상태 변경
   @Operation(

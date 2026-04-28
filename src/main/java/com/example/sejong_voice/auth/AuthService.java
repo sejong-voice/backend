@@ -2,6 +2,8 @@ package com.example.sejong_voice.auth;
 
 
 import com.example.sejong_voice._common.time.TimeUtils;
+import com.example.sejong_voice.affiliation.Affiliation;
+import com.example.sejong_voice.affiliation.AffiliationRepository;
 import com.example.sejong_voice.auth.dto.*;
 import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import com.example.sejong_voice.exception.BusinessException;
@@ -29,6 +31,7 @@ public class AuthService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final RefreshTokenRepository refreshTokenRepository;
+  private final AffiliationRepository affiliationRepository;
   private final SchoolAuthClient schoolAuthClient;
   private final JwtUtil jwtUtil;
   private final JwtProperties jwtProperties;
@@ -45,13 +48,17 @@ public class AuthService {
           new SsoRequest(studentNo, password)
       );
 
+      Affiliation affiliation = affiliationRepository.findByName(ssoResponse.user().department())
+                      .orElseThrow(() -> new BusinessException(AuthErrorCode.SSO_AUTH_FAILED));
+
       // 3. sso 성공 시 받은 정보로 신규 가입
       Instant now = Instant.now(clock);
+
       return userRepository.save(
           User.builder()
               .studentNo(ssoResponse.user().studentNo())
               .name(ssoResponse.user().name())
-              .department(ssoResponse.user().department())
+              .affiliation(affiliation)
               .password(passwordEncoder.encode(password))
               .duration(User.activeDuration())
               .createdAt(now)
@@ -167,16 +174,6 @@ public class AuthService {
   }
 
 
-  // 5. 유저 정보 수정 (Super 계정 전용 - 학과 수정)
-  @Transactional
-  public void updateDepartment(
-          String targetStudentNo,
-          DepartmentRequest newDepartment
-  ) {
-    User targetUser = userRepository.findByStudentNo(targetStudentNo)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
-    targetUser.updateDepartment(newDepartment);
-  }
 
   // 6. 상태 변경 (Super 계정 전용 - 제재 및 토큰 파기)
   @Transactional
