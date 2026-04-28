@@ -18,7 +18,7 @@ public class Affiliation {
     @Column(columnDefinition = "BINARY(16)")
     private UUID id;
 
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, unique = true, length = 100)
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)

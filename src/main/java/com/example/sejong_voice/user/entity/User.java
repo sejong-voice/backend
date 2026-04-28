@@ -32,8 +32,7 @@ public class User {
   @Column(name = "name", length = 60, nullable = false)
   private String name;
 
-//  @Column(name = "department", nullable = false)
-//  private String department;
+
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "affiliation_id", nullable = false)
@@ -54,14 +53,12 @@ public class User {
   private Instant createdAt;
 
 
-  //affiliation 레포에서 맞는 소속id를 찾아서 넣어주면 됨...? name으로 찾아서 affiliation_id를 넣어줌
-  //builder에서는 affiliation객체 자체를 넣어도 되는건가??
 
   @Builder
   public User(
       String studentNo,
       String name,
-      Affiliation affiliation,
+      Affiliation affiliation, // affiliation 객체 자체를 넣어서 사용. user.affiliation.name이런식으로 사용
       String password,
       Instant duration,
       Instant createdAt
