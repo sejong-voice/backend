@@ -9,6 +9,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.sejong_voice.affiliation.Affiliation;
+import com.example.sejong_voice.affiliation.AffiliationRepository;
 import com.example.sejong_voice.auth.dto.*;
 import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import com.example.sejong_voice.auth.jwt.JwtProperties;
@@ -47,6 +49,10 @@ public class AuthServiceTest {
   private SchoolAuthClient schoolAuthClient;
   @Mock
   private JwtUtil jwtUtil;
+  @Mock
+  private AffiliationRepository affiliationRepository;
+  @Mock
+  private Affiliation affiliation;
 
   private AuthService authService;
   private JwtProperties jwtProperties;
@@ -59,6 +65,8 @@ public class AuthServiceTest {
     // 시간 의존 로직(정지 기간 비교, 토큰 만료 계산)을
     // 매번 동일하게 검증하기 위해 고정 시계를 사용한다.
     fixedClock = Clock.fixed(Instant.parse("2026-04-07T00:00:00Z"), ZoneOffset.UTC);
+
+    when(affiliationRepository.findByName("컴퓨터공학과")).thenReturn(Optional.of(affiliation));
 
     // 테스트 전용 JWT 설정값.
     // access/refresh 만료시간을 명시해 응답 expiresIn 검증에 사용한다.
@@ -74,6 +82,7 @@ public class AuthServiceTest {
         userRepository,
         passwordEncoder,
         refreshTokenRepository,
+        affiliationRepository,
         schoolAuthClient,
         jwtUtil,
         jwtProperties,
@@ -86,7 +95,7 @@ public class AuthServiceTest {
     User user = User.builder()
             .studentNo(studentNo)
             .name("홍길동")
-            .department("컴퓨터공학과")
+            .affiliation(affiliation)
             .password(encodedPassword)
             .duration(User.activeDuration())
             .createdAt(Instant.now(fixedClock))

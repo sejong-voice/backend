@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.sejong_voice.auth.dto.DepartmentRequest;
 import com.example.sejong_voice.exception.GlobalExceptionHandler;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.user.entity.UserStatus;
