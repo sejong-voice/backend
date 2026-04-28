@@ -49,7 +49,7 @@ public class AuthService {
       );
 
       Affiliation affiliation = affiliationRepository.findByName(ssoResponse.user().department())
-                      .orElseThrow(() -> new BusinessException(AuthErrorCode.SSO_AUTH_FAILED));
+                      .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_AFFILIATION));
 
       // 3. sso 성공 시 받은 정보로 신규 가입
       Instant now = Instant.now(clock);

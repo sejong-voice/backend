@@ -15,7 +15,9 @@ public enum AuthErrorCode implements ErrorCode {
     TOKEN_EXPIRED(401, "AUTH_005", "만료된 세션입니다. 다시 로그인해주세요."),
     NOT_SUPER_ACCOUNT(403, "AUTH_006", "Super 계정만 접근 가능한 기능입니다."),
     SSO_AUTH_FAILED(403, "AUTH_007", "SSO 인증에 실패하였습니다."),
-    INVALID_USER(401, "AUTH_008", "유효하지 않은 사용자입니다.");
+    INVALID_USER(401, "AUTH_008", "유효하지 않은 사용자입니다."),
+    INVALID_AFFILIATION(403, "AUTH_009", "등록되지 않은 소속(학과)입니다.");
+
 
     private final int status;
     private final String code;
