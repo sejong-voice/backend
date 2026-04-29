@@ -1,10 +1,10 @@
 package com.example.sejong_voice.policy;
 
+import com.example.sejong_voice.council.CouncilService;
+import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.policy.dto.CouncilPolicyResponse;
-import com.example.sejong_voice.policy.entity.CouncilPolicy;
-import com.example.sejong_voice.policy.exception.PolicyErrorCode;
-import com.example.sejong_voice.policy.repository.PolicyRepository;
-import com.example.sejong_voice.exception.BusinessException;
+import java.time.Clock;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,17 +19,13 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class PolicyService {
 
-  private final PolicyRepository councilPolicyRepository;
+  private final CouncilService councilService;
+  private final Clock clock;
 
   public CouncilPolicyResponse get(UUID councilId) {
-    CouncilPolicy policy = getById(councilId);
-    log.info("정책 조회: councilId={}, policy={}", councilId, policy);
-    return CouncilPolicyResponse.from(policy);
-  }
-
-  public CouncilPolicy getById(UUID councilId) {
-    return councilPolicyRepository.findById(councilId)
-        .orElseThrow(() -> new BusinessException(PolicyErrorCode.POLICY_NOT_FOUND));
+    Council council = councilService.getById(councilId);
+    log.info("정책 조회: councilId={}", councilId);
+    return CouncilPolicyResponse.from(council);
   }
 
   @Transactional
@@ -38,8 +34,8 @@ public class PolicyService {
       Integer minVote,
       BigDecimal approveRatioThreshold
   ) {
-    CouncilPolicy policy = getById(councilId);
-    policy.update(minVote, approveRatioThreshold);
+    Council council = councilService.getById(councilId);
+    council.updatePolicy(minVote, approveRatioThreshold, Instant.now(clock));
     log.info("정책 수정: councilId={}, minVote={}, ratio={}", councilId, minVote, approveRatioThreshold);
   }
 }

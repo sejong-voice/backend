@@ -2,7 +2,6 @@ package com.example.sejong_voice.post;
 
 import com.example.sejong_voice.category.entity.Category;
 import com.example.sejong_voice.council.entity.Council;
-import com.example.sejong_voice.policy.entity.CouncilPolicy;
 import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
@@ -44,8 +43,6 @@ public class PostService {
       String content,
       PostVotingDuration postVotingDuration
   ) {
-    CouncilPolicy policy = council.getPolicy();
-
     Post post = Post.builder()
         .user(user)
         .council(council)
@@ -53,8 +50,8 @@ public class PostService {
         .title(title)
         .content(content)
         .postVotingDuration(postVotingDuration)
-        .minVoteSnapshot(policy.getMinVote())
-        .approveRatioSnapshot(policy.getApproveRatioThreshold())
+        .minVoteSnapshot(council.getMinVote())
+        .approveRatioSnapshot(council.getApproveRatioThreshold())
         .createdAt(Instant.now(clock))
         .build();
 

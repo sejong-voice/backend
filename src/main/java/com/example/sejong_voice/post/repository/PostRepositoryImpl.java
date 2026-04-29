@@ -1,6 +1,5 @@
 package com.example.sejong_voice.post.repository;
 
-import static com.example.sejong_voice.council.entity.QCouncilMember.councilMember;
 import static com.example.sejong_voice.post.entity.QPost.post;
 import static com.example.sejong_voice.category.entity.QCategory.category;
 
@@ -59,6 +58,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
             assignedToMe(condition.assignedToMe(), condition.currentUserId()),
             keywordContains(condition.keyword()),
             isMine(condition.mine(), condition.currentUserId()),
+            post.visibilityStatus.eq(PostModerationStatus.ACTIVE),
             post.deletedAt.isNull()
         )
         .fetchOne();
@@ -89,14 +89,11 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
       return null;
     }
 
-    return queryFactory
-        .selectOne()
-        .from(councilMember)
-        .where(
-            councilMember.user.id.eq(currentUserId),
-            councilMember.council.id.eq(post.council.id)
-        )
-        .exists();
+    if (currentUserId == null) {
+      return post.id.isNull();
+    }
+
+    return post.council.adminUser.id.eq(currentUserId);
   }
 
   private BooleanExpression keywordContains(String keyword) {

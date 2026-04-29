@@ -3,7 +3,6 @@ package com.example.sejong_voice.council;
 import com.example.sejong_voice.council.dto.CouncilResponse;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.council.exception.CouncilErrorCode;
-import com.example.sejong_voice.council.repository.CouncilMemberRepository;
 import com.example.sejong_voice.council.repository.CouncilRepository;
 import com.example.sejong_voice.exception.BusinessException;
 import java.util.ArrayList;
@@ -22,7 +21,6 @@ import org.springframework.util.StringUtils;
 public class CouncilService {
 
   private final CouncilRepository councilRepository;
-  private final CouncilMemberRepository councilMemberRepository;
 
   public List<CouncilResponse> getAll(String keyword) {
     List<Council> councils = StringUtils.hasText(keyword)
@@ -34,21 +32,27 @@ public class CouncilService {
   private List<CouncilResponse> buildOrderedResponses(List<Council> councils) {
     Map<UUID, List<Council>> childrenByParentId = new HashMap<>();
     List<Council> rootList = new ArrayList<>();
-    Map<UUID, Council> councilById = new HashMap<>();
+    Map<UUID, Council> councilByAffiliationId = new HashMap<>();
 
     for (Council council : councils) {
-      councilById.put(council.getId(), council);
+      councilByAffiliationId.put(council.getAffiliation().getId(), council);
     }
 
     for (Council council : councils) {
-      Council parent = council.getParent();
-      if (parent == null || !councilById.containsKey(parent.getId())) {
+      UUID parentAffiliationId = council.getAffiliation().getParent() != null
+          ? council.getAffiliation().getParent().getId()
+          : null;
+      Council parentCouncil = parentAffiliationId != null
+          ? councilByAffiliationId.get(parentAffiliationId)
+          : null;
+
+      if (parentCouncil == null) {
         rootList.add(council);
         continue;
       }
 
       childrenByParentId
-          .computeIfAbsent(parent.getId(), ignored -> new ArrayList<>())
+          .computeIfAbsent(parentCouncil.getId(), ignored -> new ArrayList<>())
           .add(council);
     }
 
@@ -66,11 +70,11 @@ public class CouncilService {
   }
 
   public boolean isAdmin(UUID userId, UUID councilId) {
-    return councilMemberRepository.existsByUserIdAndCouncilId(userId, councilId);
+    return getById(councilId).isAdmin(userId);
   }
 
   public boolean hasManagedCouncil(UUID userId) {
-    return councilMemberRepository.existsByUserId(userId);
+    return councilRepository.existsByAdminUserId(userId);
   }
 
   private void addCouncilWithDescendants(

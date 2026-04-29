@@ -1,16 +1,16 @@
 package com.example.sejong_voice.policy.dto;
 
-import com.example.sejong_voice.policy.entity.CouncilPolicy;
+import com.example.sejong_voice.council.entity.Council;
 import java.math.BigDecimal;
 
 public record CouncilPolicyResponse(
     Integer minVote,
     BigDecimal approveRatioThreshold
 ) {
-  public static CouncilPolicyResponse from(CouncilPolicy policy) {
+  public static CouncilPolicyResponse from(Council council) {
     return new CouncilPolicyResponse(
-        policy.getMinVote(),
-        policy.getApproveRatioThreshold()
+        council.getMinVote(),
+        council.getApproveRatioThreshold()
     );
   }
 }
