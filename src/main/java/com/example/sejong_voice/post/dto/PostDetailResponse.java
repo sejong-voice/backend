@@ -22,6 +22,7 @@ public record PostDetailResponse(
     String content,
     PostStatus status,
     PostVotingDuration postVotingDuration,
+    boolean canCloseEarly,
     Instant createdAt,
     Instant votingEndAt,
     List<PostImageResponse> images,
@@ -42,6 +43,7 @@ public record PostDetailResponse(
         .content(post.getContent())
         .status(post.getStatus())
         .postVotingDuration(post.getVotingDuration())
+        .canCloseEarly(false)
         .createdAt(post.getCreatedAt())
         .votingEndAt(post.getVotingEndAt())
         .images(List.of())
@@ -66,6 +68,7 @@ public record PostDetailResponse(
         content,
         status,
         postVotingDuration,
+        canCloseEarly,
         createdAt,
         votingEndAt,
         images,
@@ -86,6 +89,28 @@ public record PostDetailResponse(
         content,
         status,
         postVotingDuration,
+        canCloseEarly,
+        createdAt,
+        votingEndAt,
+        images,
+        statements
+    );
+  }
+
+  public PostDetailResponse withCanCloseEarly(boolean canCloseEarly) {
+    return new PostDetailResponse(
+        id,
+        userId,
+        userStudentNo,
+        councilId,
+        councilName,
+        categoryId,
+        categoryName,
+        title,
+        content,
+        status,
+        postVotingDuration,
+        canCloseEarly,
         createdAt,
         votingEndAt,
         images,
