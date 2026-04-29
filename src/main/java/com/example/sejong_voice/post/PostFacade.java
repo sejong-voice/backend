@@ -59,6 +59,9 @@ public class PostFacade {
   ) {
     User user = userService.getById(userId);
     Council council = councilService.getById(councilId);
+    if (!councilService.hasAccessToCouncil(user, council)) {
+      throw new BusinessException(PostErrorCode.ACCESS_DENIED);
+    }
     Category category = categoryService.getById(categoryId);
     Post post = postService.create(user, council, category, title, content, votingDuration);
     imageService.attachImagesToPost(user, post, imageIds);

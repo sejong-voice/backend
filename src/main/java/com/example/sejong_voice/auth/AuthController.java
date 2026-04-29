@@ -37,7 +37,7 @@ public class AuthController {
 
     @Operation(
             summary = "약관 동의 및 로그인",
-            description = "약관 동의 결과를 받고 로그인을 진행. {학번, 비번, 서비스 동의, 약관 동의} 4개를 dto로 받는다"
+            description = "약관 동의 결과를 받고 로그인을 진행합니다. 동의 시각은 백엔드 현재 UTC 시각으로 기록합니다."
     )
     @PostMapping("/consent-login")
     public ResponseEntity<LoginResponse> consentLogin(

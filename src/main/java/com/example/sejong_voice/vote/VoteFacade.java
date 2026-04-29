@@ -37,6 +37,9 @@ public class VoteFacade {
   public void cast(UUID postId, UUID userId, VoteChoice choice) {
     User user = userService.getById(userId);
     Post post = postService.getById(postId);
+    if (!councilService.hasAccessToCouncil(user, post.getCouncil())) {
+      throw new BusinessException(PostErrorCode.ACCESS_DENIED);
+    }
 
     if (post.getStatus() != PostStatus.VOTING
         || !Instant.now(clock).isBefore(post.getVotingEndAt())) {

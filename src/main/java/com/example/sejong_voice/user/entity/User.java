@@ -51,11 +51,11 @@ public class User {
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 
-  @Column(name = "service_agreed", nullable = false)
-  private boolean serviceAgreed;
+  @Column(name = "service_agreed_at")
+  private Instant serviceAgreedAt;
 
-  @Column(name = "policy_agreed", nullable = false)
-  private boolean policyAgreed;
+  @Column(name = "policy_agreed_at")
+  private Instant policyAgreedAt;
 
 
 
@@ -78,10 +78,6 @@ public class User {
     this.status = UserStatus.ACTIVE;
     this.duration = duration != null ? duration : EPOCH;
     this.createdAt = createdAt;
-    // 생성 기본값
-    this.serviceAgreed = false;
-    this.policyAgreed = false;
-
   }
 
 
@@ -123,12 +119,12 @@ public class User {
 
   // 약관/개인정보 동의 여부 확인
   public boolean hasRequiredConsents() {
-    return serviceAgreed && policyAgreed;
+    return serviceAgreedAt != null && policyAgreedAt != null;
   }
 
   // 약관/개인정보 모두 동의 처리
-  public void agreeRequiredConsents() {
-    this.serviceAgreed = true;
-    this.policyAgreed = true;
+  public void agreeRequiredConsents(Instant serviceAgreedAt, Instant policyAgreedAt) {
+    this.serviceAgreedAt = serviceAgreedAt;
+    this.policyAgreedAt = policyAgreedAt;
   }
 }

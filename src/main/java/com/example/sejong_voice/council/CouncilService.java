@@ -1,10 +1,12 @@
 package com.example.sejong_voice.council;
 
+import com.example.sejong_voice.affiliation.Affiliation;
 import com.example.sejong_voice.council.dto.CouncilResponse;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.council.exception.CouncilErrorCode;
 import com.example.sejong_voice.council.repository.CouncilRepository;
 import com.example.sejong_voice.exception.BusinessException;
+import com.example.sejong_voice.user.entity.User;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,36 +31,48 @@ public class CouncilService {
     return buildOrderedResponses(councils);
   }
 
+  public List<CouncilResponse> getAccessible(String keyword, User user) {
+    List<Council> councils = councilRepository.findAllWithParent();
+
+    return buildOrderedResponses(
+        councils.stream()
+            .filter(council -> hasAccessToCouncil(user, council))
+            .filter(council -> !StringUtils.hasText(keyword) || council.getName().toLowerCase()
+                .contains(keyword.toLowerCase()))
+            .toList()
+    );
+  }
+
   private List<CouncilResponse> buildOrderedResponses(List<Council> councils) {
-    Map<UUID, List<Council>> childrenByParentId = new HashMap<>();
-    List<Council> rootList = new ArrayList<>();
     Map<UUID, Council> councilByAffiliationId = new HashMap<>();
+    Map<UUID, List<Council>> childrenByParentAffiliationId = new HashMap<>();
+    List<Council> rootList = new ArrayList<>();
 
     for (Council council : councils) {
       councilByAffiliationId.put(council.getAffiliation().getId(), council);
     }
 
     for (Council council : councils) {
-      UUID parentAffiliationId = council.getAffiliation().getParent() != null
-          ? council.getAffiliation().getParent().getId()
-          : null;
-      Council parentCouncil = parentAffiliationId != null
-          ? councilByAffiliationId.get(parentAffiliationId)
-          : null;
+      Affiliation parentAffiliation = council.getAffiliation().getParent();
+      if (parentAffiliation == null) {
+        rootList.add(council);
+        continue;
+      }
 
+      Council parentCouncil = councilByAffiliationId.get(parentAffiliation.getId());
       if (parentCouncil == null) {
         rootList.add(council);
         continue;
       }
 
-      childrenByParentId
-          .computeIfAbsent(parentCouncil.getId(), ignored -> new ArrayList<>())
+      childrenByParentAffiliationId
+          .computeIfAbsent(parentAffiliation.getId(), ignored -> new ArrayList<>())
           .add(council);
     }
 
     List<CouncilResponse> orderedResponses = new ArrayList<>();
     for (Council root : rootList) {
-      addCouncilWithDescendants(root, childrenByParentId, orderedResponses);
+      addCouncilWithDescendants(root, childrenByParentAffiliationId, orderedResponses);
     }
 
     return orderedResponses;
@@ -77,15 +91,32 @@ public class CouncilService {
     return councilRepository.existsByAdminUserId(userId);
   }
 
+  public boolean hasAccessToCouncil(User user, Council council) {
+    Affiliation current = user.getAffiliation();
+    UUID targetAffiliationId = council.getAffiliation().getId();
+
+    while (current != null) {
+      if (current.getId().equals(targetAffiliationId)) {
+        return true;
+      }
+      current = current.getParent();
+    }
+
+    return false;
+  }
+
   private void addCouncilWithDescendants(
       Council council,
-      Map<UUID, List<Council>> childrenByParentId,
+      Map<UUID, List<Council>> childrenByParentAffiliationId,
       List<CouncilResponse> orderedResponses
   ) {
     orderedResponses.add(new CouncilResponse(council));
 
-    for (Council child : childrenByParentId.getOrDefault(council.getId(), List.of())) {
-      addCouncilWithDescendants(child, childrenByParentId, orderedResponses);
+    for (Council child : childrenByParentAffiliationId.getOrDefault(
+        council.getAffiliation().getId(),
+        List.of()
+    )) {
+      addCouncilWithDescendants(child, childrenByParentAffiliationId, orderedResponses);
     }
   }
 }
