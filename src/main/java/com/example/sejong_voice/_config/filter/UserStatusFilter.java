@@ -76,6 +76,20 @@ public class UserStatusFilter extends OncePerRequestFilter {
             return;
         }
 
+        // 5) 필수 약관 미동의면 접근 차단
+        //    - DB 기준 동의 여부 재검증 (service/policy 둘 다 true 필요)
+        //    - SecurityContext 비우고
+        //    - 403 + TERMS_NOT_AGREED 에러 JSON 내려주고
+        //    - 필터 체인 종료(return)
+        if (user == null || !user.hasRequiredConsents()) {
+            SecurityContextHolder.clearContext();
+            response.setStatus(AuthErrorCode.NOT_AGREED.getStatus()); // 403
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding("UTF-8");
+            objectMapper.writeValue(response.getWriter(), ErrorResponse.of(AuthErrorCode.NOT_AGREED, clock));
+            return;
+        }
+
         // 5) ACTIVE 유저면 정상 통과
         filterChain.doFilter(request, response);
     }

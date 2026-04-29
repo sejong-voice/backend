@@ -8,6 +8,7 @@ import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import com.example.sejong_voice.exception.BusinessException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +33,17 @@ public class AuthController {
                         loginRequest.password()
                 )
         );
+    }
+
+    @Operation(
+            summary = "약관 동의 및 로그인",
+            description = "약관 동의 결과를 받고 로그인을 진행. {학번, 비번, 서비스 동의, 약관 동의} 4개를 dto로 받는다"
+    )
+    @PostMapping("/consent-login")
+    public ResponseEntity<LoginResponse> consentLogin(
+            @RequestBody @Valid ConsentLoginRequest request
+    ) {
+        return ResponseEntity.ok(authService.consentAndLogin(request));
     }
 
     @Operation(

@@ -50,7 +50,11 @@ public class SecurityConfig {
         // api 경로만 수정하면 되긴함
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            .requestMatchers("/api/v1/auth/login", "/api/v1/auth/refresh")
+            .requestMatchers(
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/refresh",
+                    "/api/v1/auth/consent-login"
+            )
             .permitAll()//refresh는 토큰이 만료되어도 접근가능하게 해용해두어ㅑ하는데
 
             .requestMatchers(HttpMethod.GET, "/api/v1/posts/*/votes/statistics")
@@ -76,7 +80,6 @@ public class SecurityConfig {
             .requestMatchers("/api/v1/reports/comments/*").authenticated()
 
             // SUPER만 허용 (정확히 찍기)
-            .requestMatchers("/api/v1/admin/user/*/department").hasRole("SUPER")
             .requestMatchers("/api/v1/admin/user/*/status").hasRole("SUPER")
             .requestMatchers("/api/v1/admin/user/*/role").hasRole("SUPER")
             .requestMatchers("/api/v1/admin/user/*/restore").hasRole("SUPER")
