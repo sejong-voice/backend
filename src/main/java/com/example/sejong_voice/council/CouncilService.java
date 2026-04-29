@@ -9,8 +9,10 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.user.entity.User;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,13 +34,14 @@ public class CouncilService {
   }
 
   public List<CouncilResponse> getAccessible(String keyword, User user) {
-    List<Council> councils = councilRepository.findAllWithParent();
+    List<Council> councils = StringUtils.hasText(keyword)
+        ? councilRepository.findByNameContainingIgnoreCaseWithParent(keyword)
+        : councilRepository.findAllWithParent();
+    Set<UUID> accessibleAffiliationIds = getAccessibleAffiliationIds(user);
 
     return buildOrderedResponses(
         councils.stream()
-            .filter(council -> hasAccessToCouncil(user, council))
-            .filter(council -> !StringUtils.hasText(keyword) || council.getName().toLowerCase()
-                .contains(keyword.toLowerCase()))
+            .filter(council -> accessibleAffiliationIds.contains(council.getAffiliation().getId()))
             .toList()
     );
   }
@@ -92,17 +95,19 @@ public class CouncilService {
   }
 
   public boolean hasAccessToCouncil(User user, Council council) {
+    return getAccessibleAffiliationIds(user).contains(council.getAffiliation().getId());
+  }
+
+  private Set<UUID> getAccessibleAffiliationIds(User user) {
+    Set<UUID> accessibleAffiliationIds = new HashSet<>();
     Affiliation current = user.getAffiliation();
-    UUID targetAffiliationId = council.getAffiliation().getId();
 
     while (current != null) {
-      if (current.getId().equals(targetAffiliationId)) {
-        return true;
-      }
+      accessibleAffiliationIds.add(current.getId());
       current = current.getParent();
     }
 
-    return false;
+    return accessibleAffiliationIds;
   }
 
   private void addCouncilWithDescendants(
