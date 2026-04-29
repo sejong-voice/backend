@@ -38,7 +38,7 @@ public class PostStatement {
   private Post post;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "created_by", nullable = false)
+  @JoinColumn(name = "user_id", nullable = false)
   private User createdBy;
 
   @Column(nullable = false)

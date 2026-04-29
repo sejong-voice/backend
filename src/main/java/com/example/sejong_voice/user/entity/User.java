@@ -14,6 +14,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
+
   private static final Instant EPOCH = Instant.EPOCH;
   private static final Instant PERMANENT_BAN_UNTIL = Instant.parse("9999-12-31T23:59:59Z");
 
@@ -31,8 +32,6 @@ public class User {
 
   @Column(name = "name", length = 60, nullable = false)
   private String name;
-
-
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "affiliation_id", nullable = false)
@@ -86,15 +85,17 @@ public class User {
   }
 
 
-
   public static Instant activeDuration() {
     return EPOCH;
   }
+
   public static Instant withdrawnDuration() {
     return PERMANENT_BAN_UNTIL;
   }
 
-  public void updatePassword(String newPassword){this.password = newPassword;}
+  public void updatePassword(String newPassword) {
+    this.password = newPassword;
+  }
 
   public void updateStatus(UserStatus status, Instant duration) {
     this.status = status;
@@ -107,13 +108,17 @@ public class User {
   }
 
   // 조기 복구
-  public void activateNow(){
+  public void activateNow() {
     this.status = UserStatus.ACTIVE;
     this.duration = EPOCH;
   }
 
   public void updateRole(UserRole role) {
     this.role = role;
+  }
+
+  public String getDepartment() {
+    return affiliation.getName();
   }
 
   // 약관/개인정보 동의 여부 확인

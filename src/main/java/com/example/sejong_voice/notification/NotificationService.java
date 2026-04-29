@@ -1,7 +1,6 @@
 package com.example.sejong_voice.notification;
 
 import com.example.sejong_voice.council.exception.CouncilErrorCode;
-import com.example.sejong_voice.council.repository.CouncilMemberRepository;
 import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.notification.entity.Notification;
 import com.example.sejong_voice.notification.exception.NotificationErrorCode;
@@ -29,22 +28,16 @@ import static com.example.sejong_voice.notification.entity.NotificationType.POST
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
-    private final CouncilMemberRepository councilMemberRepository;
     private final PostRepository postRepository;
     private final Clock clock;
 
     //createPostApprovedNotifications , notification 테이블에 상태전환 로그 남기는 메서드
     @Transactional
     public void createPostApprovedNotifications(Post post) {
-        // 1. post검증은 이미 완료됨
-        // 2. 학생회 계정 : post.council -> council.id -> council_member.user(councilId로 조회)
-        UUID councilId = post.getCouncil().getId();
-        User councilUser = councilMemberRepository.findUserByCouncilId(councilId)
-                // post의 councilId로 councilMembers에서 조회하는데 해당 학생회가 없다면 council_not_found
-                // 학생회가 있다면, 해당 학생회 계정으로 매핑된 user(학생회계정)를 가져옴
-                .orElseThrow(() -> new BusinessException(CouncilErrorCode.COUNCIL_NOT_FOUND));
-        //?????? council_member에 학생회별 계정 만드는 로직이 있음??
-        //councilService에 없던데?????
+        User councilUser = post.getCouncil().getAdminUser();
+        if (councilUser == null) {
+            throw new BusinessException(CouncilErrorCode.COUNCIL_NOT_FOUND);
+        }
 
         Notification notification = Notification.builder()
                 .user(councilUser)
