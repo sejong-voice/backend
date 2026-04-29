@@ -79,8 +79,13 @@ public class PostController {
           description = "게시글 ID로 단건 상세 정보를 조회합니다. ACTIVE(보여지는 게시글),DELETED(삭제할 게시글),BLINDED(가림 처리한 게시글). ACTIVE 상태만 필터링해서 프론트로 보내줄거임"
   )
   @GetMapping("/{postId}")
-  public ResponseEntity<PostDetailResponse> get(@PathVariable UUID postId) {
-    return ResponseEntity.ok(postFacade.getPost(postId));
+  public ResponseEntity<PostDetailResponse> get(
+      @PathVariable UUID postId,
+      @AuthUser UserPrincipal userPrincipal
+  ) {
+    return ResponseEntity.ok(
+        postFacade.getPost(postId, userPrincipal != null ? userPrincipal.getUserId() : null)
+    );
   }
 
   @Operation(

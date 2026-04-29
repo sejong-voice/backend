@@ -26,6 +26,8 @@ import com.example.sejong_voice.vote.VoteService;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Clock;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +48,7 @@ public class PostFacade {
   private final ImageService imageService;
   private final ImageFacade imageFacade;
   private final CommentService commentService;
+  private final Clock clock;
 
   @Transactional
   public UUID create(
@@ -70,14 +73,36 @@ public class PostFacade {
   }
 
   @Transactional
-  public PostDetailResponse getPost(UUID postId) {
+  public PostDetailResponse getPost(UUID postId, UUID userId) {
     Post post = postService.getDetailPost(postId);
     long agreeCount = voteService.countAgree(postId);
     long totalCount = agreeCount + voteService.countDisagree(postId);
+    boolean canVote = false;
 
-    return enrichImages(
-        PostDetailResponse.from(post)
-            .withCanCloseEarly(postService.canCloseEarly(post, agreeCount, totalCount))
+    if (userId != null) {
+      User user = userService.getById(userId);
+      canVote = councilService.hasAccessToCouncil(user, post.getCouncil())
+          && post.getStatus() == PostStatus.VOTING
+          && Instant.now(clock).isBefore(post.getVotingEndAt());
+    }
+
+    List<PostStatement> statements = postStatementService.getStatements(post.getId());
+    List<UUID> statementIds = statements.stream()
+        .map(PostStatement::getId)
+        .toList();
+    Map<UUID, List<PostImageResponse>> statementImagesById =
+        imageFacade.getActiveStatementImagesByStatementIds(statementIds);
+    List<PostStatementResponse> statementResponses = statements.stream()
+        .map(statement -> PostStatementResponse.from(statement)
+            .withImages(statementImagesById.getOrDefault(statement.getId(), List.of())))
+        .toList();
+
+    return PostDetailResponse.from(
+        post,
+        canVote,
+        postService.canCloseEarly(post, agreeCount, totalCount),
+        imageFacade.getActivePostImages(post.getId()),
+        statementResponses
     );
   }
 
@@ -213,22 +238,5 @@ public class PostFacade {
     if (beforeStatus != PostStatus.APPROVED && afterStatus == PostStatus.APPROVED) {
       notificationService.createPostApprovedNotifications(post);
     }
-  }
-
-  private PostDetailResponse enrichImages(PostDetailResponse postResponse) {
-    List<PostStatement> statements = postStatementService.getStatements(postResponse.id());
-    List<UUID> statementIds = statements.stream()
-        .map(PostStatement::getId)
-        .toList();
-    Map<UUID, List<PostImageResponse>> statementImagesById =
-        imageFacade.getActiveStatementImagesByStatementIds(statementIds);
-    List<PostStatementResponse> statementResponses = statements.stream()
-        .map(statement -> PostStatementResponse.from(statement)
-            .withImages(statementImagesById.getOrDefault(statement.getId(), List.of())))
-        .toList();
-
-    return postResponse.withImages(
-        imageFacade.getActivePostImages(postResponse.id())
-    ).withStatements(statementResponses);
   }
 }

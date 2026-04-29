@@ -22,6 +22,7 @@ public record PostDetailResponse(
     String content,
     PostStatus status,
     PostVotingDuration postVotingDuration,
+    boolean canVote,
     boolean canCloseEarly,
     Instant createdAt,
     Instant votingEndAt,
@@ -30,7 +31,13 @@ public record PostDetailResponse(
 ) {
   private static final int MASK_SUFFIX_LENGTH = 3;
 
-  public static PostDetailResponse from(Post post) {
+  public static PostDetailResponse from(
+      Post post,
+      boolean canVote,
+      boolean canCloseEarly,
+      List<PostImageResponse> images,
+      List<PostStatementResponse> statements
+  ) {
     return PostDetailResponse.builder()
         .id(post.getId())
         .userId(post.getUser().getId())
@@ -43,78 +50,16 @@ public record PostDetailResponse(
         .content(post.getContent())
         .status(post.getStatus())
         .postVotingDuration(post.getVotingDuration())
-        .canCloseEarly(false)
+        .canVote(canVote)
+        .canCloseEarly(canCloseEarly)
         .createdAt(post.getCreatedAt())
         .votingEndAt(post.getVotingEndAt())
-        .images(List.of())
-        .statements(List.of())
+        .images(images)
+        .statements(statements)
         .build();
   }
 
   private static String maskStudentNo(String studentNo) {
     return studentNo.substring(0, studentNo.length() - MASK_SUFFIX_LENGTH) + "***";
-  }
-
-  public PostDetailResponse withImages(List<PostImageResponse> images) {
-    return new PostDetailResponse(
-        id,
-        userId,
-        userStudentNo,
-        councilId,
-        councilName,
-        categoryId,
-        categoryName,
-        title,
-        content,
-        status,
-        postVotingDuration,
-        canCloseEarly,
-        createdAt,
-        votingEndAt,
-        images,
-        statements
-    );
-  }
-
-  public PostDetailResponse withStatements(List<PostStatementResponse> statements) {
-    return new PostDetailResponse(
-        id,
-        userId,
-        userStudentNo,
-        councilId,
-        councilName,
-        categoryId,
-        categoryName,
-        title,
-        content,
-        status,
-        postVotingDuration,
-        canCloseEarly,
-        createdAt,
-        votingEndAt,
-        images,
-        statements
-    );
-  }
-
-  public PostDetailResponse withCanCloseEarly(boolean canCloseEarly) {
-    return new PostDetailResponse(
-        id,
-        userId,
-        userStudentNo,
-        councilId,
-        councilName,
-        categoryId,
-        categoryName,
-        title,
-        content,
-        status,
-        postVotingDuration,
-        canCloseEarly,
-        createdAt,
-        votingEndAt,
-        images,
-        statements
-    );
   }
 }
