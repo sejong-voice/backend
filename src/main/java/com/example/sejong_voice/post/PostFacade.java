@@ -71,7 +71,14 @@ public class PostFacade {
 
   @Transactional
   public PostDetailResponse getPost(UUID postId) {
-    return enrichImages(postService.get(postId));
+    Post post = postService.getDetailPost(postId);
+    long agreeCount = voteService.countAgree(postId);
+    long totalCount = agreeCount + voteService.countDisagree(postId);
+
+    return enrichImages(
+        PostDetailResponse.from(post)
+            .withCanCloseEarly(postService.canCloseEarly(post, agreeCount, totalCount))
+    );
   }
 
   @Transactional(readOnly = true)

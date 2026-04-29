@@ -65,7 +65,7 @@ public class PostService {
   }
 
   @Transactional
-  public PostDetailResponse get(UUID id) {
+  public Post getDetailPost(UUID id) {
     Post post = postRepository.findByIdAndDeletedAtIsNull(id)
         .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
 
@@ -73,7 +73,7 @@ public class PostService {
     post.incrementViewCount();
     log.info("게시물 상세 조회: postId={}", id);
 
-    return PostDetailResponse.from(post);
+    return post;
   }
 
   public Page<PostListResponse> getPosts(PostSearchCondition condition, Pageable pageable) {
@@ -130,13 +130,17 @@ public class PostService {
   public void closeEarly(UUID postId, long agreeCount, long totalCount) {
     Post post = getById(postId);
 
-    if (!meetsApprovalCriteria(post, agreeCount, totalCount)) {
+    if (!canCloseEarly(post, agreeCount, totalCount)) {
       throw new BusinessException(PostErrorCode.EARLY_CLOSE_NOT_AVAILABLE);
     }
 
     post.close(Instant.now(clock));
     post.updateStatus(PostStatus.APPROVED);
     log.info("게시물 조기 종료 승인: postId={}, status={}", postId, post.getStatus());
+  }
+
+  public boolean canCloseEarly(Post post, long agreeCount, long totalCount) {
+    return meetsApprovalCriteria(post, agreeCount, totalCount);
   }
 
   private boolean meetsApprovalCriteria(Post post, long agreeCount, long totalCount) {
