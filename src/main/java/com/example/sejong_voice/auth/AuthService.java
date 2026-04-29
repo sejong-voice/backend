@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -37,41 +38,62 @@ public class AuthService {
   private final JwtProperties jwtProperties;
   private final Clock clock;
 
-  @Transactional
-  public LoginResponse login(String studentNo, String password) {
+  private User authenticateOrCreateUser(String studentNo, String password) {
     //1. DB 조회
-    User user = userRepository.findByStudentNo(studentNo)
+    return userRepository.findByStudentNo(studentNo)
             .orElseGet(() -> {
+              // 2. DB에 유저가 없다면 파이썬 서버로 SSO 인증 요청
+              SsoResponse ssoResponse;
 
-      // 2. DB에 유저가 없다면 파이썬 서버로 SSO 인증 요청
-      SsoResponse ssoResponse = schoolAuthClient.getStudentProfile(
-          new SsoRequest(studentNo, password)
-      );
+              try {
+                ssoResponse = schoolAuthClient.getStudentProfile(
+                        new SsoRequest(studentNo, password)
+                );
+              } catch (BusinessException e) {
+                // 이미 비즈니스 예외로 올라온 건 그대로 전달
+                throw e;
+              } catch (Exception e) {
+                // 네트워크/파싱/런타임 등은 SSO 실패로 통일
+                throw new BusinessException(AuthErrorCode.SSO_AUTH_FAILED);
+              }
 
-      Affiliation affiliation = affiliationRepository.findByName(ssoResponse.user().department())
+              // null 응답 방어
+              if (ssoResponse == null || ssoResponse.user() == null) {
+                throw new BusinessException(AuthErrorCode.SSO_AUTH_FAILED);
+              }
+
+
+
+              Affiliation affiliation = affiliationRepository.findByName(ssoResponse.user().department())
                       .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_AFFILIATION));
 
-      // 3. sso 성공 시 받은 정보로 신규 가입
-      Instant now = Instant.now(clock);
+              // 3. sso 성공 시 받은 정보로 신규 가입
+              Instant now = Instant.now(clock);
 
-      return userRepository.save(
-          User.builder()
-              .studentNo(ssoResponse.user().studentNo())
-              .name(ssoResponse.user().name())
-              .affiliation(affiliation)
-              .password(passwordEncoder.encode(password))
-              .duration(User.activeDuration())
-              .createdAt(now)
-              .build()
-      );
-    });
-
+              return userRepository.save(
+                      User.builder()
+                              .studentNo(ssoResponse.user().studentNo())
+                              .name(ssoResponse.user().name())
+                              .affiliation(affiliation)
+                              .password(passwordEncoder.encode(password))
+                              .duration(User.activeDuration())
+                              .createdAt(now)
+                              .build()
+              );
+            });
+  }
+  private void validatePasswordWithSsoFallback(User user, String studentNo, String password) {
+    SsoResponse ssoResponse;
     // 4. DB에 있던 유저라면 비밀번호 검증 -> 비번 틀리면 다시 sso요청, 예외
     if (!passwordEncoder.matches(password, user.getPassword())) {
       // SSO 재검증: 여기서 실패하면 예외 던지도록 매핑
       try {
-        schoolAuthClient.getStudentProfile(new SsoRequest(studentNo, password));
+        ssoResponse = schoolAuthClient.getStudentProfile(new SsoRequest(studentNo, password));
       } catch (Exception e) {
+        throw new BusinessException(AuthErrorCode.INVALID_PASSWORD);
+      }
+
+      if (ssoResponse == null || ssoResponse.user() == null) {
         throw new BusinessException(AuthErrorCode.INVALID_PASSWORD);
       }
 
@@ -80,7 +102,8 @@ public class AuthService {
       // ssoResponse.user() 이런식으로는 할 필요가 없는게 sso를 예외없이 통과된거라 검증된 비번이기 때문
       userRepository.save(user);
     }
-
+  }
+  private void validateUserStatus(User user) {
     // 5. 계정 상태 체크 (정지 여부, duration 만료하면 acitvate+duration 초기화)
     if (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.WITHDRAWN) {
       Instant now = Instant.now(clock);
@@ -90,19 +113,21 @@ public class AuthService {
         user.updateStatus(UserStatus.ACTIVE, User.activeDuration());
       }
     }
+  }
+  private LoginResponse issueLoginTokens(User user) {
 
     String accessToken = jwtUtil.generateToken(
-        user.getId().toString(),
-        user.getStudentNo(),
-        user.getRole().name(),
-        jwtProperties.getAccessTokenExpiration()
+            user.getId().toString(),
+            user.getStudentNo(),
+            user.getRole().name(),
+            jwtProperties.getAccessTokenExpiration()
     );
 
     String refreshToken = jwtUtil.generateToken(
-        user.getId().toString(),
-        user.getStudentNo(),
-        user.getRole().name(),
-        jwtProperties.getRefreshTokenExpiration()
+            user.getId().toString(),
+            user.getStudentNo(),
+            user.getRole().name(),
+            jwtProperties.getRefreshTokenExpiration()
     );
 
 
@@ -121,10 +146,62 @@ public class AuthService {
     );
 
     return LoginResponse.of(
-        user.getStudentNo(),
-        accessToken,
-        jwtProperties.getAccessTokenExpiration() / 1000
+            user.getStudentNo(),
+            accessToken,
+            jwtProperties.getAccessTokenExpiration() / 1000
     );
+  }
+  private void validateConsentsOrClearToken(User user) {
+    //login() refresh()에서 사
+    //미동의 사용자 공통 차단
+    //미동의인데 남아있을 수 있는 refresh token 즉시 정리
+    if (user.hasRequiredConsents()) {
+      return;
+    }
+
+    // 미동의 상태면 기존 세션(리프레시 토큰) 강제 정리
+    refreshTokenRepository.deleteByUser(user);
+
+    // 로그인/재발급 모두 중단
+    throw new BusinessException(AuthErrorCode.NOT_AGREED);
+  }
+
+    @Transactional
+  public LoginResponse login(String studentNo, String password) {
+    // 1..3 db조회, 없으면 sso 신규 가입
+    User user = authenticateOrCreateUser(studentNo, password);
+    // 4.비밀번호 검증 -> 비번 틀리면 다시 sso요청
+    validatePasswordWithSsoFallback(user, studentNo, password);
+    // 5. 계정 정지 여부 확인
+    validateUserStatus(user);
+    // 6. 서비스, 이용약관 동의 여부 체크
+    // refreshToken만 삭제하고 sso에 따른 user정보 삭제는 안함
+    validateConsentsOrClearToken(user);
+
+    return issueLoginTokens(user);
+  }
+
+  @Transactional
+  public LoginResponse consentAndLogin(ConsentLoginRequest request) {
+    //약관 동의 및 로그인
+    // 프론트에서 둘 다 true로 보냈는지 검증
+    if (!Boolean.TRUE.equals(request.serviceAgreed())
+            || !Boolean.TRUE.equals(request.policyAgreed())) {
+      throw new BusinessException(AuthErrorCode.NOT_AGREED);
+    }
+
+    // 1..3 db조회, 없으면 sso 신규 가입
+    User user = authenticateOrCreateUser(request.studentNo(), request.password());
+    // 4.비밀번호 검증 -> 비번 틀리면 다시 sso요청
+    validatePasswordWithSsoFallback(user,request.studentNo(), request.password());
+    // 5. 계정 정지 여부 확인
+    validateUserStatus(user);
+
+    // 6. 서비스, 이용약관 동의 여부 체크는 안함 -> 약관 동의 및 로그인이라서, 약관 동의가 안되어있음.
+    // 동의 저장
+    user.agreeRequiredConsents();
+
+    return issueLoginTokens(user);
   }
 
   // 2. 로그아웃
@@ -141,6 +218,10 @@ public class AuthService {
     //studentId로 유저 조회, 해당 user_id로 refreshToken 조회후 요청
     User user = userRepository.findByStudentNo(refreshRequest.studentNo())
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+
+    // 서비스, 이용약관 동의 유무 검증
+    validateConsentsOrClearToken(user);
+
 
     //DB 존재 여부 확인
     RefreshToken storedToken = refreshTokenRepository.findByUser(user)
@@ -218,4 +299,8 @@ public class AuthService {
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
     targetUser.updateRole(newRole);
   }
+
+
+
+
 }
