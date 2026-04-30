@@ -297,12 +297,7 @@ public class AuthService {
       targetUser.withdrawNow();
       refreshTokenRepository.deleteByUser(targetUser);
     } else if (newStatus.equals(UserStatus.QUIT)) { // 탈퇴 처리 (duration은 보내줘도 안씀, 그래도 넣긴해야함)
-      if(targetUser.isQuitPending()){ //이미 탈퇴처리가 됐다면, 예외처리
-        throw new BusinessException(AuthErrorCode.QUIT_PENDING);
-      }
-      targetUser.markQuit(Instant.now(clock));
-      refreshTokenRepository.deleteByUser(targetUser); // 토큰 파기까지 (실제 삭제는 안되고 사용 못하게 막는 용도)
-
+      requestQuit(targetUser.getStudentNo());
     }
 
   }
