@@ -1,12 +1,12 @@
-package com.example.sejong_voice.policy;
+package com.example.sejong_voice.council.policy;
 
 import com.example.sejong_voice.council.CouncilService;
-import com.example.sejong_voice.policy.dto.CouncilPolicyResponse;
-import com.example.sejong_voice.policy.exception.PolicyErrorCode;
+import com.example.sejong_voice.council.policy.dto.CouncilPolicyResponse;
+import com.example.sejong_voice.council.policy.exception.PolicyErrorCode;
+import com.example.sejong_voice.exception.BusinessException;
+import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
-import com.example.sejong_voice.user.UserService;
-import com.example.sejong_voice.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

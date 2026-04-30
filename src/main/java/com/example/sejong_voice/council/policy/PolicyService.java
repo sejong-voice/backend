@@ -1,8 +1,8 @@
-package com.example.sejong_voice.policy;
+package com.example.sejong_voice.council.policy;
 
 import com.example.sejong_voice.council.CouncilService;
 import com.example.sejong_voice.council.entity.Council;
-import com.example.sejong_voice.policy.dto.CouncilPolicyResponse;
+import com.example.sejong_voice.council.policy.dto.CouncilPolicyResponse;
 import java.time.Clock;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;

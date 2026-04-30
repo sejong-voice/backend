@@ -1,9 +1,9 @@
-package com.example.sejong_voice.policy;
+package com.example.sejong_voice.council.policy;
 
 import com.example.sejong_voice._common.security.AuthUser;
 import com.example.sejong_voice._common.security.UserPrincipal;
-import com.example.sejong_voice.policy.dto.CouncilPolicyResponse;
-import com.example.sejong_voice.policy.dto.CouncilPolicyUpdateRequest;
+import com.example.sejong_voice.council.policy.dto.CouncilPolicyResponse;
+import com.example.sejong_voice.council.policy.dto.CouncilPolicyUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
