@@ -6,9 +6,12 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.Instant;
 import java.util.UUID;
 
+@Slf4j
 @Entity
 @Table(name = "users")
 @Getter
@@ -148,7 +151,14 @@ public class User {
 
   // 이미 탈퇴 처리된 상태
   public boolean isQuitPending() {
-    return this.status == UserStatus.QUIT && this.deletedAt != null;
+    if (this.status == UserStatus.QUIT && this.deletedAt == null) {
+      // 데이터 정합성 깨진 케이스 감지용
+      // Quit인데 deleated_at이 null
+      // -> 로직에서는 해당 케이스가 발생하진 않지만 혹시나 정합성이 깨질 수 있으니, 확인 하기 위함
+      log.warn("Inconsistent QUIT user detected. userId={}", this.studentNo);
+    }
+    return this.status == UserStatus.QUIT ;
+    // && this.deletedAt == null에 대한 예외 케이스는 log로 찍으니까 ㄱㅊ
   }
 
 }

@@ -172,14 +172,8 @@ public class AuthService {
   }
 
   private void validateQuitPending(User user) {
-    if (user.getStatus() == UserStatus.QUIT && user.getDeletedAt() == null) {
-      // 데이터 정합성 깨진 케이스 감지용
-      // Quit인데 deleated_at이 null
-      // -> 로직에서는 해당 케이스가 발생하진 않지만 혹시나 정합성이 깨질 수 있으니, 확인 하기 위함
-      log.warn("Inconsistent QUIT user detected. userId={}", user.getId());
-    }
     // 현재 탈퇴 처리가 되었다면 login(), constent-login(), refresh()에서 필터링하기 위함
-    if (user.getStatus() == UserStatus.QUIT && user.getDeletedAt() != null) {
+    if (user.isQuitPending()) {
       refreshTokenRepository.deleteByUser(user); // 방어적으로 세션 정리
       throw new BusinessException(AuthErrorCode.QUIT_PENDING);
     }
