@@ -65,7 +65,7 @@ public class UserStatusFilter extends OncePerRequestFilter {
 
 
         // [추가] 3-1) 탈퇴 예정(QUIT + deletedAt 존재) 차단
-        if (user.getStatus() == UserStatus.QUIT) {
+        if (user.isQuitPending()) {
             SecurityContextHolder.clearContext();
             response.setStatus(AuthErrorCode.QUIT_PENDING.getStatus()); // 403
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
