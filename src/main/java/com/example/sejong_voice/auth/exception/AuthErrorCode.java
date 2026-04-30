@@ -17,7 +17,9 @@ public enum AuthErrorCode implements ErrorCode {
     SSO_AUTH_FAILED(403, "AUTH_007", "SSO 인증에 실패하였습니다."),
     INVALID_USER(401, "AUTH_008", "유효하지 않은 사용자입니다."),
     INVALID_AFFILIATION(403, "AUTH_009", "등록되지 않은 소속(학과)입니다."),
-    NOT_AGREED(403, "AUTH_010", "서비스, 정책 이용 약관이 미동의 상태입니다.");
+    NOT_AGREED(403, "AUTH_010", "서비스, 정책 이용 약관이 미동의 상태입니다."),
+    QUIT_PENDING(403, "AUTH_011", "탈퇴 예정 계정입니다. 계정 삭제 전까지 이용할 수 없습니다.");
+
 
 
     private final int status;

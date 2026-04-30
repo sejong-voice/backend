@@ -86,4 +86,23 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(
+            summary = "탈퇴 요청",
+            description = "현재 로그인한 사용자를 탈퇴 예정 상태(QUIT)로 전환합니다."
+    )
+    @PostMapping("/quit")
+    public ResponseEntity<Void> requestQuit(
+            @AuthUser UserPrincipal userPrincipal,
+            @RequestBody @Valid QuitRequest request
+            // valid 실패가 나면 GlobalErrorCode의 COMMON_001로 처리됨. 그렇기 때문에 따로 로직에서 에러처리를 안함
+    ) {
+        if (userPrincipal == null) {
+            throw new BusinessException(AuthErrorCode.INVALID_USER);
+        }
+
+        authService.requestQuit(userPrincipal.getStudentNo());
+        return ResponseEntity.noContent().build();
+    }
+
+
 }

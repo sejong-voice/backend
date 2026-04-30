@@ -51,6 +51,9 @@ public class User {
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
 
+  @Column(name = "deleted_at")
+  private Instant deletedAt;
+
   @Column(name = "service_agreed_at")
   private Instant serviceAgreedAt;
 
@@ -93,20 +96,29 @@ public class User {
     this.password = newPassword;
   }
 
-  public void updateStatus(UserStatus status, Instant duration) {
+  public void updateStatus(UserStatus status, Instant duration) {// 기간 정지 메서드
     this.status = status;
     this.duration = duration;
+    this.deletedAt = null;
+    // QUIT 후 관리자가 restore/정지/영구정지를 걸면 status는 바뀌는데 deleted_at은 남을 수 있다는 문제라서
+    // ACTIVE, SUSPENDED, WITHDRAW로 변경할때는 deleted_at를 초기화해줌
   }
 
   public void withdrawNow() {// 영구정지 메서드
     this.status = UserStatus.WITHDRAWN;
     this.duration = PERMANENT_BAN_UNTIL;
+    this.deletedAt = null;
+    // QUIT 후 관리자가 restore/정지/영구정지를 걸면 status는 바뀌는데 deleted_at은 남을 수 있다는 문제라서
+    // ACTIVE, SUSPENDED, WITHDRAW로 변경할때는 deleted_at를 초기화해줌
   }
 
   // 조기 복구
   public void activateNow() {
     this.status = UserStatus.ACTIVE;
     this.duration = EPOCH;
+    this.deletedAt = null;
+    // QUIT 후 관리자가 restore/정지/영구정지를 걸면 status는 바뀌는데 deleted_at은 남을 수 있다는 문제라서
+    // ACTIVE, SUSPENDED, WITHDRAW로 변경할때는 deleted_at를 초기화해줌
   }
 
   public void updateRole(UserRole role) {
@@ -127,4 +139,16 @@ public class User {
     this.serviceAgreedAt = serviceAgreedAt;
     this.policyAgreedAt = policyAgreedAt;
   }
+
+  // 탈퇴 처리(표시) 메서드
+  public void markQuit(Instant now) {
+    this.status = UserStatus.QUIT;
+    this.deletedAt = now;
+  }
+
+  // 이미 탈퇴 처리된 상태
+  public boolean isQuitPending() {
+    return this.status == UserStatus.QUIT && this.deletedAt != null;
+  }
+
 }
