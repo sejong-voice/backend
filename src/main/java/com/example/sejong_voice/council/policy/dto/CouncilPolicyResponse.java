@@ -1,4 +1,4 @@
-package com.example.sejong_voice.policy.dto;
+package com.example.sejong_voice.council.policy.dto;
 
 import com.example.sejong_voice.council.entity.Council;
 import java.math.BigDecimal;

@@ -1,4 +1,4 @@
-package com.example.sejong_voice.policy.exception;
+package com.example.sejong_voice.council.policy.exception;
 
 import com.example.sejong_voice.exception.ErrorCode;
 import lombok.Getter;
