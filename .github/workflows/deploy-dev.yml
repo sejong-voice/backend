@@ -18,7 +18,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_TOKEN_PUSH }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -89,7 +89,7 @@ jobs:
             OCI_OBJECT_STORAGE_NAMESPACE=${{ secrets.OCI_OBJECT_STORAGE_NAMESPACE }}
             EOF
             
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            echo "${{ secrets.DOCKERHUB_TOKEN_PULL }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             docker compose --env-file .env -f docker-compose-dev.yml down
             docker compose --env-file .env -f docker-compose-dev.yml pull
             docker compose --env-file .env -f docker-compose-dev.yml up -d
