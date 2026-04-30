@@ -41,6 +41,16 @@ public class AuthService {
   private final JwtProperties jwtProperties;
   private final Clock clock;
 
+  private void requestQuitAndRevokeRefreshToken(User user) {
+    if(user.isQuitPending()){ //이미 탈퇴처리가 됐다면, 예외처리
+      throw new BusinessException(AuthErrorCode.QUIT_PENDING);
+    }
+
+    user.markQuit(Instant.now(clock));
+    refreshTokenRepository.deleteByUser(user); // 토큰 파기까지 (실제 삭제는 안되고 사용 못하게 막는 용도)
+  }
+
+
   private User authenticateOrCreateUser(String studentNo, String password) {
     //1. DB 조회
     return userRepository.findByStudentNo(studentNo)
@@ -297,7 +307,7 @@ public class AuthService {
       targetUser.withdrawNow();
       refreshTokenRepository.deleteByUser(targetUser);
     } else if (newStatus.equals(UserStatus.QUIT)) { // 탈퇴 처리 (duration은 보내줘도 안씀, 그래도 넣긴해야함)
-      requestQuit(targetUser.getStudentNo());
+      requestQuitAndRevokeRefreshToken(targetUser);
     }
 
   }
@@ -327,11 +337,7 @@ public class AuthService {
     User user = userRepository.findByStudentNo(targetStudentNo)
             .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
-    if(user.isQuitPending()){ //이미 탈퇴처리가 됐다면, 예외처리
-      throw new BusinessException(AuthErrorCode.QUIT_PENDING);
-    }
-
-    user.markQuit(Instant.now(clock));
-    refreshTokenRepository.deleteByUser(user); // 토큰 파기까지 (실제 삭제는 안되고 사용 못하게 막는 용도)
+    requestQuitAndRevokeRefreshToken(user);
   }
+
 }
