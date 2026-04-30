@@ -15,6 +15,7 @@ import com.example.sejong_voice.auth.jwt.JwtUtil;
 import com.example.sejong_voice.user.UserRepository;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,8 @@ import java.time.Instant;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
+
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +40,16 @@ public class AuthService {
   private final JwtUtil jwtUtil;
   private final JwtProperties jwtProperties;
   private final Clock clock;
+
+  private void requestQuitAndRevokeRefreshToken(User user) {
+    if(user.isQuitPending()){ //이미 탈퇴처리가 됐다면, 예외처리
+      throw new BusinessException(AuthErrorCode.QUIT_PENDING);
+    }
+
+    user.markQuit(Instant.now(clock));
+    refreshTokenRepository.deleteByUser(user); // 토큰 파기까지 (실제 삭제는 안되고 사용 못하게 막는 용도)
+  }
+
 
   private User authenticateOrCreateUser(String studentNo, String password) {
     //1. DB 조회
@@ -168,6 +181,15 @@ public class AuthService {
     throw new BusinessException(AuthErrorCode.NOT_AGREED);
   }
 
+  private void validateQuitPending(User user) {
+    // 현재 탈퇴 처리가 되었다면 login(), constent-login(), refresh()에서 필터링하기 위함
+    if (user.isQuitPending()) {
+      refreshTokenRepository.deleteByUser(user); // 방어적으로 세션 정리
+      throw new BusinessException(AuthErrorCode.QUIT_PENDING);
+    }
+  }
+
+
   @Transactional
   public LoginResponse login(String studentNo, String password) {
     // 1..3 db조회, 없으면 sso 신규 가입
@@ -176,9 +198,11 @@ public class AuthService {
     validatePasswordWithSsoFallback(user, studentNo, password);
     // 5. 계정 정지 여부 확인
     validateUserStatus(user);
-    // 6. 서비스, 이용약관 동의 여부 체크
-    // refreshToken만 삭제하고 sso에 따른 user정보 삭제는 안함
+    // 7. 탈퇴 계정 확인
+    validateQuitPending(user);
+    // 6. 서비스, 이용약관 동의 여부 체크 -> refreshToken만 삭제하고 sso에 따른 user정보 삭제는 안함
     validateConsentsOrClearToken(user);
+
 
     return issueLoginTokens(user);
   }
@@ -198,6 +222,8 @@ public class AuthService {
     validatePasswordWithSsoFallback(user, request.studentNo(), request.password());
     // 5. 계정 정지 여부 확인
     validateUserStatus(user);
+    // 7. 탈퇴 계정 확인
+    validateQuitPending(user);
 
     // 6. 서비스, 이용약관 동의 여부 체크는 안함 -> 약관 동의 및 로그인이라서, 약관 동의가 안되어있음.
     // 동의 시각은 백엔드 현재 UTC 시각으로 저장
@@ -222,8 +248,11 @@ public class AuthService {
     User user = userRepository.findByStudentNo(refreshRequest.studentNo())
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
+    // 7. 탈퇴 계정 확인 -> 탈퇴 계정은 실제 hard deleted 전까진 db에 기록이 남아있어 서비스 이용 못함. refresh토큰 재발급해줄 필요가 없음
+    validateQuitPending(user);
     // 서비스, 이용약관 동의 유무 검증
     validateConsentsOrClearToken(user);
+
 
     //DB 존재 여부 확인
     RefreshToken storedToken = refreshTokenRepository.findByUser(user)
@@ -277,7 +306,10 @@ public class AuthService {
     } else if (newStatus.equals(UserStatus.WITHDRAWN)) { // 영구 정지
       targetUser.withdrawNow();
       refreshTokenRepository.deleteByUser(targetUser);
+    } else if (newStatus.equals(UserStatus.QUIT)) { // 탈퇴 처리 (duration은 보내줘도 안씀, 그래도 넣긴해야함)
+      requestQuitAndRevokeRefreshToken(targetUser);
     }
+
   }
 
   // 6-2. 조기 복구 (Super 계정 전용)
@@ -298,4 +330,14 @@ public class AuthService {
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
     targetUser.updateRole(newRole);
   }
+
+  // 8. 최종 탈퇴
+  @Transactional
+  public void requestQuit(String targetStudentNo) {
+    User user = userRepository.findByStudentNo(targetStudentNo)
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+
+    requestQuitAndRevokeRefreshToken(user);
+  }
+
 }

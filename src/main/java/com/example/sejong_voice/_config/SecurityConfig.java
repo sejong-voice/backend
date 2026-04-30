@@ -75,7 +75,9 @@ public class SecurityConfig {
             // Auth
             .requestMatchers("/api/v1/auth/profile").authenticated()
             .requestMatchers("/api/v1/auth/logout").authenticated()
-            // 신고 생성은 로그인 사용자 허용
+                .requestMatchers("/api/v1/auth/quit").authenticated()
+
+                // 신고 생성은 로그인 사용자 허용
             .requestMatchers("/api/v1/reports/posts/*").authenticated()
             .requestMatchers("/api/v1/reports/comments/*").authenticated()
 

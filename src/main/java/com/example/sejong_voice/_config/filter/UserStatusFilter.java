@@ -63,6 +63,17 @@ public class UserStatusFilter extends OncePerRequestFilter {
         User user = userRepository.findById(principal.getUserId()).orElseThrow(
                 () -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
+
+        // [추가] 3-1) 탈퇴 예정(QUIT + deletedAt 존재) 차단
+        if (user.isQuitPending()) {
+            SecurityContextHolder.clearContext();
+            response.setStatus(AuthErrorCode.QUIT_PENDING.getStatus()); // 403
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding("UTF-8");
+            objectMapper.writeValue(response.getWriter(), ErrorResponse.of(AuthErrorCode.QUIT_PENDING, clock));
+            return;
+        }
+
         // 4) 유저가 없거나 ACTIVE가 아니면 접근 차단
         //    - SecurityContext 비우고
         //    - 403 + 에러 JSON 내려주고
