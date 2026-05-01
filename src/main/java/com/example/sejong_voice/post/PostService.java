@@ -12,10 +12,10 @@ import com.example.sejong_voice.post.exception.PostErrorCode;
 import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.user.entity.User;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.time.Clock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -39,26 +39,25 @@ public class PostService {
       Category category,
       String title,
       String content,
-      PostVotingDuration postVotingDuration
-  ) {
-    Post post = Post.builder()
-        .user(user)
-        .council(council)
-        .category(category)
-        .title(title)
-        .content(content)
-        .postVotingDuration(postVotingDuration)
-        .minVoteSnapshot(council.getMinVote())
-        .approveRatioSnapshot(council.getApproveRatioThreshold())
-        .createdAt(Instant.now(clock))
-        .build();
+      PostVotingDuration postVotingDuration) {
+    Post post =
+        Post.builder()
+            .user(user)
+            .council(council)
+            .category(category)
+            .title(title)
+            .content(content)
+            .postVotingDuration(postVotingDuration)
+            .minVoteSnapshot(council.getMinVote())
+            .approveRatioSnapshot(council.getApproveRatioThreshold())
+            .createdAt(Instant.now(clock))
+            .build();
 
     log.info(
         "게시물 생성: userId={}, councilId={}, categoryId={}",
         user.getId(),
         council.getId(),
-        category.getId()
-    );
+        category.getId());
 
     return postRepository.save(post);
   }
@@ -70,19 +69,20 @@ public class PostService {
         "게시물 목록 조회: 실제건수={}, 전체건수={}, 검색조건={}",
         postList.getNumberOfElements(),
         postList.getTotalElements(),
-        condition
-    );
+        condition);
 
     return postList;
   }
 
   public Post get(UUID id) {
-    return postRepository.findByIdAndDeletedAtIsNull(id)
+    return postRepository
+        .findByIdAndDeletedAtIsNull(id)
         .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
   }
 
   public Post getByIdForUpdate(UUID id) {
-    return postRepository.findByIdForUpdate(id)
+    return postRepository
+        .findByIdForUpdate(id)
         .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
   }
 
@@ -107,10 +107,7 @@ public class PostService {
       post.updateStatus(PostStatus.PENDING);
     }
 
-    log.info(
-        "게시물 투표 종료: postId={}, status={}",
-        postId, post.getStatus()
-    );
+    log.info("게시물 투표 종료: postId={}, status={}", postId, post.getStatus());
   }
 
   @Transactional
@@ -143,8 +140,8 @@ public class PostService {
       return false;
     }
 
-    BigDecimal requiredAgreeCount = post.getApproveRatioSnapshot()
-        .multiply(BigDecimal.valueOf(totalCount));
+    BigDecimal requiredAgreeCount =
+        post.getApproveRatioSnapshot().multiply(BigDecimal.valueOf(totalCount));
 
     return BigDecimal.valueOf(agreeCount).compareTo(requiredAgreeCount) >= 0;
   }

@@ -1,31 +1,22 @@
 package com.example.sejong_voice.auth;
 
-
-import com.example.sejong_voice._common.time.TimeUtils;
 import com.example.sejong_voice.affiliation.Affiliation;
 import com.example.sejong_voice.affiliation.AffiliationRepository;
 import com.example.sejong_voice.auth.dto.*;
 import com.example.sejong_voice.auth.exception.AuthErrorCode;
+import com.example.sejong_voice.auth.jwt.JwtProperties;
+import com.example.sejong_voice.auth.jwt.JwtUtil;
 import com.example.sejong_voice.exception.BusinessException;
+import com.example.sejong_voice.user.UserRepository;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.user.entity.UserStatus;
-import com.example.sejong_voice.auth.jwt.JwtProperties;
-import com.example.sejong_voice.auth.jwt.JwtUtil;
-import com.example.sejong_voice.user.UserRepository;
-import jakarta.validation.constraints.NotNull;
+import java.time.Clock;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.time.Clock;
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
-
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +33,7 @@ public class AuthService {
   private final Clock clock;
 
   private void requestQuitAndRevokeRefreshToken(User user) {
-    if(user.isQuitPending()){ //이미 탈퇴처리가 됐다면, 예외처리
+    if (user.isQuitPending()) { // 이미 탈퇴처리가 됐다면, 예외처리
       throw new BusinessException(AuthErrorCode.QUIT_PENDING);
     }
 
@@ -50,49 +41,49 @@ public class AuthService {
     refreshTokenRepository.deleteByUser(user); // 토큰 파기까지 (실제 삭제는 안되고 사용 못하게 막는 용도)
   }
 
-
   private User authenticateOrCreateUser(String studentNo, String password) {
-    //1. DB 조회
-    return userRepository.findByStudentNo(studentNo)
-        .orElseGet(() -> {
-          // 2. DB에 유저가 없다면 파이썬 서버로 SSO 인증 요청
-          SsoResponse ssoResponse;
+    // 1. DB 조회
+    return userRepository
+        .findByStudentNo(studentNo)
+        .orElseGet(
+            () -> {
+              // 2. DB에 유저가 없다면 파이썬 서버로 SSO 인증 요청
+              SsoResponse ssoResponse;
 
-          try {
-            ssoResponse = schoolAuthClient.getStudentProfile(
-                new SsoRequest(studentNo, password)
-            );
-          } catch (BusinessException e) {
-            // 이미 비즈니스 예외로 올라온 건 그대로 전달
-            throw e;
-          } catch (Exception e) {
-            // 네트워크/파싱/런타임 등은 SSO 실패로 통일
-            throw new BusinessException(AuthErrorCode.SSO_AUTH_FAILED);
-          }
+              try {
+                ssoResponse =
+                    schoolAuthClient.getStudentProfile(new SsoRequest(studentNo, password));
+              } catch (BusinessException e) {
+                // 이미 비즈니스 예외로 올라온 건 그대로 전달
+                throw e;
+              } catch (Exception e) {
+                // 네트워크/파싱/런타임 등은 SSO 실패로 통일
+                throw new BusinessException(AuthErrorCode.SSO_AUTH_FAILED);
+              }
 
-          // null 응답 방어
-          if (ssoResponse == null || ssoResponse.user() == null) {
-            throw new BusinessException(AuthErrorCode.SSO_AUTH_FAILED);
-          }
+              // null 응답 방어
+              if (ssoResponse == null || ssoResponse.user() == null) {
+                throw new BusinessException(AuthErrorCode.SSO_AUTH_FAILED);
+              }
 
-          Affiliation affiliation = affiliationRepository.findByName(
-                  ssoResponse.user().department())
-              .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_AFFILIATION));
+              Affiliation affiliation =
+                  affiliationRepository
+                      .findByName(ssoResponse.user().department())
+                      .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_AFFILIATION));
 
-          // 3. sso 성공 시 받은 정보로 신규 가입
-          Instant now = Instant.now(clock);
+              // 3. sso 성공 시 받은 정보로 신규 가입
+              Instant now = Instant.now(clock);
 
-          return userRepository.save(
-              User.builder()
-                  .studentNo(ssoResponse.user().studentNo())
-                  .name(ssoResponse.user().name())
-                  .affiliation(affiliation)
-                  .password(passwordEncoder.encode(password))
-                  .duration(User.activeDuration())
-                  .createdAt(now)
-                  .build()
-          );
-        });
+              return userRepository.save(
+                  User.builder()
+                      .studentNo(ssoResponse.user().studentNo())
+                      .name(ssoResponse.user().name())
+                      .affiliation(affiliation)
+                      .password(passwordEncoder.encode(password))
+                      .duration(User.activeDuration())
+                      .createdAt(now)
+                      .build());
+            });
   }
 
   private void validatePasswordWithSsoFallback(User user, String studentNo, String password) {
@@ -131,45 +122,43 @@ public class AuthService {
 
   private LoginResponse issueLoginTokens(User user) {
 
-    String accessToken = jwtUtil.generateToken(
-        user.getId().toString(),
-        user.getStudentNo(),
-        user.getRole().name(),
-        jwtProperties.getAccessTokenExpiration()
-    );
+    String accessToken =
+        jwtUtil.generateToken(
+            user.getId().toString(),
+            user.getStudentNo(),
+            user.getRole().name(),
+            jwtProperties.getAccessTokenExpiration());
 
-    String refreshToken = jwtUtil.generateToken(
-        user.getId().toString(),
-        user.getStudentNo(),
-        user.getRole().name(),
-        jwtProperties.getRefreshTokenExpiration()
-    );
+    String refreshToken =
+        jwtUtil.generateToken(
+            user.getId().toString(),
+            user.getStudentNo(),
+            user.getRole().name(),
+            jwtProperties.getRefreshTokenExpiration());
 
     Instant newExpiry = Instant.now(clock).plusMillis(jwtProperties.getRefreshTokenExpiration());
 
-    //refreshToken 조회 후 있으면 update, 없으면 신규 생성 후 save
-    refreshTokenRepository.findByUser(user).ifPresentOrElse(
-        existingToken -> existingToken.updateToken(refreshToken, newExpiry),
-        () -> refreshTokenRepository.save(
-            RefreshToken.builder()
-                .user(user)
-                .token(refreshToken)
-                .expiryDate(newExpiry)
-                .build()
-        )
-    );
+    // refreshToken 조회 후 있으면 update, 없으면 신규 생성 후 save
+    refreshTokenRepository
+        .findByUser(user)
+        .ifPresentOrElse(
+            existingToken -> existingToken.updateToken(refreshToken, newExpiry),
+            () ->
+                refreshTokenRepository.save(
+                    RefreshToken.builder()
+                        .user(user)
+                        .token(refreshToken)
+                        .expiryDate(newExpiry)
+                        .build()));
 
     return LoginResponse.of(
-        user.getStudentNo(),
-        accessToken,
-        jwtProperties.getAccessTokenExpiration() / 1000
-    );
+        user.getStudentNo(), accessToken, jwtProperties.getAccessTokenExpiration() / 1000);
   }
 
   private void validateConsentsOrClearToken(User user) {
-    //login() refresh()에서 사
-    //미동의 사용자 공통 차단
-    //미동의인데 남아있을 수 있는 refresh token 즉시 정리
+    // login() refresh()에서 사
+    // 미동의 사용자 공통 차단
+    // 미동의인데 남아있을 수 있는 refresh token 즉시 정리
     if (user.hasRequiredConsents()) {
       return;
     }
@@ -189,7 +178,6 @@ public class AuthService {
     }
   }
 
-
   @Transactional
   public LoginResponse login(String studentNo, String password) {
     // 1..3 db조회, 없으면 sso 신규 가입
@@ -203,13 +191,12 @@ public class AuthService {
     // 6. 서비스, 이용약관 동의 여부 체크 -> refreshToken만 삭제하고 sso에 따른 user정보 삭제는 안함
     validateConsentsOrClearToken(user);
 
-
     return issueLoginTokens(user);
   }
 
   @Transactional
   public LoginResponse consentAndLogin(ConsentLoginRequest request) {
-    //약관 동의 및 로그인
+    // 약관 동의 및 로그인
     // 프론트에서 둘 다 true로 보냈는지 검증
     if (!Boolean.TRUE.equals(request.serviceAgreed())
         || !Boolean.TRUE.equals(request.policyAgreed())) {
@@ -236,71 +223,75 @@ public class AuthService {
   // 2. 로그아웃
   @Transactional
   public void logout(String studentNo) {
-    User targetUser = userRepository.findByStudentNo(studentNo)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
-    refreshTokenRepository.deleteByUser(targetUser); //deleteByUser로 해도 되긴함
+    User targetUser =
+        userRepository
+            .findByStudentNo(studentNo)
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+    refreshTokenRepository.deleteByUser(targetUser); // deleteByUser로 해도 되긴함
   }
 
   // 3. 토큰 재발급 (RefreshToken 유효, AccessToken 재발급)
   @Transactional
   public RefreshResponse accessRefresh(RefreshRequest refreshRequest) {
-    //studentId로 유저 조회, 해당 user_id로 refreshToken 조회후 요청
-    User user = userRepository.findByStudentNo(refreshRequest.studentNo())
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+    // studentId로 유저 조회, 해당 user_id로 refreshToken 조회후 요청
+    User user =
+        userRepository
+            .findByStudentNo(refreshRequest.studentNo())
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
     // 7. 탈퇴 계정 확인 -> 탈퇴 계정은 실제 hard deleted 전까진 db에 기록이 남아있어 서비스 이용 못함. refresh토큰 재발급해줄 필요가 없음
     validateQuitPending(user);
     // 서비스, 이용약관 동의 유무 검증
     validateConsentsOrClearToken(user);
 
-
-    //DB 존재 여부 확인
-    RefreshToken storedToken = refreshTokenRepository.findByUser(user)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_TOKEN));//커스텀 에러
+    // DB 존재 여부 확인
+    RefreshToken storedToken =
+        refreshTokenRepository
+            .findByUser(user)
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.INVALID_TOKEN)); // 커스텀 에러
 
     // 토큰 유효성 검사
     if (storedToken.isExpired(Instant.now(clock))) {
       refreshTokenRepository.deleteByUser(user);
-      throw new BusinessException(AuthErrorCode.TOKEN_EXPIRED);//커스텀 에러
+      throw new BusinessException(AuthErrorCode.TOKEN_EXPIRED); // 커스텀 에러
     }
 
     // accessToken 재발급
     User newUser = storedToken.getUser();
-    String newAccessToken = jwtUtil.generateToken(
-        user.getId().toString(),
-        user.getStudentNo(),
-        user.getRole().name(),
-        jwtProperties.getAccessTokenExpiration()//3600L
-    );
+    String newAccessToken =
+        jwtUtil.generateToken(
+            user.getId().toString(),
+            user.getStudentNo(),
+            user.getRole().name(),
+            jwtProperties.getAccessTokenExpiration() // 3600L
+            );
 
-    return new RefreshResponse(newUser.getStudentNo(), newAccessToken,
-        jwtProperties.getAccessTokenExpiration() / 1000
-    );
+    return new RefreshResponse(
+        newUser.getStudentNo(), newAccessToken, jwtProperties.getAccessTokenExpiration() / 1000);
   }
 
   // 4.유저 정보 조회
   public UserSearchResponse getUserProfile(String studentNo) {
-    User user = userRepository.findByStudentNo(studentNo)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+    User user =
+        userRepository
+            .findByStudentNo(studentNo)
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
     return UserSearchResponse.from(user);
   }
 
-
   // 6. 상태 변경 (Super 계정 전용 - 제재 및 토큰 파기)
   @Transactional
-  public void updateStatus(
-      String targetStudentNo,
-      UserStatus newStatus,
-      int newDurationdays
-  ) {
-    User targetUser = userRepository.findByStudentNo(targetStudentNo)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+  public void updateStatus(String targetStudentNo, UserStatus newStatus, int newDurationdays) {
+    User targetUser =
+        userRepository
+            .findByStudentNo(targetStudentNo)
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
     long suspendSeconds = newDurationdays * 24L * 60 * 60; // int 오버플로우 방지용 long
     Instant suspendedUntilUtc = Instant.now(clock).plusSeconds(suspendSeconds); // UTC 기준
 
     // 제재suspended, withdrawn일때만 duration업데이트 및 refreshToken 즉시파기
-    if (newStatus.equals(UserStatus.SUSPENDED)) {// 제재 기한 제공
+    if (newStatus.equals(UserStatus.SUSPENDED)) { // 제재 기한 제공
       targetUser.updateStatus(newStatus, suspendedUntilUtc);
       refreshTokenRepository.deleteByUser(targetUser);
     } else if (newStatus.equals(UserStatus.WITHDRAWN)) { // 영구 정지
@@ -309,35 +300,36 @@ public class AuthService {
     } else if (newStatus.equals(UserStatus.QUIT)) { // 탈퇴 처리 (duration은 보내줘도 안씀, 그래도 넣긴해야함)
       requestQuitAndRevokeRefreshToken(targetUser);
     }
-
   }
 
   // 6-2. 조기 복구 (Super 계정 전용)
   @Transactional
   public void activateStatus(String targetStudentNo) {
-    User targetUser = userRepository.findByStudentNo(targetStudentNo)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+    User targetUser =
+        userRepository
+            .findByStudentNo(targetStudentNo)
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
     targetUser.activateNow();
   }
 
   // 7. 권한 수정 (Super 계정 전용 - Role 변경)
   @Transactional
-  public void updateRole(
-      String targetStudentNo,
-      UserRole newRole
-  ) {
-    User targetUser = userRepository.findByStudentNo(targetStudentNo)
-        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+  public void updateRole(String targetStudentNo, UserRole newRole) {
+    User targetUser =
+        userRepository
+            .findByStudentNo(targetStudentNo)
+            .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
     targetUser.updateRole(newRole);
   }
 
   // 8. 최종 탈퇴
   @Transactional
   public void requestQuit(String targetStudentNo) {
-    User user = userRepository.findByStudentNo(targetStudentNo)
+    User user =
+        userRepository
+            .findByStudentNo(targetStudentNo)
             .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
     requestQuitAndRevokeRefreshToken(user);
   }
-
 }

@@ -18,10 +18,7 @@ public class CategoryController {
 
   private final CategoryService categoryService;
 
-  @Operation(
-      summary = "카테고리 목록 조회",
-      description = "게시글 작성 및 조회에 사용하는 전체 카테고리 목록을 조회합니다."
-  )
+  @Operation(summary = "카테고리 목록 조회", description = "게시글 작성 및 조회에 사용하는 전체 카테고리 목록을 조회합니다.")
   @GetMapping
   public ResponseEntity<List<CategoryResponse>> getAll() {
     return ResponseEntity.ok(categoryService.getAll());

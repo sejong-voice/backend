@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum ImageErrorCode implements ErrorCode {
-
   EMPTY_FILE(400, "IMAGE_001", "업로드할 이미지 파일이 비어 있습니다."),
   UNSUPPORTED_FILE_TYPE(400, "IMAGE_002", "지원하지 않는 이미지 형식입니다."),
   FILE_SIZE_EXCEEDED(400, "IMAGE_003", "허용 가능한 이미지 크기를 초과했습니다."),

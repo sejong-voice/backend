@@ -10,13 +10,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @RequiredArgsConstructor
 public class WebClientConfig {
 
-    private final SsoProperties ssoProperties;
+  private final SsoProperties ssoProperties;
 
-
-    @Bean
-    public WebClient ssoWebClient() {
-        return WebClient.builder()
-                .baseUrl(ssoProperties.getBaseUrl())
-                .build();
-    }
+  @Bean
+  public WebClient ssoWebClient() {
+    return WebClient.builder().baseUrl(ssoProperties.getBaseUrl()).build();
+  }
 }

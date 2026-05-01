@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum CouncilErrorCode implements ErrorCode {
-
   COUNCIL_NOT_FOUND(404, "COUNCIL_001", "해당 학생회를 찾을 수 없습니다."),
   ACCESS_DENIED(403, "COUNCIL_002", "해당 학생회 목록에 대한 접근이 거부되었습니다.");
 

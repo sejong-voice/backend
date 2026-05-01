@@ -7,21 +7,14 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record NotificationResponse(
-        UUID id,
-        UUID userId,
-        UUID postId,
-        NotificationType type,
-        boolean readTF,
-        Instant createdAt
-) {
-    public static NotificationResponse from(Notification n) {
-        return new NotificationResponse(
-                n.getId(),
-                n.getUser().getId(),
-                n.getPost().getId(),
-                n.getType(),
-                n.isRead(),
-                n.getCreatedAt()
-        );
-    }
+    UUID id, UUID userId, UUID postId, NotificationType type, boolean readTF, Instant createdAt) {
+  public static NotificationResponse from(Notification n) {
+    return new NotificationResponse(
+        n.getId(),
+        n.getUser().getId(),
+        n.getPost().getId(),
+        n.getType(),
+        n.isRead(),
+        n.getCreatedAt());
+  }
 }

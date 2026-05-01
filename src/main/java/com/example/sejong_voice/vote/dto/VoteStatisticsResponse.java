@@ -8,22 +8,15 @@ public record VoteStatisticsResponse(
     long disagreeCount,
     long totalCount,
     BigDecimal agreeRatio,
-    List<VoteDepartmentDistributionResponse> departmentDistributions
-) {
+    List<VoteDepartmentDistributionResponse> departmentDistributions) {
 
   public static VoteStatisticsResponse of(
       long agreeCount,
       long disagreeCount,
       long totalCount,
       BigDecimal agreeRatio,
-      List<VoteDepartmentDistributionResponse> departmentDistributions
-  ) {
+      List<VoteDepartmentDistributionResponse> departmentDistributions) {
     return new VoteStatisticsResponse(
-        agreeCount,
-        disagreeCount,
-        totalCount,
-        agreeRatio,
-        departmentDistributions
-    );
+        agreeCount, disagreeCount, totalCount, agreeRatio, departmentDistributions);
   }
 }

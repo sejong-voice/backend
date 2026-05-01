@@ -3,13 +3,12 @@ package com.example.sejong_voice.report.entity;
 import com.example.sejong_voice.comment.entity.Comment;
 import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Getter
@@ -17,17 +16,15 @@ import java.util.UUID;
 @Table(
     name = "comment_report",
     uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uk_comment_report_comment_user",
-            columnNames = {"comment_id", "user_id"}
-        )
+      @UniqueConstraint(
+          name = "uk_comment_report_comment_user",
+          columnNames = {"comment_id", "user_id"})
     },
     indexes = {
-        @Index(name = "idx_comment_report_comment_id", columnList = "comment_id"),
-        @Index(name = "idx_comment_report_user_id", columnList = "user_id"),
-        @Index(name = "idx_comment_report_created_at", columnList = "created_at")
-    }
-)
+      @Index(name = "idx_comment_report_comment_id", columnList = "comment_id"),
+      @Index(name = "idx_comment_report_user_id", columnList = "user_id"),
+      @Index(name = "idx_comment_report_created_at", columnList = "created_at")
+    })
 public class CommentReport {
 
   @Id

@@ -92,8 +92,7 @@ public class Post {
       PostVotingDuration postVotingDuration,
       Integer minVoteSnapshot,
       BigDecimal approveRatioSnapshot,
-      Instant createdAt
-  ) {
+      Instant createdAt) {
     this.user = user;
     this.council = council;
     this.category = category;

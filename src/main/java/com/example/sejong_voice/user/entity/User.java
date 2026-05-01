@@ -2,14 +2,13 @@ package com.example.sejong_voice.user.entity;
 
 import com.example.sejong_voice.affiliation.Affiliation;
 import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import java.time.Instant;
-import java.util.UUID;
 
 @Slf4j
 @Entity
@@ -20,7 +19,6 @@ public class User {
 
   private static final Instant EPOCH = Instant.EPOCH;
   private static final Instant PERMANENT_BAN_UNTIL = Instant.parse("9999-12-31T23:59:59Z");
-
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
@@ -63,8 +61,6 @@ public class User {
   @Column(name = "policy_agreed_at")
   private Instant policyAgreedAt;
 
-
-
   @Builder
   public User(
       String studentNo,
@@ -72,8 +68,7 @@ public class User {
       Affiliation affiliation, // affiliation 객체 자체를 넣어서 사용. user.affiliation.name이런식으로 사용
       String password,
       Instant duration,
-      Instant createdAt
-  ) {
+      Instant createdAt) {
     this.studentNo = studentNo;
     this.name = name;
     this.affiliation = affiliation;
@@ -85,7 +80,6 @@ public class User {
     this.duration = duration != null ? duration : EPOCH;
     this.createdAt = createdAt;
   }
-
 
   public static Instant activeDuration() {
     return EPOCH;
@@ -99,7 +93,7 @@ public class User {
     this.password = newPassword;
   }
 
-  public void updateStatus(UserStatus status, Instant duration) {// 기간 정지 메서드
+  public void updateStatus(UserStatus status, Instant duration) { // 기간 정지 메서드
     this.status = status;
     this.duration = duration;
     this.deletedAt = null;
@@ -107,7 +101,7 @@ public class User {
     // ACTIVE, SUSPENDED, WITHDRAW로 변경할때는 deleted_at를 초기화해줌
   }
 
-  public void withdrawNow() {// 영구정지 메서드
+  public void withdrawNow() { // 영구정지 메서드
     this.status = UserStatus.WITHDRAWN;
     this.duration = PERMANENT_BAN_UNTIL;
     this.deletedAt = null;
@@ -157,8 +151,7 @@ public class User {
       // -> 로직에서는 해당 케이스가 발생하진 않지만 혹시나 정합성이 깨질 수 있으니, 확인 하기 위함
       log.warn("Inconsistent QUIT user detected. userId={}", this.studentNo);
     }
-    return this.status == UserStatus.QUIT ;
+    return this.status == UserStatus.QUIT;
     // && this.deletedAt == null에 대한 예외 케이스는 log로 찍으니까 ㄱㅊ
   }
-
 }

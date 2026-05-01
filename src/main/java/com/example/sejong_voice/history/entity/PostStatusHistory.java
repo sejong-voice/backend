@@ -27,11 +27,10 @@ import lombok.NoArgsConstructor;
 @Table(
     name = "post_status_history",
     indexes = {
-        @Index(name = "idx_post_status_history_post_id", columnList = "post_id"),
-        @Index(name = "idx_post_status_history_user_id", columnList = "user_id"),
-        @Index(name = "idx_post_status_history_created_at", columnList = "created_at")
-    }
-)
+      @Index(name = "idx_post_status_history_post_id", columnList = "post_id"),
+      @Index(name = "idx_post_status_history_user_id", columnList = "user_id"),
+      @Index(name = "idx_post_status_history_created_at", columnList = "created_at")
+    })
 public class PostStatusHistory {
 
   @Id
@@ -39,7 +38,7 @@ public class PostStatusHistory {
   @Column(columnDefinition = "BINARY(16)")
   private UUID id;
 
-  @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")//
+  @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)") //
   private UUID userId;
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -59,12 +58,11 @@ public class PostStatusHistory {
 
   @Builder
   public PostStatusHistory(
-      UUID userId, //상태를 변경한 관리자 id
-      Post post,   // 상태가 변경된 post
+      UUID userId, // 상태를 변경한 관리자 id
+      Post post, // 상태가 변경된 post
       PostModerationStatus fromStatus, // before 상태
-      PostModerationStatus toStatus,   // after 상태
-      Instant createdAt
-  ) {
+      PostModerationStatus toStatus, // after 상태
+      Instant createdAt) {
     this.userId = userId;
     this.post = post;
     this.fromStatus = fromStatus;

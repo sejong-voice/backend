@@ -21,7 +21,8 @@ public interface VoteRepository extends JpaRepository<Vote, UUID> {
 
   boolean existsByPostId(UUID postId);
 
-  @Query("""
+  @Query(
+      """
       SELECT new com.example.sejong_voice.post.dto.PostCountRow(v.post.id, COUNT(v))
       FROM Vote v
       WHERE v.post.id IN :postIds
@@ -29,7 +30,8 @@ public interface VoteRepository extends JpaRepository<Vote, UUID> {
       """)
   List<PostCountRow> countByPostIds(@Param("postIds") Collection<UUID> postIds);
 
-  @Query("""
+  @Query(
+      """
       SELECT v
       FROM Vote v
       JOIN FETCH v.user
@@ -38,15 +40,13 @@ public interface VoteRepository extends JpaRepository<Vote, UUID> {
       """)
   List<Vote> findAllByPostIdWithUserOrderByVotedAtAsc(@Param("postId") UUID postId);
 
-  @Query("""
+  @Query(
+      """
     select v
     from Vote v
     join fetch v.user
     where v.post.id = :postId and v.choice = :choice
     ORDER BY COALESCE(v.updatedAt, v.createdAt) ASC, v.createdAt ASC
 """)
-  List<Vote> findAllByPostIdAndChoiceWithUserOrderByVotedAtTimeAsc(
-      UUID postId,
-      VoteChoice choice
-  );
+  List<Vote> findAllByPostIdAndChoiceWithUserOrderByVotedAtTimeAsc(UUID postId, VoteChoice choice);
 }

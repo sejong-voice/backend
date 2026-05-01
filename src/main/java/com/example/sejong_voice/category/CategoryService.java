@@ -19,14 +19,14 @@ public class CategoryService {
   private final CategoryRepository categoryRepository;
 
   public List<CategoryResponse> getAll() {
-    return categoryRepository.findAllByOrderByDisplayOrderAscIdAsc()
-        .stream()
+    return categoryRepository.findAllByOrderByDisplayOrderAscIdAsc().stream()
         .map(CategoryResponse::from)
         .toList();
   }
 
   public Category getById(UUID categoryId) {
-    return categoryRepository.findById(categoryId)
+    return categoryRepository
+        .findById(categoryId)
         .orElseThrow(() -> new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND));
   }
 }

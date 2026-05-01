@@ -1,6 +1,5 @@
 package com.example.sejong_voice.exception;
 
-import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import lombok.Getter;
 
 @Getter

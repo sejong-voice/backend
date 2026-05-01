@@ -3,15 +3,14 @@ package com.example.sejong_voice.council.policy;
 import com.example.sejong_voice.council.CouncilService;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.council.policy.dto.CouncilPolicyResponse;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -29,13 +28,10 @@ public class PolicyService {
   }
 
   @Transactional
-  public void update(
-      UUID councilId,
-      Integer minVote,
-      BigDecimal approveRatioThreshold
-  ) {
+  public void update(UUID councilId, Integer minVote, BigDecimal approveRatioThreshold) {
     Council council = councilService.getById(councilId);
     council.updatePolicy(minVote, approveRatioThreshold, Instant.now(clock));
-    log.info("정책 수정: councilId={}, minVote={}, ratio={}", councilId, minVote, approveRatioThreshold);
+    log.info(
+        "정책 수정: councilId={}, minVote={}, ratio={}", councilId, minVote, approveRatioThreshold);
   }
 }

@@ -3,14 +3,13 @@ package com.example.sejong_voice.auth.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record SsoUser(
-        String id,                          // @NotBlank 적용 가능(Python 응답 보장 시)
-        @JsonProperty("student_id") String studentNo, // @NotBlank 적용 가능(필수 학번)
-        String role,                        // @NotBlank 적용 가능(권한 필수 시)
-        String name,                        // 있을 때만
-        @JsonProperty("major") String department,// 있을 때만
-        Integer year                        // 있을 때만 (null 허용을 위해 Integer 사용)
-
-){}
+    String id, // @NotBlank 적용 가능(Python 응답 보장 시)
+    @JsonProperty("student_id") String studentNo, // @NotBlank 적용 가능(필수 학번)
+    String role, // @NotBlank 적용 가능(권한 필수 시)
+    String name, // 있을 때만
+    @JsonProperty("major") String department, // 있을 때만
+    Integer year // 있을 때만 (null 허용을 위해 Integer 사용)
+    ) {}
 
 /*
 name, department, year는 코드 주석대로 선택적 필드라 @NotNull/@NotBlank를 걸면

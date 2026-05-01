@@ -13,15 +13,13 @@ public record ReplyResponse(
     String content,
     CommentStatus status,
     boolean canDelete,
-    Instant createdAt
-) {
+    Instant createdAt) {
 
   public static ReplyResponse from(
       Comment comment,
       UUID currentUserId,
       UUID postAuthorId,
-      Map<UUID, Integer> anonymousNumberByUserId
-  ) {
+      Map<UUID, Integer> anonymousNumberByUserId) {
     return new ReplyResponse(
         comment.getId(),
         CommentResponse.resolveAnonymousNumber(comment, anonymousNumberByUserId),
@@ -29,7 +27,6 @@ public record ReplyResponse(
         CommentResponse.resolveDisplayContent(comment),
         comment.getStatus(),
         CommentResponse.canDelete(comment, currentUserId),
-        comment.getCreatedAt()
-    );
+        comment.getCreatedAt());
   }
 }

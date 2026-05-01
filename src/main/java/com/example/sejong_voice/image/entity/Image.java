@@ -54,8 +54,7 @@ public class Image {
       String objectName,
       String contentType,
       Long size,
-      Instant createdAt
-  ) {
+      Instant createdAt) {
     this.user = user;
     this.originalFileName = originalFileName;
     this.objectName = objectName;

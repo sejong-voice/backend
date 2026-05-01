@@ -16,13 +16,12 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -32,96 +31,87 @@ public class VoteService {
 
   private final VoteRepository voteRepository;
 
-  /**
-   * 투표하기 (Upsert: 없으면 생성, 있으면 수정)
-   */
+  /** 투표하기 (Upsert: 없으면 생성, 있으면 수정) */
   @Transactional
   public void cast(Post post, User user, VoteChoice choice) {
-    voteRepository.findByPostIdAndUserId(post.getId(), user.getId())
+    voteRepository
+        .findByPostIdAndUserId(post.getId(), user.getId())
         .ifPresentOrElse(
             // 1. 이미 투표함 -> 선택 변경
             vote -> vote.updateChoice(choice),
             // 2. 투표 안 함 -> 새로 생성
-            () -> create(post, user, choice)
-        );
+            () -> create(post, user, choice));
 
     log.info("투표: postId={}, userId={}, choice={}", post.getId(), user.getId(), choice);
   }
 
   private void create(Post post, User user, VoteChoice choice) {
-    Vote vote = Vote.builder()
-        .post(post)
-        .user(user)
-        .choice(choice)
-        .build();
+    Vote vote = Vote.builder().post(post).user(user).choice(choice).build();
 
     voteRepository.save(vote);
   }
 
-  /**
-   * 투표 현황 요약 조회
-   */
+  /** 투표 현황 요약 조회 */
   public VoteSummaryResponse getSummary(UUID postId) {
     long agreeCount = countAgree(postId);
     long disagreeCount = countDisagree(postId);
 
-    log.info("투표 요약: postId={}, agreeCount={}, disagreeCount={}", postId, agreeCount,
-        disagreeCount);
+    log.info(
+        "투표 요약: postId={}, agreeCount={}, disagreeCount={}", postId, agreeCount, disagreeCount);
 
     return VoteSummaryResponse.of(agreeCount, disagreeCount);
   }
 
   public VoteStatisticsResponse getStatistics(Post post) {
     List<Vote> votes = voteRepository.findAllByPostIdWithUserOrderByVotedAtAsc(post.getId());
-    long agreeCount = votes.stream()
-        .filter(vote -> vote.getChoice() == VoteChoice.AGREE)
-        .count();
-    long disagreeCount = votes.stream()
-        .filter(vote -> vote.getChoice() == VoteChoice.DISAGREE)
-        .count();
+    long agreeCount = votes.stream().filter(vote -> vote.getChoice() == VoteChoice.AGREE).count();
+    long disagreeCount =
+        votes.stream().filter(vote -> vote.getChoice() == VoteChoice.DISAGREE).count();
 
-    List<VoteDepartmentDistributionResponse> departmentDistributions = votes.stream()
-        .collect(Collectors.groupingBy(vote -> vote.getUser().getDepartment()))
-        .entrySet().stream()
-        .map(entry -> {
-          long departmentAgreeCount = entry.getValue().stream()
-              .filter(vote -> vote.getChoice() == VoteChoice.AGREE)
-              .count();
-          long departmentDisagreeCount = entry.getValue().stream()
-              .filter(vote -> vote.getChoice() == VoteChoice.DISAGREE)
-              .count();
+    List<VoteDepartmentDistributionResponse> departmentDistributions =
+        votes.stream()
+            .collect(Collectors.groupingBy(vote -> vote.getUser().getDepartment()))
+            .entrySet()
+            .stream()
+            .map(
+                entry -> {
+                  long departmentAgreeCount =
+                      entry.getValue().stream()
+                          .filter(vote -> vote.getChoice() == VoteChoice.AGREE)
+                          .count();
+                  long departmentDisagreeCount =
+                      entry.getValue().stream()
+                          .filter(vote -> vote.getChoice() == VoteChoice.DISAGREE)
+                          .count();
 
-          return new VoteDepartmentDistributionResponse(
-              entry.getKey(),
-              departmentAgreeCount,
-              departmentDisagreeCount,
-              entry.getValue().size()
-          );
-        })
-        .sorted(Comparator
-            .comparingLong(VoteDepartmentDistributionResponse::totalCount).reversed()
-            .thenComparing(VoteDepartmentDistributionResponse::department))
-        .toList();
+                  return new VoteDepartmentDistributionResponse(
+                      entry.getKey(),
+                      departmentAgreeCount,
+                      departmentDisagreeCount,
+                      entry.getValue().size());
+                })
+            .sorted(
+                Comparator.comparingLong(VoteDepartmentDistributionResponse::totalCount)
+                    .reversed()
+                    .thenComparing(VoteDepartmentDistributionResponse::department))
+            .toList();
 
-    BigDecimal agreeRatio = votes.isEmpty()
-        ? BigDecimal.ZERO
-        : BigDecimal.valueOf(agreeCount)
-            .divide(BigDecimal.valueOf(votes.size()), 4, RoundingMode.HALF_UP);
+    BigDecimal agreeRatio =
+        votes.isEmpty()
+            ? BigDecimal.ZERO
+            : BigDecimal.valueOf(agreeCount)
+                .divide(BigDecimal.valueOf(votes.size()), 4, RoundingMode.HALF_UP);
 
     log.info("투표 통계 조회: postId={}, totalCount={}", post.getId(), votes.size());
 
     return VoteStatisticsResponse.of(
-        agreeCount,
-        disagreeCount,
-        votes.size(),
-        agreeRatio,
-        departmentDistributions
-    );
+        agreeCount, disagreeCount, votes.size(), agreeRatio, departmentDistributions);
   }
 
   public List<VoteAgreeVoterResponse> getAgreeVoters(Post post) {
     log.info("투표 찬성자 명단 조회: postId={}", post.getId());
-    return voteRepository.findAllByPostIdAndChoiceWithUserOrderByVotedAtTimeAsc(post.getId(), VoteChoice.AGREE)
+    return voteRepository
+        .findAllByPostIdAndChoiceWithUserOrderByVotedAtTimeAsc(post.getId(), VoteChoice.AGREE)
         .stream()
         .map(VoteAgreeVoterResponse::from)
         .toList();
@@ -141,9 +131,6 @@ public class VoteService {
     }
 
     return voteRepository.countByPostIds(postIds).stream()
-        .collect(Collectors.toMap(
-            PostCountRow::postId,
-            PostCountRow::count
-        ));
+        .collect(Collectors.toMap(PostCountRow::postId, PostCountRow::count));
   }
 }

@@ -5,9 +5,4 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record CommentCreateRequest(
-    @NotNull UUID postId,
-    UUID rootCommentId,
-    @NotBlank String content
-) {
-
-}
+    @NotNull UUID postId, UUID rootCommentId, @NotBlank String content) {}

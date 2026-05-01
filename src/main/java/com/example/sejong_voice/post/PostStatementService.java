@@ -26,23 +26,28 @@ public class PostStatementService {
   /**
    * 게시글에 새 입장문을 생성합니다.
    *
-   * @param post      대상 게시글
+   * @param post 대상 게시글
    * @param createdBy 입장문 작성자
-   * @param sequence  입장문 순번
-   * @param content   입장문 내용
+   * @param sequence 입장문 순번
+   * @param content 입장문 내용
    * @return 생성된 입장문
    */
   @Transactional
   public PostStatement create(Post post, User createdBy, int sequence, String content) {
-    PostStatement postStatement = postStatementRepository.save(PostStatement.builder()
-        .post(post)
-        .createdBy(createdBy)
-        .sequence(sequence)
-        .content(content)
-        .createdAt(Instant.now(clock))
-        .build());
+    PostStatement postStatement =
+        postStatementRepository.save(
+            PostStatement.builder()
+                .post(post)
+                .createdBy(createdBy)
+                .sequence(sequence)
+                .content(content)
+                .createdAt(Instant.now(clock))
+                .build());
 
-    log.info("입장문 생성: postId={}, statementId={}, sequence={}", post.getId(), postStatement.getId(),
+    log.info(
+        "입장문 생성: postId={}, statementId={}, sequence={}",
+        post.getId(),
+        postStatement.getId(),
         postStatement.getSequence());
     return postStatement;
   }
@@ -64,7 +69,8 @@ public class PostStatementService {
    * @return 입장문 목록
    */
   public List<PostStatementView> getStatements(UUID postId) {
-    List<PostStatement> postStatements = postStatementRepository.findAllByPostIdOrderBySequenceAsc(postId);
+    List<PostStatement> postStatements =
+        postStatementRepository.findAllByPostIdOrderBySequenceAsc(postId);
     return PostStatementView.from(postStatements);
   }
 }

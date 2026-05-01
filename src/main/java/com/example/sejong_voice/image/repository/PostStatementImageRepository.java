@@ -11,8 +11,7 @@ public interface PostStatementImageRepository extends JpaRepository<PostStatemen
   List<PostStatementImage> findAllByPostStatementIdOrderByDisplayOrderAsc(UUID postStatementId);
 
   List<PostStatementImage> findAllByPostStatementIdInOrderByPostStatementIdAscDisplayOrderAsc(
-      Collection<UUID> postStatementIds
-  );
+      Collection<UUID> postStatementIds);
 
   List<PostStatementImage> findAllByPostStatementPostId(UUID postId);
 

@@ -17,9 +17,6 @@ public final class TimeUtils {
   }
 
   public static Instant toUtcInstant(LocalDateTime seoulDateTime) {
-    return seoulDateTime.atZone(ASIA_SEOUL)
-        .withZoneSameInstant(UTC)
-        .toInstant();
+    return seoulDateTime.atZone(ASIA_SEOUL).withZoneSameInstant(UTC).toInstant();
   }
-
 }

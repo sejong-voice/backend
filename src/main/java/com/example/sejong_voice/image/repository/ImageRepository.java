@@ -13,7 +13,8 @@ public interface ImageRepository extends JpaRepository<Image, UUID> {
 
   List<Image> findAllByIdIn(Collection<UUID> ids);
 
-  @Query("""
+  @Query(
+      """
       select i
       from Image i
       where i.deletedAt is null

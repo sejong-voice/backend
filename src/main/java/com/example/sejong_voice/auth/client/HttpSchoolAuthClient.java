@@ -1,23 +1,20 @@
 package com.example.sejong_voice.auth.client;
 
-
 import com.example.sejong_voice.auth.SchoolAuthClient;
 import com.example.sejong_voice.auth.dto.SsoProperties;
 import com.example.sejong_voice.auth.dto.SsoRequest;
 import com.example.sejong_voice.auth.dto.SsoResponse;
 import com.example.sejong_voice.auth.exception.AuthErrorCode;
 import com.example.sejong_voice.exception.BusinessException;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-
-import java.time.Duration;
 import org.springframework.web.reactive.function.client.WebClient;
 
-
 @Service
-@Profile("!dev") //dev 개발 서버를 제외하고 사용
+@Profile("!dev") // dev 개발 서버를 제외하고 사용
 @RequiredArgsConstructor
 public class HttpSchoolAuthClient implements SchoolAuthClient {
 
@@ -27,14 +24,16 @@ public class HttpSchoolAuthClient implements SchoolAuthClient {
   @Override
   public SsoResponse getStudentProfile(SsoRequest request) {
 
-    SsoResponse res = ssoWebClient.post()
-        .uri(ssoProperties.getSessionsPath())          // "/auth/sessions"
-        .contentType(MediaType.APPLICATION_JSON)
-        .accept(MediaType.APPLICATION_JSON)
-        .bodyValue(request)                            // ✅ SsoRequest가 student_id로 직렬화됨
-        .retrieve()
-        .bodyToMono(SsoResponse.class)                 // ✅ 너 DTO로 역직렬화
-        .block(Duration.ofMillis(ssoProperties.getTimeoutMs()));
+    SsoResponse res =
+        ssoWebClient
+            .post()
+            .uri(ssoProperties.getSessionsPath()) // "/auth/sessions"
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON)
+            .bodyValue(request) // ✅ SsoRequest가 student_id로 직렬화됨
+            .retrieve()
+            .bodyToMono(SsoResponse.class) // ✅ 너 DTO로 역직렬화
+            .block(Duration.ofMillis(ssoProperties.getTimeoutMs()));
 
     // 최소 유효성 체크 (원하는 정책대로 강화 가능)
     if (res == null || res.user() == null) {

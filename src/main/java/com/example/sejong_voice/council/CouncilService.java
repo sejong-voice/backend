@@ -27,23 +27,24 @@ public class CouncilService {
   private final CouncilRepository councilRepository;
 
   public List<CouncilResponse> getAll(String keyword) {
-    List<Council> councils = StringUtils.hasText(keyword)
-        ? councilRepository.findByNameContainingIgnoreCaseWithParent(keyword)
-        : councilRepository.findAllWithParent();
+    List<Council> councils =
+        StringUtils.hasText(keyword)
+            ? councilRepository.findByNameContainingIgnoreCaseWithParent(keyword)
+            : councilRepository.findAllWithParent();
     return buildOrderedResponses(councils);
   }
 
   public List<CouncilResponse> getAccessible(String keyword, User user) {
-    List<Council> councils = StringUtils.hasText(keyword)
-        ? councilRepository.findByNameContainingIgnoreCaseWithParent(keyword)
-        : councilRepository.findAllWithParent();
+    List<Council> councils =
+        StringUtils.hasText(keyword)
+            ? councilRepository.findByNameContainingIgnoreCaseWithParent(keyword)
+            : councilRepository.findAllWithParent();
     Set<UUID> accessibleAffiliationIds = getAccessibleAffiliationIds(user);
 
     return buildOrderedResponses(
         councils.stream()
             .filter(council -> accessibleAffiliationIds.contains(council.getAffiliation().getId()))
-            .toList()
-    );
+            .toList());
   }
 
   private List<CouncilResponse> buildOrderedResponses(List<Council> councils) {
@@ -82,7 +83,8 @@ public class CouncilService {
   }
 
   public Council getById(UUID id) {
-    return councilRepository.findById(id)
+    return councilRepository
+        .findById(id)
         .orElseThrow(() -> new BusinessException(CouncilErrorCode.COUNCIL_NOT_FOUND));
   }
 
@@ -113,14 +115,11 @@ public class CouncilService {
   private void addCouncilWithDescendants(
       Council council,
       Map<UUID, List<Council>> childrenByParentAffiliationId,
-      List<CouncilResponse> orderedResponses
-  ) {
+      List<CouncilResponse> orderedResponses) {
     orderedResponses.add(new CouncilResponse(council));
 
-    for (Council child : childrenByParentAffiliationId.getOrDefault(
-        council.getAffiliation().getId(),
-        List.of()
-    )) {
+    for (Council child :
+        childrenByParentAffiliationId.getOrDefault(council.getAffiliation().getId(), List.of())) {
       addCouncilWithDescendants(child, childrenByParentAffiliationId, orderedResponses);
     }
   }

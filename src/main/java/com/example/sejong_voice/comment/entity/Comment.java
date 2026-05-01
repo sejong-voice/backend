@@ -70,6 +70,7 @@ public class Comment {
     this.status = CommentStatus.BLINDED;
   }
 
-  public void activate() {this.status = CommentStatus.ACTIVE;
+  public void activate() {
+    this.status = CommentStatus.ACTIVE;
   }
 }

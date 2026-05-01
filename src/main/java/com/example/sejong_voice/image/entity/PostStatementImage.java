@@ -23,13 +23,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_post_statement_image_image", columnNames = {"image_id"}),
-        @UniqueConstraint(
-            name = "uk_post_statement_image_statement_display_order",
-            columnNames = {"post_statement_id", "display_order"}
-        )
-    }
-)
+      @UniqueConstraint(
+          name = "uk_post_statement_image_image",
+          columnNames = {"image_id"}),
+      @UniqueConstraint(
+          name = "uk_post_statement_image_statement_display_order",
+          columnNames = {"post_statement_id", "display_order"})
+    })
 public class PostStatementImage {
 
   @Id
@@ -53,11 +53,7 @@ public class PostStatementImage {
 
   @Builder
   public PostStatementImage(
-      PostStatement postStatement,
-      Image image,
-      Integer displayOrder,
-      Instant createdAt
-  ) {
+      PostStatement postStatement, Image image, Integer displayOrder, Instant createdAt) {
     this.postStatement = postStatement;
     this.image = image;
     this.displayOrder = displayOrder;

@@ -22,8 +22,7 @@ public record PostListResponse(
     Long voteCount,
     Long commentCount,
     Instant createdAt,
-    Instant votingEndAt
-) {
+    Instant votingEndAt) {
   public static PostListResponse from(Post post) {
     return from(post, 0L, 0L);
   }

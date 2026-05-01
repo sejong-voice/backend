@@ -8,13 +8,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
-
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserStatusRequest {
-    @NotNull UserStatus status;
-    @NotNull @Min(0) Integer durationDays; // Default값 없음
+  @NotNull UserStatus status;
+
+  @NotNull @Min(0) Integer durationDays; // Default값 없음
 }

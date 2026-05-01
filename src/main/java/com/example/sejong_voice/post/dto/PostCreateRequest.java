@@ -12,7 +12,4 @@ public record PostCreateRequest(
     @NotNull UUID councilId,
     @NotNull UUID categoryId,
     @NotNull PostVotingDuration postVotingDuration,
-    @NotNull List<@NotNull UUID> imageIds
-) {
-
-}
+    @NotNull List<@NotNull UUID> imageIds) {}

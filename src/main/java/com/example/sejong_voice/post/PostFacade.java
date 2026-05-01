@@ -17,19 +17,19 @@ import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.dto.PostStatementResponse;
 import com.example.sejong_voice.post.dto.PostStatementView;
 import com.example.sejong_voice.post.entity.Post;
-import com.example.sejong_voice.post.entity.PostStatus;
 import com.example.sejong_voice.post.entity.PostStatement;
+import com.example.sejong_voice.post.entity.PostStatus;
 import com.example.sejong_voice.post.entity.PostVotingDuration;
 import com.example.sejong_voice.post.exception.PostErrorCode;
 import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.vote.VoteService;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.time.Clock;
-import java.time.Instant;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -60,8 +60,7 @@ public class PostFacade {
       UUID councilId,
       UUID categoryId,
       PostVotingDuration votingDuration,
-      List<UUID> imageIds
-  ) {
+      List<UUID> imageIds) {
     User user = userService.getById(userId);
     Council council = councilService.getById(councilId);
     if (!councilService.hasAccessToCouncil(user, council)) {
@@ -81,9 +80,10 @@ public class PostFacade {
     boolean canVote = false;
     if (userId != null) {
       User user = userService.getById(userId);
-      canVote = councilService.hasAccessToCouncil(user, post.getCouncil())
-          && post.getStatus() == PostStatus.VOTING
-          && Instant.now(clock).isBefore(post.getVotingEndAt());
+      canVote =
+          councilService.hasAccessToCouncil(user, post.getCouncil())
+              && post.getStatus() == PostStatus.VOTING
+              && Instant.now(clock).isBefore(post.getVotingEndAt());
     }
 
     long agreeCount = voteService.countAgree(postId);
@@ -91,40 +91,33 @@ public class PostFacade {
     boolean canCloseEarly = postService.canCloseEarly(post, agreeCount, totalCount);
 
     List<PostImageView> images = imageService.getPostImages(post.getId());
-    List<PostImageResponse> imageResponses = images.stream()
-        .map(image -> PostImageResponse.of(image.imageId(), image.imageUrl()))
-        .toList();
+    List<PostImageResponse> imageResponses =
+        images.stream()
+            .map(image -> PostImageResponse.of(image.imageId(), image.imageUrl()))
+            .toList();
 
     List<PostStatementView> statements = postStatementService.getStatements(post.getId());
-    List<UUID> statementIds = statements.stream()
-        .map(PostStatementView::id)
-        .toList();
+    List<UUID> statementIds = statements.stream().map(PostStatementView::id).toList();
 
     Map<UUID, List<PostImageResponse>> statementImageResponsesById =
-        imageService.getStatementImagesByStatementIds(statementIds)
-            .entrySet()
-            .stream()
-            .collect(Collectors.toMap(
-                Map.Entry::getKey,
-                entry -> entry.getValue().stream()
-                    .map(PostFacade::toPostImageResponse)
-                    .toList()
-            ));
+        imageService.getStatementImagesByStatementIds(statementIds).entrySet().stream()
+            .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey,
+                    entry ->
+                        entry.getValue().stream().map(PostFacade::toPostImageResponse).toList()));
 
-    List<PostStatementResponse> statementResponses = statements.stream()
-        .map(statement -> PostStatementResponse.from(
-            statement,
-            statementImageResponsesById.getOrDefault(statement.id(), List.of())
-        ))
-        .toList();
+    List<PostStatementResponse> statementResponses =
+        statements.stream()
+            .map(
+                statement ->
+                    PostStatementResponse.from(
+                        statement,
+                        statementImageResponsesById.getOrDefault(statement.id(), List.of())))
+            .toList();
 
     return PostDetailResponse.from(
-        post,
-        canVote,
-        canCloseEarly,
-        imageResponses,
-        statementResponses
-    );
+        post, canVote, canCloseEarly, imageResponses, statementResponses);
   }
 
   @Transactional(readOnly = true)
@@ -138,17 +131,16 @@ public class PostFacade {
     }
 
     Page<PostListResponse> postPage = postService.getPosts(condition, pageable);
-    List<UUID> postIds = postPage.getContent().stream()
-        .map(PostListResponse::id)
-        .toList();
+    List<UUID> postIds = postPage.getContent().stream().map(PostListResponse::id).toList();
 
     Map<UUID, Long> voteCountByPostId = voteService.countByPostIds(postIds);
     Map<UUID, Long> commentCountByPostId = commentService.countActiveByPostIds(postIds);
 
-    return postPage.map(response -> response.withCounts(
-        voteCountByPostId.getOrDefault(response.id(), 0L),
-        commentCountByPostId.getOrDefault(response.id(), 0L)
-    ));
+    return postPage.map(
+        response ->
+            response.withCounts(
+                voteCountByPostId.getOrDefault(response.id(), 0L),
+                commentCountByPostId.getOrDefault(response.id(), 0L)));
   }
 
   @Transactional
@@ -191,12 +183,7 @@ public class PostFacade {
 
   @Transactional
   public void createStatement(
-      UUID postId,
-      UUID userId,
-      PostStatus finalStatus,
-      String content,
-      List<UUID> imageIds
-  ) {
+      UUID postId, UUID userId, PostStatus finalStatus, String content, List<UUID> imageIds) {
     Post post = postService.getByIdForUpdate(postId);
     boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
 

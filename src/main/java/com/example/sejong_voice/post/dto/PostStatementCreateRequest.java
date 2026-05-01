@@ -7,8 +7,4 @@ import java.util.List;
 import java.util.UUID;
 
 public record PostStatementCreateRequest(
-    PostStatus finalStatus,
-    @NotBlank String content,
-    @NotNull List<@NotNull UUID> imageIds
-) {
-}
+    PostStatus finalStatus, @NotBlank String content, @NotNull List<@NotNull UUID> imageIds) {}

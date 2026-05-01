@@ -27,8 +27,7 @@ public record PostDetailResponse(
     Instant createdAt,
     Instant votingEndAt,
     List<PostImageResponse> images,
-    List<PostStatementResponse> statements
-) {
+    List<PostStatementResponse> statements) {
   private static final int MASK_SUFFIX_LENGTH = 3;
 
   public static PostDetailResponse from(
@@ -36,8 +35,7 @@ public record PostDetailResponse(
       boolean canVote,
       boolean canCloseEarly,
       List<PostImageResponse> images,
-      List<PostStatementResponse> statements
-  ) {
+      List<PostStatementResponse> statements) {
     return PostDetailResponse.builder()
         .id(post.getId())
         .userId(post.getUser().getId())

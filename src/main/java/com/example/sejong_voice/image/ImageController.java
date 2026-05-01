@@ -23,15 +23,10 @@ public class ImageController {
 
   private final ImageFacade imageFacade;
 
-  @Operation(
-      summary = "이미지 업로드",
-      description = "게시글 작성 전에 이미지를 업로드하고 TEMP 상태로 저장합니다."
-  )
+  @Operation(summary = "이미지 업로드", description = "게시글 작성 전에 이미지를 업로드하고 TEMP 상태로 저장합니다.")
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<ImageUploadResponse> upload(
-      @RequestPart("image") MultipartFile image,
-      @AuthUser UserPrincipal userPrincipal
-  ) {
+      @RequestPart("image") MultipartFile image, @AuthUser UserPrincipal userPrincipal) {
     ImageUploadResponse response = imageFacade.upload(userPrincipal.getUserId(), image);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }

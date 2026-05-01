@@ -14,7 +14,8 @@ import org.springframework.data.repository.query.Param;
 public interface CommentRepository extends JpaRepository<Comment, UUID> {
 
   @Query(
-      value = """
+      value =
+          """
           SELECT c
           FROM Comment c
           LEFT JOIN FETCH c.user
@@ -30,7 +31,8 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
               )
             )
           """,
-      countQuery = """
+      countQuery =
+          """
           SELECT COUNT(c)
           FROM Comment c
           WHERE c.post.id = :postId
@@ -44,14 +46,12 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
                   AND r.status = com.example.sejong_voice.comment.entity.CommentStatus.ACTIVE
               )
             )
-          """
-  )
+          """)
   Page<Comment> findDisplayableRootCommentsByPostId(
-      @Param("postId") UUID postId,
-      Pageable pageable
-  );
+      @Param("postId") UUID postId, Pageable pageable);
 
-  @Query("""
+  @Query(
+      """
       SELECT c
       FROM Comment c
       LEFT JOIN FETCH c.user
@@ -61,10 +61,10 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
       ORDER BY c.createdAt ASC
       """)
   List<Comment> findActiveRepliesByRootCommentIds(
-      @Param("rootCommentIds") Collection<UUID> rootCommentIds
-  );
+      @Param("rootCommentIds") Collection<UUID> rootCommentIds);
 
-  @Query("""
+  @Query(
+      """
       SELECT c.user.id
       FROM Comment c
       WHERE c.post.id = :postId
@@ -73,7 +73,8 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
       """)
   List<UUID> findCommentAuthorIdsByPostIdOrderByFirstCommentAt(@Param("postId") UUID postId);
 
-  @Query("""
+  @Query(
+      """
       SELECT c
       FROM Comment c
       WHERE c.post.id = :postId
@@ -82,7 +83,8 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
       """)
   List<Comment> findAllActiveByPostId(@Param("postId") UUID postId);
 
-  @Query("""
+  @Query(
+      """
       SELECT COUNT(c)
       FROM Comment c
       WHERE c.post.id = :postId
@@ -90,7 +92,8 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
       """)
   long countActiveByPostId(@Param("postId") UUID postId);
 
-  @Query("""
+  @Query(
+      """
       SELECT new com.example.sejong_voice.post.dto.PostCountRow(c.post.id, COUNT(c))
       FROM Comment c
       WHERE c.post.id IN :postIds
@@ -98,5 +101,4 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
       GROUP BY c.post.id
       """)
   List<PostCountRow> countActiveByPostIds(@Param("postIds") Collection<UUID> postIds);
-
 }

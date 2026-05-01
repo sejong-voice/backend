@@ -17,10 +17,11 @@ public enum PostVotingDuration {
   private final int days;
 
   public Instant calculateDeadline(Instant startAt) {
-    LocalDateTime deadline = TimeUtils.toSeoulLocalDateTime(startAt)
-        .toLocalDate()
-        .plusDays(this.days - 1)
-        .atTime(23, 59, 59);
+    LocalDateTime deadline =
+        TimeUtils.toSeoulLocalDateTime(startAt)
+            .toLocalDate()
+            .plusDays(this.days - 1)
+            .atTime(23, 59, 59);
     return TimeUtils.toUtcInstant(deadline);
   }
 }

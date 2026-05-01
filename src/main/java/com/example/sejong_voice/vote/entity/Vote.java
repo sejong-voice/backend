@@ -18,9 +18,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Table(
     name = "vote",
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_vote_post_user", columnNames = {"post_id", "user_id"})
-    }
-)
+      @UniqueConstraint(
+          name = "uk_vote_post_user",
+          columnNames = {"post_id", "user_id"})
+    })
 @EntityListeners(AuditingEntityListener.class)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Vote {

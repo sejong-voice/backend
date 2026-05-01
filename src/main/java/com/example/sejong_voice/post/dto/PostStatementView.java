@@ -5,17 +5,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-public record PostStatementView(
-    UUID id,
-    Integer sequence,
-    String content,
-    Instant createdAt
-) {
+public record PostStatementView(UUID id, Integer sequence, String content, Instant createdAt) {
 
   public static List<PostStatementView> from(List<PostStatement> postStatements) {
-    return postStatements.stream()
-        .map(PostStatementView::from)
-        .toList();
+    return postStatements.stream().map(PostStatementView::from).toList();
   }
 
   public static PostStatementView from(PostStatement postStatement) {
@@ -23,7 +16,6 @@ public record PostStatementView(
         postStatement.getId(),
         postStatement.getSequence(),
         postStatement.getContent(),
-        postStatement.getCreatedAt()
-    );
+        postStatement.getCreatedAt());
   }
 }

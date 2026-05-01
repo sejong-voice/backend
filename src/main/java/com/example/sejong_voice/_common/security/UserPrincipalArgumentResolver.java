@@ -1,7 +1,5 @@
 package com.example.sejong_voice._common.security;
 
-import com.example.sejong_voice.auth.exception.AuthErrorCode;
-import com.example.sejong_voice.exception.BusinessException;
 import jakarta.annotation.Nonnull;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;
@@ -29,8 +27,7 @@ public class UserPrincipalArgumentResolver implements HandlerMethodArgumentResol
       @Nonnull MethodParameter parameter,
       ModelAndViewContainer mavContainer,
       @Nonnull NativeWebRequest webRequest,
-      WebDataBinderFactory binderFactory
-  ) {
+      WebDataBinderFactory binderFactory) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
     if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal) {

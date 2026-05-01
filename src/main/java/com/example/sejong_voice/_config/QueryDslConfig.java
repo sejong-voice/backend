@@ -15,8 +15,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 @EnableJpaAuditing(dateTimeProviderRef = "auditingDateTimeProvider")
 public class QueryDslConfig {
 
-  @PersistenceContext
-  private EntityManager entityManager;
+  @PersistenceContext private EntityManager entityManager;
 
   @Bean
   public JPAQueryFactory jpaQueryFactory() {

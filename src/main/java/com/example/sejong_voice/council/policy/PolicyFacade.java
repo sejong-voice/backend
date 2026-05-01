@@ -7,12 +7,11 @@ import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
+import java.math.BigDecimal;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -29,11 +28,7 @@ public class PolicyFacade {
 
   @Transactional
   public void updatePolicy(
-      UUID councilId,
-      UUID userId,
-      Integer minVote,
-      BigDecimal approveRatioThreshold
-  ) {
+      UUID councilId, UUID userId, Integer minVote, BigDecimal approveRatioThreshold) {
     // 1. 유저 조회
     User user = userService.getById(userId);
 

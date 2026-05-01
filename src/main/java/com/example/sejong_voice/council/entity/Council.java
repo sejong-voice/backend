@@ -5,8 +5,8 @@ import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
-import lombok.*;
 import java.util.UUID;
+import lombok.*;
 
 @Entity
 @Table(name = "council")
@@ -42,8 +42,7 @@ public class Council {
       User adminUser,
       Integer minVote,
       BigDecimal approveRatioThreshold,
-      Instant updatedAt
-  ) {
+      Instant updatedAt) {
     this.affiliation = affiliation;
     this.adminUser = adminUser;
     this.minVote = minVote;

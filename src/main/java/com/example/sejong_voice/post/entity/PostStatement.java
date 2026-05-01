@@ -23,9 +23,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
     uniqueConstraints = {
-        @UniqueConstraint(name = "uk_post_statement_post_sequence", columnNames = {"post_id", "sequence"})
-    }
-)
+      @UniqueConstraint(
+          name = "uk_post_statement_post_sequence",
+          columnNames = {"post_id", "sequence"})
+    })
 public class PostStatement {
 
   @Id
@@ -51,7 +52,8 @@ public class PostStatement {
   private Instant createdAt;
 
   @Builder
-  public PostStatement(Post post, User createdBy, Integer sequence, String content, Instant createdAt) {
+  public PostStatement(
+      Post post, User createdBy, Integer sequence, String content, Instant createdAt) {
     this.post = post;
     this.createdBy = createdBy;
     this.sequence = sequence;

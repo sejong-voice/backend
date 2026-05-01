@@ -1,7 +1,7 @@
 package com.example.sejong_voice.post.repository;
 
-import static com.example.sejong_voice.post.entity.QPost.post;
 import static com.example.sejong_voice.category.entity.QCategory.category;
+import static com.example.sejong_voice.post.entity.QPost.post;
 
 import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
@@ -27,50 +27,50 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
   public Page<PostListResponse> search(PostSearchCondition condition, Pageable pageable) {
 
     // 1. 컨텐츠 조회
-    List<Post> content = queryFactory
-        .selectFrom(post)
-        .join(post.user).fetchJoin()
-        .join(post.council).fetchJoin()
-        .join(post.category, category).fetchJoin()
-        .where(
-            statusEq(condition.status()),
-            responsibleCouncilEq(condition.councilId()),
-            categoryEq(condition.categoryId()),
-            assignedToMe(condition.assignedToMe(), condition.currentUserId()),
-            keywordContains(condition.keyword()),
-            isMine(condition.mine(), condition.currentUserId()),
-            post.visibilityStatus.eq(PostModerationStatus.ACTIVE),
-            post.deletedAt.isNull()
-        )
-        .offset(pageable.getOffset())
-        .limit(pageable.getPageSize())
-        .orderBy(post.createdAt.desc())
-        .fetch();
+    List<Post> content =
+        queryFactory
+            .selectFrom(post)
+            .join(post.user)
+            .fetchJoin()
+            .join(post.council)
+            .fetchJoin()
+            .join(post.category, category)
+            .fetchJoin()
+            .where(
+                statusEq(condition.status()),
+                responsibleCouncilEq(condition.councilId()),
+                categoryEq(condition.categoryId()),
+                assignedToMe(condition.assignedToMe(), condition.currentUserId()),
+                keywordContains(condition.keyword()),
+                isMine(condition.mine(), condition.currentUserId()),
+                post.visibilityStatus.eq(PostModerationStatus.ACTIVE),
+                post.deletedAt.isNull())
+            .offset(pageable.getOffset())
+            .limit(pageable.getPageSize())
+            .orderBy(post.createdAt.desc())
+            .fetch();
 
     // 2. 카운트 쿼리
-    Long total = queryFactory
-        .select(post.count())
-        .from(post)
-        .where(
-            statusEq(condition.status()),
-            responsibleCouncilEq(condition.councilId()),
-            categoryEq(condition.categoryId()),
-            assignedToMe(condition.assignedToMe(), condition.currentUserId()),
-            keywordContains(condition.keyword()),
-            isMine(condition.mine(), condition.currentUserId()),
-            post.visibilityStatus.eq(PostModerationStatus.ACTIVE),
-            post.deletedAt.isNull()
-        )
-        .fetchOne();
+    Long total =
+        queryFactory
+            .select(post.count())
+            .from(post)
+            .where(
+                statusEq(condition.status()),
+                responsibleCouncilEq(condition.councilId()),
+                categoryEq(condition.categoryId()),
+                assignedToMe(condition.assignedToMe(), condition.currentUserId()),
+                keywordContains(condition.keyword()),
+                isMine(condition.mine(), condition.currentUserId()),
+                post.visibilityStatus.eq(PostModerationStatus.ACTIVE),
+                post.deletedAt.isNull())
+            .fetchOne();
 
     // 3. 변환 및 반환
-    List<PostListResponse> dtoList = content.stream()
-        .map(PostListResponse::from)
-        .toList();
+    List<PostListResponse> dtoList = content.stream().map(PostListResponse::from).toList();
 
     return new PageImpl<>(dtoList, pageable, total != null ? total : 0L);
   }
-
 
   private BooleanExpression statusEq(PostStatus status) {
     return status != null ? post.status.eq(status) : null;
@@ -97,8 +97,9 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
   }
 
   private BooleanExpression keywordContains(String keyword) {
-    return StringUtils.hasText(keyword) ?
-        post.title.contains(keyword).or(post.content.contains(keyword)) : null;
+    return StringUtils.hasText(keyword)
+        ? post.title.contains(keyword).or(post.content.contains(keyword))
+        : null;
   }
 
   private BooleanExpression isMine(Boolean mine, UUID currentUserId) {

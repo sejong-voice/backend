@@ -8,6 +8,4 @@ import java.math.BigDecimal;
 
 public record CouncilPolicyUpdateRequest(
     @NotNull @Min(0) Integer minVote,
-    @NotNull @DecimalMin("0.0") @DecimalMax("1.0") BigDecimal approveRatioThreshold
-) {
-}
+    @NotNull @DecimalMin("0.0") @DecimalMax("1.0") BigDecimal approveRatioThreshold) {}

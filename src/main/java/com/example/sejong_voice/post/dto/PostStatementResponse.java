@@ -8,17 +8,10 @@ import lombok.Builder;
 
 @Builder
 public record PostStatementResponse(
-    UUID id,
-    Integer sequence,
-    String content,
-    Instant createdAt,
-    List<PostImageResponse> images
-) {
+    UUID id, Integer sequence, String content, Instant createdAt, List<PostImageResponse> images) {
 
   public static PostStatementResponse from(
-      PostStatementView postStatement,
-      List<PostImageResponse> images
-  ) {
+      PostStatementView postStatement, List<PostImageResponse> images) {
     return PostStatementResponse.builder()
         .id(postStatement.id())
         .sequence(postStatement.sequence())

@@ -1,27 +1,26 @@
 package com.example.sejong_voice.vote;
 
+import com.example.sejong_voice.council.CouncilService;
+import com.example.sejong_voice.exception.BusinessException;
+import com.example.sejong_voice.post.PostService;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatus;
-import com.example.sejong_voice.post.PostService;
-import com.example.sejong_voice.vote.exception.VoteErrorCode;
+import com.example.sejong_voice.post.exception.PostErrorCode;
+import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
-import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.vote.dto.VoteAgreeVoterResponse;
 import com.example.sejong_voice.vote.dto.VoteStatisticsResponse;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.VoteChoice;
-import com.example.sejong_voice.council.CouncilService;
-import com.example.sejong_voice.exception.BusinessException;
-import com.example.sejong_voice.post.exception.PostErrorCode;
+import com.example.sejong_voice.vote.exception.VoteErrorCode;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor

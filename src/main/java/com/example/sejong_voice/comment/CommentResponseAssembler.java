@@ -19,23 +19,22 @@ public class CommentResponseAssembler {
       List<Comment> replies,
       UUID currentUserId,
       UUID postAuthorId,
-      Map<UUID, Integer> anonymousNumberByUserId
-  ) {
+      Map<UUID, Integer> anonymousNumberByUserId) {
     Map<UUID, List<Comment>> activeRepliesByRootId = createActiveRepliesByRootId(replies);
 
     return rootComments.stream()
-        .map(comment -> CommentResponse.from(
-            comment,
-            currentUserId,
-            postAuthorId,
-            anonymousNumberByUserId,
-            toReplyResponses(
-                activeRepliesByRootId.getOrDefault(comment.getId(), List.of()),
-                currentUserId,
-                postAuthorId,
-                anonymousNumberByUserId
-            )
-        ))
+        .map(
+            comment ->
+                CommentResponse.from(
+                    comment,
+                    currentUserId,
+                    postAuthorId,
+                    anonymousNumberByUserId,
+                    toReplyResponses(
+                        activeRepliesByRootId.getOrDefault(comment.getId(), List.of()),
+                        currentUserId,
+                        postAuthorId,
+                        anonymousNumberByUserId)))
         .toList();
   }
 
@@ -49,7 +48,8 @@ public class CommentResponseAssembler {
         continue;
       }
 
-      activeRepliesByRootId.computeIfAbsent(rootComment.getId(), ignored -> new ArrayList<>())
+      activeRepliesByRootId
+          .computeIfAbsent(rootComment.getId(), ignored -> new ArrayList<>())
           .add(comment);
     }
 
@@ -60,15 +60,11 @@ public class CommentResponseAssembler {
       List<Comment> comments,
       UUID currentUserId,
       UUID postAuthorId,
-      Map<UUID, Integer> anonymousNumberByUserId
-  ) {
+      Map<UUID, Integer> anonymousNumberByUserId) {
     return comments.stream()
-        .map(comment -> ReplyResponse.from(
-            comment,
-            currentUserId,
-            postAuthorId,
-            anonymousNumberByUserId
-        ))
+        .map(
+            comment ->
+                ReplyResponse.from(comment, currentUserId, postAuthorId, anonymousNumberByUserId))
         .toList();
   }
 }

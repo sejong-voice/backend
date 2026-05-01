@@ -41,12 +41,8 @@ import org.springframework.web.multipart.MultipartFile;
 public class ImageService {
 
   private static final int MAX_IMAGES_PER_POST = 3;
-  private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp"
-  );
+  private static final Set<String> ALLOWED_CONTENT_TYPES =
+      Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
 
   private final ImageRepository imageRepository;
   private final PostImageRepository postImageRepository;
@@ -78,21 +74,23 @@ public class ImageService {
 
     try {
       objectName = ociImageStorage.upload(user.getId(), file, file.getContentType());
-      Image image = imageRepository.save(Image.builder()
-          .user(user)
-          .originalFileName(file.getOriginalFilename())
-          .objectName(objectName)
-          .contentType(file.getContentType())
-          .size(file.getSize())
-          .createdAt(Instant.now(clock))
-          .build()
-      );
+      Image image =
+          imageRepository.save(
+              Image.builder()
+                  .user(user)
+                  .originalFileName(file.getOriginalFilename())
+                  .objectName(objectName)
+                  .contentType(file.getContentType())
+                  .size(file.getSize())
+                  .createdAt(Instant.now(clock))
+                  .build());
       String imageUrl = ociImageStorage.getPublicUrl(objectName);
 
       log.info(
           "이미지 업로드 완료: imageId={}, userId={}, objectName={}",
-          image.getId(), user.getId(), objectName
-      );
+          image.getId(),
+          user.getId(),
+          objectName);
       return ImageUploadResponse.of(image.getId(), imageUrl);
     } catch (IOException | RuntimeException e) {
       if (objectName != null) {
@@ -115,13 +113,7 @@ public class ImageService {
     for (int order = 0; order < images.size(); order++) {
       Image image = images.get(order);
       postImageRepository.save(
-          PostImage.builder()
-              .post(post)
-              .image(image)
-              .displayOrder(order)
-              .createdAt(now)
-              .build()
-      );
+          PostImage.builder().post(post).image(image).displayOrder(order).createdAt(now).build());
     }
     log.info("게시글 이미지 연결 완료: postId={}, imageCount={}", post.getId(), images.size());
   }
@@ -139,8 +131,7 @@ public class ImageService {
               .image(image)
               .displayOrder(order)
               .createdAt(now)
-              .build()
-      );
+              .build());
     }
     log.info("입장문 이미지 연결 완료: statementId={}, imageCount={}", postStatement.getId(), images.size());
   }
@@ -150,9 +141,10 @@ public class ImageService {
 
     return postImages.stream()
         .map(PostImage::getImage)
-        .map(image -> PostImageView.of(
-            image.getId(), ociImageStorage.getPublicUrl(image.getObjectName()))
-        )
+        .map(
+            image ->
+                PostImageView.of(
+                    image.getId(), ociImageStorage.getPublicUrl(image.getObjectName())))
         .toList();
   }
 
@@ -162,27 +154,27 @@ public class ImageService {
       return Collections.emptyMap();
     }
 
-    return postStatementImageRepository.findAllByPostStatementIdInOrderByPostStatementIdAscDisplayOrderAsc(
-            postStatementIds)
+    return postStatementImageRepository
+        .findAllByPostStatementIdInOrderByPostStatementIdAscDisplayOrderAsc(postStatementIds)
         .stream()
         .filter(mapping -> mapping.getImage().getDeletedAt() == null)
-        .collect(Collectors.groupingBy(
-            mapping -> mapping.getPostStatement().getId(),
-            LinkedHashMap::new,
-            Collectors.mapping(
-                mapping -> PostStatementImageView.of(
-                    mapping.getImage().getId(),
-                    ociImageStorage.getPublicUrl(mapping.getImage().getObjectName())
-                ),
-                Collectors.toList()
-            )
-        ));
+        .collect(
+            Collectors.groupingBy(
+                mapping -> mapping.getPostStatement().getId(),
+                LinkedHashMap::new,
+                Collectors.mapping(
+                    mapping ->
+                        PostStatementImageView.of(
+                            mapping.getImage().getId(),
+                            ociImageStorage.getPublicUrl(mapping.getImage().getObjectName())),
+                    Collectors.toList())));
   }
 
   @Transactional
   public void cleanupExpiredTempImages() {
-    Instant cutoff = Instant.now(clock)
-        .minus(Duration.ofHours(objectStorageProperties.getTempImageRetentionHours()));
+    Instant cutoff =
+        Instant.now(clock)
+            .minus(Duration.ofHours(objectStorageProperties.getTempImageRetentionHours()));
 
     List<Image> expiredImages = imageRepository.findAllExpiredTempImagesBefore(cutoff);
     for (Image image : expiredImages) {
@@ -192,22 +184,23 @@ public class ImageService {
       } catch (RuntimeException e) {
         log.error(
             "만료된 TEMP 이미지 정리 실패: imageId={}, objectName={}",
-            image.getId(), image.getObjectName(), e
-        );
+            image.getId(),
+            image.getObjectName(),
+            e);
       }
     }
   }
 
   @Transactional
   public void deleteAllByPostId(UUID postId) {
-    List<Image> postImages = postImageRepository.findAllByPostIdOrderByDisplayOrderAsc(postId)
-        .stream()
-        .map(PostImage::getImage)
-        .toList();
-    List<Image> statementImages = postStatementImageRepository.findAllByPostStatementPostId(postId)
-        .stream()
-        .map(PostStatementImage::getImage)
-        .toList();
+    List<Image> postImages =
+        postImageRepository.findAllByPostIdOrderByDisplayOrderAsc(postId).stream()
+            .map(PostImage::getImage)
+            .toList();
+    List<Image> statementImages =
+        postStatementImageRepository.findAllByPostStatementPostId(postId).stream()
+            .map(PostStatementImage::getImage)
+            .toList();
 
     Instant now = Instant.now(clock);
     postImages.forEach(image -> image.delete(now));
@@ -215,7 +208,9 @@ public class ImageService {
     postImageRepository.deleteAllByPostId(postId);
     postStatementImageRepository.deleteAllByPostStatementPostId(postId);
 
-    log.info("게시글 이미지 삭제 처리: postId={}, imageCount={}", postId,
+    log.info(
+        "게시글 이미지 삭제 처리: postId={}, imageCount={}",
+        postId,
         postImages.size() + statementImages.size());
   }
 
@@ -238,12 +233,10 @@ public class ImageService {
       throw new BusinessException(ImageErrorCode.IMAGE_NOT_FOUND);
     }
 
-    Map<UUID, Image> imagesById = images.stream()
-        .collect(Collectors.toMap(Image::getId, image -> image));
+    Map<UUID, Image> imagesById =
+        images.stream().collect(Collectors.toMap(Image::getId, image -> image));
 
-    List<Image> orderedImages = requestedImageIds.stream()
-        .map(imagesById::get)
-        .toList();
+    List<Image> orderedImages = requestedImageIds.stream().map(imagesById::get).toList();
 
     for (Image image : orderedImages) {
       if (!image.getUser().getId().equals(user.getId())) {

@@ -22,20 +22,18 @@ public class OciImageStorage {
   private final OciObjectStorageProperties properties;
 
   public String upload(UUID userId, MultipartFile file, String contentType) throws IOException {
-    String objectName = "%s/%s/%s".formatted(
-        properties.getImagePrefix(),
-        userId,
-        UUID.randomUUID()
-    );
+    String objectName =
+        "%s/%s/%s".formatted(properties.getImagePrefix(), userId, UUID.randomUUID());
 
-    PutObjectRequest request = PutObjectRequest.builder()
-        .namespaceName(properties.getNamespace())
-        .bucketName(properties.getBucket())
-        .objectName(objectName)
-        .contentType(contentType)
-        .contentLength(file.getSize())
-        .putObjectBody(file.getInputStream())
-        .build();
+    PutObjectRequest request =
+        PutObjectRequest.builder()
+            .namespaceName(properties.getNamespace())
+            .bucketName(properties.getBucket())
+            .objectName(objectName)
+            .contentType(contentType)
+            .contentLength(file.getSize())
+            .putObjectBody(file.getInputStream())
+            .build();
 
     objectStorageClientProvider.getObject().putObject(request);
     return objectName;
@@ -46,11 +44,12 @@ public class OciImageStorage {
   }
 
   public void delete(String objectName) {
-    DeleteObjectRequest request = DeleteObjectRequest.builder()
-        .namespaceName(properties.getNamespace())
-        .bucketName(properties.getBucket())
-        .objectName(objectName)
-        .build();
+    DeleteObjectRequest request =
+        DeleteObjectRequest.builder()
+            .namespaceName(properties.getNamespace())
+            .bucketName(properties.getBucket())
+            .objectName(objectName)
+            .build();
 
     objectStorageClientProvider.getObject().deleteObject(request);
   }
@@ -60,7 +59,6 @@ public class OciImageStorage {
         properties.getNamespace(),
         properties.getRegion(),
         properties.getNamespace(),
-        properties.getBucket()
-    );
+        properties.getBucket());
   }
 }

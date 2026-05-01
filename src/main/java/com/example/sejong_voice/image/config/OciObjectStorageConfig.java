@@ -24,8 +24,7 @@ public class OciObjectStorageConfig {
   @Bean
   @Lazy
   public ObjectStorageClient objectStorageClient(
-      BasicAuthenticationDetailsProvider authenticationDetailsProvider
-  ) {
+      BasicAuthenticationDetailsProvider authenticationDetailsProvider) {
     ObjectStorageClient client = ObjectStorageClient.builder().build(authenticationDetailsProvider);
     client.setRegion(Region.fromRegionId(properties.getRegion()));
     return client;

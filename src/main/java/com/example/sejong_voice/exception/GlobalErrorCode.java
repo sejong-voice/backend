@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum GlobalErrorCode implements ErrorCode { // ErrorCode 구현 필수!
-
   INVALID_INPUT_VALUE(400, "COMMON_001", "입력값이 올바르지 않습니다."),
   JSON_PARSE_ERROR(400, "COMMON_002", "JSON 형식이 올바르지 않습니다."),
 

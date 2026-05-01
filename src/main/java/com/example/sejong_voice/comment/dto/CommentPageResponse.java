@@ -11,16 +11,14 @@ public record CommentPageResponse(
     long activeCommentCount,
     int totalPages,
     boolean first,
-    boolean last
-) {
+    boolean last) {
 
   public static CommentPageResponse of(
       List<CommentResponse> content,
       int page,
       int size,
       long displayableRootCommentCount,
-      long activeCommentCount
-  ) {
+      long activeCommentCount) {
     int totalPages = size == 0 ? 0 : (int) Math.ceil((double) displayableRootCommentCount / size);
 
     return new CommentPageResponse(
@@ -32,7 +30,6 @@ public record CommentPageResponse(
         activeCommentCount,
         totalPages,
         page == 0,
-        page + 1 >= totalPages
-    );
+        page + 1 >= totalPages);
   }
 }

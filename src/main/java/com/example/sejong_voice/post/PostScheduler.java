@@ -19,17 +19,12 @@ public class PostScheduler {
   private final PostService postService;
   private final Clock clock;
 
-  /**
-   * 매일 자정(00:00)에 종료 시간이 지난 투표 게시물을 찾아 자동으로 종료 처리
-   */
+  /** 매일 자정(00:00)에 종료 시간이 지난 투표 게시물을 찾아 자동으로 종료 처리 */
   @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
   public void autoCloseExpiredVotes() {
     log.info("[Scheduler] 만료된 투표 게시물 자동 종료 체크 시작...");
 
-    List<Post> expiredPosts = postService.findClosable(
-        PostStatus.VOTING,
-        Instant.now(clock)
-    );
+    List<Post> expiredPosts = postService.findClosable(PostStatus.VOTING, Instant.now(clock));
 
     if (expiredPosts.isEmpty()) {
       return;

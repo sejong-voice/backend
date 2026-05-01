@@ -36,16 +36,13 @@ public class CommentService {
   private final Clock clock;
 
   @Transactional
-  public UUID create(
-      User user,
-      Post post,
-      UUID rootCommentId,
-      String content
-  ) {
+  public UUID create(User user, Post post, UUID rootCommentId, String content) {
     Comment rootComment = null;
     if (rootCommentId != null) {
-      rootComment = commentRepository.findById(rootCommentId)
-          .orElseThrow(() -> new BusinessException(CommentErrorCode.COMMENT_NOT_FOUND));
+      rootComment =
+          commentRepository
+              .findById(rootCommentId)
+              .orElseThrow(() -> new BusinessException(CommentErrorCode.COMMENT_NOT_FOUND));
 
       if (rootComment.getRootComment() != null) {
         throw new BusinessException(CommentErrorCode.ROOT_COMMENT_REQUIRED);
@@ -60,13 +57,14 @@ public class CommentService {
       }
     }
 
-    Comment comment = Comment.builder()
-        .user(user)
-        .post(post)
-        .rootComment(rootComment)
-        .content(content)
-        .createdAt(Instant.now(clock))
-        .build();
+    Comment comment =
+        Comment.builder()
+            .user(user)
+            .post(post)
+            .rootComment(rootComment)
+            .content(content)
+            .createdAt(Instant.now(clock))
+            .build();
 
     UUID id = commentRepository.save(comment).getId();
     log.info("댓글 생성: commentId={}", id);
@@ -78,25 +76,21 @@ public class CommentService {
     UUID postId = post.getId();
     UUID postAuthorId = post.getUser().getId();
 
-    Page<Comment> rootPage = commentRepository.findDisplayableRootCommentsByPostId(postId, pageable);
+    Page<Comment> rootPage =
+        commentRepository.findDisplayableRootCommentsByPostId(postId, pageable);
 
-    List<UUID> rootCommentIds = rootPage.getContent().stream()
-        .map(Comment::getId)
-        .toList();
+    List<UUID> rootCommentIds = rootPage.getContent().stream().map(Comment::getId).toList();
 
-    List<Comment> replies = rootCommentIds.isEmpty()
-        ? List.of()
-        : commentRepository.findActiveRepliesByRootCommentIds(rootCommentIds);
+    List<Comment> replies =
+        rootCommentIds.isEmpty()
+            ? List.of()
+            : commentRepository.findActiveRepliesByRootCommentIds(rootCommentIds);
 
     Map<UUID, Integer> anonymousNumberByUserId = createAnonymousNumberByUserId(postId);
 
-    List<CommentResponse> responses = commentResponseAssembler.assemble(
-        rootPage.getContent(),
-        replies,
-        currentUserId,
-        postAuthorId,
-        anonymousNumberByUserId
-    );
+    List<CommentResponse> responses =
+        commentResponseAssembler.assemble(
+            rootPage.getContent(), replies, currentUserId, postAuthorId, anonymousNumberByUserId);
 
     long activeCommentCount = commentRepository.countActiveByPostId(postId);
 
@@ -105,12 +99,12 @@ public class CommentService {
         pageable.getPageNumber(),
         pageable.getPageSize(),
         rootPage.getTotalElements(),
-        activeCommentCount
-    );
+        activeCommentCount);
   }
 
   private Map<UUID, Integer> createAnonymousNumberByUserId(UUID postId) {
-    List<UUID> authorIds = commentRepository.findCommentAuthorIdsByPostIdOrderByFirstCommentAt(postId);
+    List<UUID> authorIds =
+        commentRepository.findCommentAuthorIdsByPostIdOrderByFirstCommentAt(postId);
     Map<UUID, Integer> anonymousNumberByUserId = new LinkedHashMap<>();
 
     for (UUID authorId : authorIds) {
@@ -126,16 +120,15 @@ public class CommentService {
     }
 
     return commentRepository.countActiveByPostIds(postIds).stream()
-        .collect(Collectors.toMap(
-            PostCountRow::postId,
-            PostCountRow::count
-        ));
+        .collect(Collectors.toMap(PostCountRow::postId, PostCountRow::count));
   }
 
   @Transactional
   public void delete(UUID userId, UUID commentId) {
-    Comment comment = commentRepository.findById(commentId)
-        .orElseThrow(() -> new BusinessException(CommentErrorCode.COMMENT_NOT_FOUND));
+    Comment comment =
+        commentRepository
+            .findById(commentId)
+            .orElseThrow(() -> new BusinessException(CommentErrorCode.COMMENT_NOT_FOUND));
 
     if (!comment.getUser().getId().equals(userId)) {
       throw new BusinessException(CommentErrorCode.ACCESS_DENIED);

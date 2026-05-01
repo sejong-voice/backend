@@ -10,13 +10,10 @@ public record PostSearchCondition(
     String keyword,
     Boolean mine,
     Boolean assignedToMe,
-
-    UUID currentUserId
-) {
+    UUID currentUserId) {
 
   public PostSearchCondition withCurrentUserId(UUID currentUserId) {
     return new PostSearchCondition(
-        status, councilId, categoryId, keyword, mine, assignedToMe, currentUserId
-    );
+        status, councilId, categoryId, keyword, mine, assignedToMe, currentUserId);
   }
 }

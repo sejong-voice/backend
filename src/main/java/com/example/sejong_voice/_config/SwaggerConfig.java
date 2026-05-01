@@ -28,18 +28,22 @@ public class SwaggerConfig {
     SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwtSchemeName);
 
     // SecurityScheme 정의
-    Components components = new Components()
-        .addSecuritySchemes(jwtSchemeName, new SecurityScheme()
-            .name(jwtSchemeName)
-            .type(SecurityScheme.Type.HTTP)
-            .scheme("Bearer")
-            .bearerFormat("JWT"));
+    Components components =
+        new Components()
+            .addSecuritySchemes(
+                jwtSchemeName,
+                new SecurityScheme()
+                    .name(jwtSchemeName)
+                    .type(SecurityScheme.Type.HTTP)
+                    .scheme("Bearer")
+                    .bearerFormat("JWT"));
 
     return new OpenAPI()
-        .info(new Info()
-            .title("Sejong Voice API 문서")
-            .description("세종 신문고 프로젝트 API 명세서입니다.")
-            .version("v1.0.0"))
+        .info(
+            new Info()
+                .title("Sejong Voice API 문서")
+                .description("세종 신문고 프로젝트 API 명세서입니다.")
+                .version("v1.0.0"))
         .addSecurityItem(securityRequirement)
         .components(components);
   }

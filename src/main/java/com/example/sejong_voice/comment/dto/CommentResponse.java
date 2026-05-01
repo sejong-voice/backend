@@ -15,16 +15,14 @@ public record CommentResponse(
     boolean postAuthor,
     boolean canDelete,
     Instant createdAt,
-    List<ReplyResponse> replies
-) {
+    List<ReplyResponse> replies) {
 
   public static CommentResponse from(
       Comment comment,
       UUID currentUserId,
       UUID postAuthorId,
       Map<UUID, Integer> anonymousNumberByUserId,
-      List<ReplyResponse> replies
-  ) {
+      List<ReplyResponse> replies) {
     return new CommentResponse(
         comment.getId(),
         resolveAnonymousNumber(comment, anonymousNumberByUserId),
@@ -33,14 +31,11 @@ public record CommentResponse(
         isPostAuthor(comment, postAuthorId),
         canDelete(comment, currentUserId),
         comment.getCreatedAt(),
-        replies
-    );
+        replies);
   }
 
   static Integer resolveAnonymousNumber(
-      Comment comment,
-      Map<UUID, Integer> anonymousNumberByUserId
-  ) {
+      Comment comment, Map<UUID, Integer> anonymousNumberByUserId) {
     if (comment.getStatus() != CommentStatus.ACTIVE) {
       return null;
     }

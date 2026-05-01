@@ -7,7 +7,6 @@ import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.dto.PostStatementCreateRequest;
-import com.example.sejong_voice.post.entity.PostStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,7 +28,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "게시글 API", description = "게시글 생성/조회/삭제 API (VOTING(투표중), APPROVED(승인됨), PENDING(투표 미달로 기각), COMPLETED(승인된 투표에 대한 응답완료), REJECTED(승인은 되었으나 모종의 이유로 거절)))")
+@Tag(
+    name = "게시글 API",
+    description =
+        "게시글 생성/조회/삭제 API (VOTING(투표중), APPROVED(승인됨), PENDING(투표 미달로 기각), COMPLETED(승인된 투표에 대한 응답완료), REJECTED(승인은 되었으나 모종의 이유로 거절)))")
 @RestController
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
@@ -37,100 +39,78 @@ public class PostController {
 
   private final PostFacade postFacade;
 
-  @Operation(
-      summary = "게시글 생성",
-      description = "새 게시글(민원)을 생성합니다."
-  )
+  @Operation(summary = "게시글 생성", description = "새 게시글(민원)을 생성합니다.")
   @PostMapping
   public ResponseEntity<UUID> create(
-      @RequestBody @Valid PostCreateRequest request,
-      @AuthUser UserPrincipal userPrincipal
-  ) {
-    UUID id = postFacade.create(
-        userPrincipal.getUserId(),
-        request.title(),
-        request.content(),
-        request.councilId(),
-        request.categoryId(),
-        request.postVotingDuration(),
-        request.imageIds()
-    );
+      @RequestBody @Valid PostCreateRequest request, @AuthUser UserPrincipal userPrincipal) {
+    UUID id =
+        postFacade.create(
+            userPrincipal.getUserId(),
+            request.title(),
+            request.content(),
+            request.councilId(),
+            request.categoryId(),
+            request.postVotingDuration(),
+            request.imageIds());
 
     return ResponseEntity.status(HttpStatus.CREATED).body(id);
   }
 
-  @Operation(
-      summary = "게시글 목록 조회",
-      description = "조건/페이징 기반으로 게시글 목록을 조회합니다."
-  )
+  @Operation(summary = "게시글 목록 조회", description = "조건/페이징 기반으로 게시글 목록을 조회합니다.")
   @GetMapping
   public ResponseEntity<Page<PostListResponse>> getPosts(
       @ParameterObject @ModelAttribute PostSearchCondition condition,
-      @ParameterObject @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
-      @AuthUser UserPrincipal userPrincipal
-  ) {
+      @ParameterObject
+          @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC)
+          Pageable pageable,
+      @AuthUser UserPrincipal userPrincipal) {
     UUID currentUserId = (userPrincipal != null) ? userPrincipal.getUserId() : null;
     PostSearchCondition postSearchCondition = condition.withCurrentUserId(currentUserId);
 
     return ResponseEntity.ok(postFacade.getPosts(postSearchCondition, pageable));
   }
 
-  @Operation(
-      summary = "게시글 상세 조회",
-      description = "게시글 ID로 단건 상세 정보를 조회합니다."
-  )
+  @Operation(summary = "게시글 상세 조회", description = "게시글 ID로 단건 상세 정보를 조회합니다.")
   @GetMapping("/{postId}")
   public ResponseEntity<PostDetailResponse> get(
-      @PathVariable UUID postId,
-      @AuthUser UserPrincipal userPrincipal
-  ) {
+      @PathVariable UUID postId, @AuthUser UserPrincipal userPrincipal) {
     UUID currentUserId = (userPrincipal != null) ? userPrincipal.getUserId() : null;
     return ResponseEntity.ok(postFacade.get(postId, currentUserId));
   }
 
-  @Operation(
-      summary = "게시글 삭제",
-      description = "작성자 권한으로 게시글을 삭제합니다."
-  )
+  @Operation(summary = "게시글 삭제", description = "작성자 권한으로 게시글을 삭제합니다.")
   @DeleteMapping("/{postId}")
   public ResponseEntity<Void> delete(
-      @PathVariable UUID postId,
-      @AuthUser UserPrincipal userPrincipal
-  ) {
+      @PathVariable UUID postId, @AuthUser UserPrincipal userPrincipal) {
     postFacade.delete(postId, userPrincipal.getUserId());
     return ResponseEntity.noContent().build();
   }
 
   @Operation(
       summary = "게시글 조기 종료",
-      description = "학생회가 현재 진행 중인 게시글 투표를 조기 종료합니다. 조건은 minVote(최소투표수), Ratio(찬성비율)를 만족한 경우에 가능합니다"
-  )
+      description =
+          "학생회가 현재 진행 중인 게시글 투표를 조기 종료합니다. 조건은 minVote(최소투표수), Ratio(찬성비율)를 만족한 경우에 가능합니다")
   @PostMapping("/{postId}/close")
   public ResponseEntity<Void> closeEarly(
-      @PathVariable UUID postId,
-      @AuthUser UserPrincipal userPrincipal
-  ) {
+      @PathVariable UUID postId, @AuthUser UserPrincipal userPrincipal) {
     postFacade.closeEarly(postId, userPrincipal.getUserId());
     return ResponseEntity.ok().build();
   }
 
   @Operation(
       summary = "게시글 입장문 생성",
-      description = "입장문을 생성합니다. 첫 입장문 생성 시에는 최종 상태를 함께 확정합니다. 수정 및 삭제는 지원하지 않습니다."
-  )
+      description = "입장문을 생성합니다. 첫 입장문 생성 시에는 최종 상태를 함께 확정합니다. 수정 및 삭제는 지원하지 않습니다.")
   @PostMapping("/{postId}/statements")
   public ResponseEntity<Void> createStatement(
       @PathVariable UUID postId,
       @RequestBody @Valid PostStatementCreateRequest request,
-      @AuthUser UserPrincipal userPrincipal
-  ) {
+      @AuthUser UserPrincipal userPrincipal) {
     postFacade.createStatement(
         postId,
         userPrincipal.getUserId(),
         request.finalStatus(),
         request.content(),
-        request.imageIds()
-    );
+        request.imageIds());
     return ResponseEntity.status(HttpStatus.CREATED).build();
   }
 }
