@@ -6,14 +6,16 @@ import com.example.sejong_voice.comment.CommentService;
 import com.example.sejong_voice.council.CouncilService;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.exception.BusinessException;
-import com.example.sejong_voice.image.ImageFacade;
 import com.example.sejong_voice.image.ImageService;
 import com.example.sejong_voice.image.dto.PostImageResponse;
+import com.example.sejong_voice.image.dto.PostImageView;
+import com.example.sejong_voice.image.dto.PostStatementImageView;
 import com.example.sejong_voice.notification.NotificationService;
 import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.dto.PostStatementResponse;
+import com.example.sejong_voice.post.dto.PostStatementView;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatus;
 import com.example.sejong_voice.post.entity.PostStatement;
@@ -28,6 +30,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,7 +49,6 @@ public class PostFacade {
   private final VoteService voteService;
   private final NotificationService notificationService;
   private final ImageService imageService;
-  private final ImageFacade imageFacade;
   private final CommentService commentService;
   private final Clock clock;
 
@@ -68,17 +70,15 @@ public class PostFacade {
     Category category = categoryService.getById(categoryId);
     Post post = postService.create(user, council, category, title, content, votingDuration);
     imageService.attachImagesToPost(user, post, imageIds);
-
     return post.getId();
   }
 
   @Transactional
-  public PostDetailResponse getPost(UUID postId, UUID userId) {
-    Post post = postService.getDetailPost(postId);
-    long agreeCount = voteService.countAgree(postId);
-    long totalCount = agreeCount + voteService.countDisagree(postId);
-    boolean canVote = false;
+  public PostDetailResponse get(UUID postId, UUID userId) {
+    Post post = postService.get(postId);
+    post.incrementViewCount();
 
+    boolean canVote = false;
     if (userId != null) {
       User user = userService.getById(userId);
       canVote = councilService.hasAccessToCouncil(user, post.getCouncil())
@@ -86,22 +86,43 @@ public class PostFacade {
           && Instant.now(clock).isBefore(post.getVotingEndAt());
     }
 
-    List<PostStatement> statements = postStatementService.getStatements(post.getId());
-    List<UUID> statementIds = statements.stream()
-        .map(PostStatement::getId)
+    long agreeCount = voteService.countAgree(postId);
+    long totalCount = agreeCount + voteService.countDisagree(postId);
+    boolean canCloseEarly = postService.canCloseEarly(post, agreeCount, totalCount);
+
+    List<PostImageView> images = imageService.getPostImages(post.getId());
+    List<PostImageResponse> imageResponses = images.stream()
+        .map(image -> PostImageResponse.of(image.imageId(), image.imageUrl()))
         .toList();
-    Map<UUID, List<PostImageResponse>> statementImagesById =
-        imageFacade.getActiveStatementImagesByStatementIds(statementIds);
+
+    List<PostStatementView> statements = postStatementService.getStatements(post.getId());
+    List<UUID> statementIds = statements.stream()
+        .map(PostStatementView::id)
+        .toList();
+
+    Map<UUID, List<PostImageResponse>> statementImageResponsesById =
+        imageService.getStatementImagesByStatementIds(statementIds)
+            .entrySet()
+            .stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> entry.getValue().stream()
+                    .map(PostFacade::toPostImageResponse)
+                    .toList()
+            ));
+
     List<PostStatementResponse> statementResponses = statements.stream()
-        .map(statement -> PostStatementResponse.from(statement)
-            .withImages(statementImagesById.getOrDefault(statement.getId(), List.of())))
+        .map(statement -> PostStatementResponse.from(
+            statement,
+            statementImageResponsesById.getOrDefault(statement.id(), List.of())
+        ))
         .toList();
 
     return PostDetailResponse.from(
         post,
         canVote,
-        postService.canCloseEarly(post, agreeCount, totalCount),
-        imageFacade.getActivePostImages(post.getId()),
+        canCloseEarly,
+        imageResponses,
         statementResponses
     );
   }
@@ -132,7 +153,7 @@ public class PostFacade {
 
   @Transactional
   public void delete(UUID postId, UUID userId) {
-    Post post = postService.getById(postId);
+    Post post = postService.get(postId);
     User user = userService.getById(userId);
 
     boolean isAuthor = post.getUser().getId().equals(userId);
@@ -154,7 +175,7 @@ public class PostFacade {
 
   @Transactional
   public void closeEarly(UUID postId, UUID userId) {
-    Post post = postService.getById(postId);
+    Post post = postService.get(postId);
     boolean isMember = councilService.isAdmin(userId, post.getCouncil().getId());
 
     if (!isMember) {
@@ -168,16 +189,6 @@ public class PostFacade {
     notificationService.createPostApprovedNotifications(post);
   }
 
-  /**
-   * 게시글에 입장문을 생성합니다.
-   *
-   * @param postId      게시글 ID
-   * @param userId      요청한 사용자 ID
-   * @param finalStatus 첫 입장문 생성 시 확정할 최종 상태
-   * @param content     입장문 내용
-   * @param imageIds    입장문 이미지 ID 목록
-   * @throws BusinessException 접근 권한이 없거나 입장문 생성 조건을 만족하지 못한 경우
-   */
   @Transactional
   public void createStatement(
       UUID postId,
@@ -226,7 +237,7 @@ public class PostFacade {
 
   @Transactional
   public void processClosing(UUID postId) {
-    Post post = postService.getById(postId);
+    Post post = postService.get(postId);
     PostStatus beforeStatus = post.getStatus();
 
     long agreeCount = voteService.countAgree(postId);
@@ -238,5 +249,9 @@ public class PostFacade {
     if (beforeStatus != PostStatus.APPROVED && afterStatus == PostStatus.APPROVED) {
       notificationService.createPostApprovedNotifications(post);
     }
+  }
+
+  private static PostImageResponse toPostImageResponse(PostStatementImageView image) {
+    return new PostImageResponse(image.imageId(), image.imageUrl());
   }
 }

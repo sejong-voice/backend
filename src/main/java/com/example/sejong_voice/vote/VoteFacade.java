@@ -36,7 +36,7 @@ public class VoteFacade {
   @Transactional
   public void cast(UUID postId, UUID userId, VoteChoice choice) {
     User user = userService.getById(userId);
-    Post post = postService.getById(postId);
+    Post post = postService.get(postId);
     if (!councilService.hasAccessToCouncil(user, post.getCouncil())) {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
@@ -67,7 +67,7 @@ public class VoteFacade {
   }
 
   private Post getPostForVoteResult(UUID postId, UUID userId) {
-    Post post = postService.getById(postId);
+    Post post = postService.get(postId);
     User user = userService.getById(userId);
 
     boolean isSuper = user.getRole() == UserRole.SUPER;

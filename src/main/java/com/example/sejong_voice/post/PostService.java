@@ -3,7 +3,6 @@ package com.example.sejong_voice.post;
 import com.example.sejong_voice.category.entity.Category;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.exception.BusinessException;
-import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.entity.Post;
@@ -13,7 +12,6 @@ import com.example.sejong_voice.post.exception.PostErrorCode;
 import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.user.entity.User;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -61,19 +59,8 @@ public class PostService {
         council.getId(),
         category.getId()
     );
+
     return postRepository.save(post);
-  }
-
-  @Transactional
-  public Post getDetailPost(UUID id) {
-    Post post = postRepository.findByIdAndDeletedAtIsNull(id)
-        .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
-
-    // 조회수 증가
-    post.incrementViewCount();
-    log.info("게시물 상세 조회: postId={}", id);
-
-    return post;
   }
 
   public Page<PostListResponse> getPosts(PostSearchCondition condition, Pageable pageable) {
@@ -89,7 +76,7 @@ public class PostService {
     return postList;
   }
 
-  public Post getById(UUID id) {
+  public Post get(UUID id) {
     return postRepository.findByIdAndDeletedAtIsNull(id)
         .orElseThrow(() -> new BusinessException(PostErrorCode.POST_NOT_FOUND));
   }
@@ -101,14 +88,14 @@ public class PostService {
 
   @Transactional
   public void delete(UUID postId) {
-    Post post = getById(postId);
+    Post post = get(postId);
     post.delete(Instant.now(clock));
     log.info("게시물 삭제 완료: postId={}", postId);
   }
 
   @Transactional
   public void close(UUID postId, long agreeCount, long totalCount) {
-    Post post = getById(postId);
+    Post post = get(postId);
     if (post.getStatus() != PostStatus.VOTING) {
       return;
     }
@@ -128,7 +115,7 @@ public class PostService {
 
   @Transactional
   public void closeEarly(UUID postId, long agreeCount, long totalCount) {
-    Post post = getById(postId);
+    Post post = get(postId);
 
     if (!canCloseEarly(post, agreeCount, totalCount)) {
       throw new BusinessException(PostErrorCode.EARLY_CLOSE_NOT_AVAILABLE);

@@ -1,5 +1,6 @@
 package com.example.sejong_voice.post;
 
+import com.example.sejong_voice.post.dto.PostStatementView;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatement;
 import com.example.sejong_voice.post.repository.PostStatementRepository;
@@ -62,7 +63,8 @@ public class PostStatementService {
    * @param postId 게시글 ID
    * @return 입장문 목록
    */
-  public List<PostStatement> getStatements(UUID postId) {
-    return postStatementRepository.findAllByPostIdOrderBySequenceAsc(postId);
+  public List<PostStatementView> getStatements(UUID postId) {
+    List<PostStatement> postStatements = postStatementRepository.findAllByPostIdOrderBySequenceAsc(postId);
+    return PostStatementView.from(postStatements);
   }
 }

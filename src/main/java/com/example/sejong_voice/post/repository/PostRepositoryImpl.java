@@ -39,7 +39,7 @@ public class PostRepositoryImpl implements PostRepositoryCustom {
             assignedToMe(condition.assignedToMe(), condition.currentUserId()),
             keywordContains(condition.keyword()),
             isMine(condition.mine(), condition.currentUserId()),
-            post.visibilityStatus.eq(PostModerationStatus.ACTIVE), // ACTIVE만 조회가능하게
+            post.visibilityStatus.eq(PostModerationStatus.ACTIVE),
             post.deletedAt.isNull()
         )
         .offset(pageable.getOffset())

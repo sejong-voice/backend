@@ -5,12 +5,22 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface PostImageRepository extends JpaRepository<PostImage, UUID> {
 
-  List<PostImage> findAllByPostIdOrderByDisplayOrderAsc(UUID postId);
+  @Query("""
+      select pi
+      from PostImage pi
+      join fetch pi.image i
+      where pi.post.id = :postId
+        and i.deletedAt is null
+      order by pi.displayOrder asc
+  """)
+  List<PostImage> findAllByPostIdOrderByDisplayOrderAsc(@Param("postId") UUID postId);
 
-  List<PostImage> findAllByPostIdInOrderByDisplayOrderAsc(Collection<UUID> postIds);
+  boolean existsByImageId(UUID imageId);
 
   void deleteAllByPostId(UUID postId);
 }
