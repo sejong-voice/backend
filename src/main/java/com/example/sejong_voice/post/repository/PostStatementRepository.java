@@ -11,6 +11,4 @@ public interface PostStatementRepository extends JpaRepository<PostStatement, UU
   long countByPostId(UUID postId);
 
   List<PostStatement> findAllByPostIdOrderBySequenceAsc(UUID postId);
-
-  List<PostStatement> findAllByPostIdInOrderByPostIdAscSequenceAsc(Collection<UUID> postIds);
 }

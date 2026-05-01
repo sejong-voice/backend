@@ -1,7 +1,6 @@
 package com.example.sejong_voice.post.dto;
 
 import com.example.sejong_voice.image.dto.PostImageResponse;
-import com.example.sejong_voice.post.entity.PostStatement;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -16,17 +15,16 @@ public record PostStatementResponse(
     List<PostImageResponse> images
 ) {
 
-  public static PostStatementResponse from(PostStatement postStatement) {
+  public static PostStatementResponse from(
+      PostStatementView postStatement,
+      List<PostImageResponse> images
+  ) {
     return PostStatementResponse.builder()
-        .id(postStatement.getId())
-        .sequence(postStatement.getSequence())
-        .content(postStatement.getContent())
-        .createdAt(postStatement.getCreatedAt())
-        .images(List.of())
+        .id(postStatement.id())
+        .sequence(postStatement.sequence())
+        .content(postStatement.content())
+        .createdAt(postStatement.createdAt())
+        .images(images)
         .build();
-  }
-
-  public PostStatementResponse withImages(List<PostImageResponse> images) {
-    return new PostStatementResponse(id, sequence, content, createdAt, images);
   }
 }

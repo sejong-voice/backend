@@ -16,5 +16,7 @@ public interface PostStatementImageRepository extends JpaRepository<PostStatemen
 
   List<PostStatementImage> findAllByPostStatementPostId(UUID postId);
 
+  boolean existsByImageId(UUID imageId);
+
   void deleteAllByPostStatementPostId(UUID postId);
 }

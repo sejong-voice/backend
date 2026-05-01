@@ -22,7 +22,11 @@ public class OciImageStorage {
   private final OciObjectStorageProperties properties;
 
   public String upload(UUID userId, MultipartFile file, String contentType) throws IOException {
-    String objectName = buildObjectName(userId, file.getOriginalFilename());
+    String objectName = "%s/%s/%s".formatted(
+        properties.getImagePrefix(),
+        userId,
+        UUID.randomUUID()
+    );
 
     PutObjectRequest request = PutObjectRequest.builder()
         .namespaceName(properties.getNamespace())
@@ -33,7 +37,7 @@ public class OciImageStorage {
         .putObjectBody(file.getInputStream())
         .build();
 
-    getClient().putObject(request);
+    objectStorageClientProvider.getObject().putObject(request);
     return objectName;
   }
 
@@ -48,19 +52,7 @@ public class OciImageStorage {
         .objectName(objectName)
         .build();
 
-    getClient().deleteObject(request);
-  }
-
-  private ObjectStorageClient getClient() {
-    return objectStorageClientProvider.getObject();
-  }
-
-  private String buildObjectName(UUID userId, String originalFileName) {
-    return "%s/%s/%s".formatted(
-        properties.getImagePrefix(),
-        userId,
-        UUID.randomUUID()
-    );
+    objectStorageClientProvider.getObject().deleteObject(request);
   }
 
   private String resolveObjectBaseUrl() {

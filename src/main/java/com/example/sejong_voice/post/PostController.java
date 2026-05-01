@@ -7,6 +7,7 @@ import com.example.sejong_voice.post.dto.PostDetailResponse;
 import com.example.sejong_voice.post.dto.PostListResponse;
 import com.example.sejong_voice.post.dto.PostSearchCondition;
 import com.example.sejong_voice.post.dto.PostStatementCreateRequest;
+import com.example.sejong_voice.post.entity.PostStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -28,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "게시글 API", description = "게시글 생성/조회/삭제 API (VOTING(투표중), APPROVED(승인됨), PENDING(투표 미달로 기각), COMPLETED(승인된 투표에 대한 응답완료), REJECTED(모종의 이유로 승인은 되었으나 답변은 하지 못하는 경우 거절)))")
+@Tag(name = "게시글 API", description = "게시글 생성/조회/삭제 API (VOTING(투표중), APPROVED(승인됨), PENDING(투표 미달로 기각), COMPLETED(승인된 투표에 대한 응답완료), REJECTED(승인은 되었으나 모종의 이유로 거절)))")
 @RestController
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
@@ -37,8 +38,8 @@ public class PostController {
   private final PostFacade postFacade;
 
   @Operation(
-          summary = "게시글 생성",
-          description = "새 게시글(민원)을 생성합니다."
+      summary = "게시글 생성",
+      description = "새 게시글(민원)을 생성합니다."
   )
   @PostMapping
   public ResponseEntity<UUID> create(
@@ -60,7 +61,7 @@ public class PostController {
 
   @Operation(
       summary = "게시글 목록 조회",
-      description = "조건/페이징 기반으로 게시글 목록을 조회합니다.ACTIVE(보여지는 게시글),DELETED(삭제할 게시글),BLINDED(가림 처리한 게시글). ACTIVE 상태만 필터링해서 프론트로 보내줄거임"
+      description = "조건/페이징 기반으로 게시글 목록을 조회합니다."
   )
   @GetMapping
   public ResponseEntity<Page<PostListResponse>> getPosts(
@@ -75,17 +76,16 @@ public class PostController {
   }
 
   @Operation(
-          summary = "게시글 상세 조회",
-          description = "게시글 ID로 단건 상세 정보를 조회합니다. ACTIVE(보여지는 게시글),DELETED(삭제할 게시글),BLINDED(가림 처리한 게시글). ACTIVE 상태만 필터링해서 프론트로 보내줄거임"
+      summary = "게시글 상세 조회",
+      description = "게시글 ID로 단건 상세 정보를 조회합니다."
   )
   @GetMapping("/{postId}")
   public ResponseEntity<PostDetailResponse> get(
       @PathVariable UUID postId,
       @AuthUser UserPrincipal userPrincipal
   ) {
-    return ResponseEntity.ok(
-        postFacade.getPost(postId, userPrincipal != null ? userPrincipal.getUserId() : null)
-    );
+    UUID currentUserId = (userPrincipal != null) ? userPrincipal.getUserId() : null;
+    return ResponseEntity.ok(postFacade.get(postId, currentUserId));
   }
 
   @Operation(
@@ -103,7 +103,7 @@ public class PostController {
 
   @Operation(
       summary = "게시글 조기 종료",
-      description = "학생회가 현재 진행 중인 게시글 투표를 조기 종료합니다. 조건은 minVote(최소투표수), Ratio(투표비율)를 만족한 경우에 가능합니다"
+      description = "학생회가 현재 진행 중인 게시글 투표를 조기 종료합니다. 조건은 minVote(최소투표수), Ratio(찬성비율)를 만족한 경우에 가능합니다"
   )
   @PostMapping("/{postId}/close")
   public ResponseEntity<Void> closeEarly(
@@ -114,15 +114,6 @@ public class PostController {
     return ResponseEntity.ok().build();
   }
 
-  /**
-   * 게시글의 입장문을 생성합니다.
-   *
-   * @param postId 게시글 ID
-   * @param request 입장문 생성 요청
-   * @param userPrincipal 인증된 사용자 정보
-   * @return 생성 결과 응답
-   * @throws com.example.sejong_voice.exception.BusinessException 입장문 생성 조건을 만족하지 못한 경우
-   */
   @Operation(
       summary = "게시글 입장문 생성",
       description = "입장문을 생성합니다. 첫 입장문 생성 시에는 최종 상태를 함께 확정합니다. 수정 및 삭제는 지원하지 않습니다."

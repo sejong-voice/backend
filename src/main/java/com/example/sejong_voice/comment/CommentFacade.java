@@ -23,14 +23,14 @@ public class CommentFacade {
   @Transactional
   public UUID create(UUID userId, UUID postId, UUID rootCommentId, String content) {
     User user = userService.getById(userId);
-    Post post = postService.getById(postId);
+    Post post = postService.get(postId);
     
     return commentService.create(user, post, rootCommentId, content);
   }
 
   @Transactional(readOnly = true)
   public CommentPageResponse getAllByPostId(UUID postId, UUID currentUserId, Pageable pageable) {
-    Post post = postService.getById(postId);
+    Post post = postService.get(postId);
 
     return commentService.getAllByPost(post, currentUserId, pageable);
   }

@@ -3,8 +3,6 @@ package com.example.sejong_voice.image.entity;
 import com.example.sejong_voice.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -44,14 +42,8 @@ public class Image {
   @Column(nullable = false)
   private Long size;
 
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private ImageStatus status;
-
   @Column(nullable = false)
   private Instant createdAt;
-
-  private Instant activatedAt;
 
   private Instant deletedAt;
 
@@ -69,18 +61,10 @@ public class Image {
     this.objectName = objectName;
     this.contentType = contentType;
     this.size = size;
-    this.status = ImageStatus.TEMP;
     this.createdAt = createdAt;
   }
 
-  public void activate(Instant activatedAt) {
-    this.status = ImageStatus.ACTIVE;
-    this.activatedAt = activatedAt;
-    this.deletedAt = null;
-  }
-
-  public void markDeleted(Instant deletedAt) {
-    this.status = ImageStatus.DELETED;
+  public void delete(Instant deletedAt) {
     this.deletedAt = deletedAt;
   }
 }
