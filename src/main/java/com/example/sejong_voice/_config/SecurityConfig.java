@@ -53,6 +53,8 @@ public class SecurityConfig {
                     .requestMatchers(
                         "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/consent-login")
                     .permitAll() // refresh는 토큰이 만료되어도 접근가능하게 해용해두어ㅑ하는데
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/posts/*/votes")
+                    .hasRole("STUDENT")
                     .requestMatchers(HttpMethod.GET, "/api/v1/posts/*/votes/statistics")
                     .hasAnyRole("ADMIN", "SUPER")
                     .requestMatchers(HttpMethod.GET, "/api/v1/posts/*/votes/agree-voters")

@@ -71,6 +71,22 @@ class VoteFacadeTest {
   }
 
   @Test
+  void cast_학생이_아니면_ACCESS_DENIED() {
+    User user = buildUser(UserRole.ADMIN, "컴퓨터공학과");
+    Post post = buildPost(PostStatus.VOTING, now.plusSeconds(60), user);
+    when(userService.getById(user.getId())).thenReturn(user);
+
+    BusinessException exception =
+        assertThrows(
+            BusinessException.class,
+            () -> voteFacade.cast(post.getId(), user.getId(), VoteChoice.AGREE));
+
+    assertSame(PostErrorCode.ACCESS_DENIED, exception.getErrorCode());
+    verify(voteService, never()).cast(post, user, VoteChoice.AGREE);
+    verify(councilService, never()).hasAccessToCouncil(user, post.getCouncil());
+  }
+
+  @Test
   void cast_투표마감이면_VOTE_CLOSED() {
     User user = buildUser(UserRole.STUDENT, "컴퓨터공학과");
     Post post = buildPost(PostStatus.VOTING, now.minusSeconds(1), user);
