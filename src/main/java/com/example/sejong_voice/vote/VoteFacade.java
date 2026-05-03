@@ -35,6 +35,10 @@ public class VoteFacade {
   @Transactional
   public void cast(UUID postId, UUID userId, VoteChoice choice) {
     User user = userService.getById(userId);
+    if (user.getRole() != UserRole.STUDENT) {
+      throw new BusinessException(PostErrorCode.ACCESS_DENIED);
+    }
+
     Post post = postService.get(postId);
     if (!councilService.hasAccessToCouncil(user, post.getCouncil())) {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
