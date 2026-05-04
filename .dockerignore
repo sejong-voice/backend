@@ -6,5 +6,9 @@ out
 *.iml
 .idea
 .DS_Store
-docker/docker-compose-dev.yml
+docker-compose*.yml
 README*
+.env*
+src/test
+gradle/wrapper/gradle-wrapper.jar
+*.log

@@ -1,6 +1,7 @@
+name: sejong-voice
+
 services:
   db:
-    container_name: sejong_voice_db
     image: mysql:8.0
     restart: unless-stopped
     command: >
@@ -17,7 +18,6 @@ services:
       - mysql_data:/var/lib/mysql
 
   app:
-    container_name: sejong_voice_app
     image: ${DOCKERHUB_USERNAME}/sejong-voice:dev
     restart: unless-stopped
     ports:
@@ -44,16 +44,6 @@ services:
       OCI_OBJECT_STORAGE_NAMESPACE: ${OCI_OBJECT_STORAGE_NAMESPACE}
     depends_on:
       - db
-      - sso
-
-  sso:
-    container_name: sejong_voice_sso
-    build:
-      context: ../ssoPython
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
 
 volumes:
   mysql_data:

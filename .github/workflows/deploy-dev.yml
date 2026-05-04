@@ -45,7 +45,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            mkdir -p ~/sejong_voice/docker
+            mkdir -p ~/sejong-voice/docker
 
       - name: Copy docker-compose file to server
         uses: appleboy/scp-action@v0.1.7
@@ -54,8 +54,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "docker/docker-compose-dev.yml"
-          target: "/home/${{ secrets.SERVER_USER }}/sejong_voice/docker"
+          source: "docker/docker-compose.dev.yml"
+          target: "/home/${{ secrets.SERVER_USER }}/sejong-voice/docker"
           strip_components: 1
 
       - name: Create .env and deploy
@@ -66,7 +66,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
-            cd ~/sejong_voice/docker
+            cd ~/sejong-voice/docker
             
             cat > .env <<EOF
             DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
@@ -90,6 +90,5 @@ jobs:
             EOF
             
             echo "${{ secrets.DOCKERHUB_TOKEN_PULL }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker compose --env-file .env -f docker-compose-dev.yml down
             docker compose --env-file .env -f docker-compose-dev.yml pull
             docker compose --env-file .env -f docker-compose-dev.yml up -d
