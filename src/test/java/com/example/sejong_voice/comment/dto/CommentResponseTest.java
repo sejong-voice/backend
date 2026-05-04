@@ -41,7 +41,7 @@ class CommentResponseTest {
   }
 
   @Test
-  void from_학생회계정댓글이면_실명을_반환한다() {
+  void from_학생회계정댓글이면_소속학생회표시명을_반환한다() {
     User author =
         TestFixtures.user(
             UUID.randomUUID(),
@@ -58,6 +58,26 @@ class CommentResponseTest {
             comment, UUID.randomUUID(), UUID.randomUUID(), Map.of(author.getId(), 1), List.of());
 
     assertEquals("총학생회", response.authorName());
+  }
+
+  @Test
+  void from_학생회접미사가없는학생회계정댓글이면_학생회를붙여반환한다() {
+    User author =
+        TestFixtures.user(
+            UUID.randomUUID(),
+            "20201234",
+            "공대 학생회 계정",
+            TestFixtures.affiliation(UUID.randomUUID(), "공과대학"),
+            UserRole.ADMIN,
+            now);
+    Post post = buildPost(author);
+    Comment comment = TestFixtures.comment(UUID.randomUUID(), post, author, null, "댓글", now);
+
+    CommentResponse response =
+        CommentResponse.from(
+            comment, UUID.randomUUID(), UUID.randomUUID(), Map.of(author.getId(), 1), List.of());
+
+    assertEquals("공과대학 학생회", response.authorName());
   }
 
   @Test

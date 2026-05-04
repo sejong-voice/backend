@@ -48,7 +48,7 @@ public record CommentResponse(
     }
 
     if (comment.getUser().getRole() == UserRole.ADMIN) {
-      return comment.getUser().getName();
+      return comment.getUser().getAffiliation().getCouncilDisplayName();
     }
 
     if (isPostAuthor(comment, postAuthorId)) {
