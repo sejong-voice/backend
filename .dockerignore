@@ -10,5 +10,4 @@ docker-compose*.yml
 README*
 .env*
 src/test
-gradle/wrapper/gradle-wrapper.jar
 *.log
