@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record ReplyResponse(
     UUID id,
-    Integer anonymousNumber,
+    String authorName,
     boolean postAuthor,
     String content,
     CommentStatus status,
@@ -22,7 +22,7 @@ public record ReplyResponse(
       Map<UUID, Integer> anonymousNumberByUserId) {
     return new ReplyResponse(
         comment.getId(),
-        CommentResponse.resolveAnonymousNumber(comment, anonymousNumberByUserId),
+        CommentResponse.resolveAuthorName(comment, postAuthorId, anonymousNumberByUserId),
         CommentResponse.isPostAuthor(comment, postAuthorId),
         CommentResponse.resolveDisplayContent(comment),
         comment.getStatus(),

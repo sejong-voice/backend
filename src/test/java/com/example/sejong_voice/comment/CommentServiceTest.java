@@ -17,6 +17,7 @@ import com.example.sejong_voice.comment.dto.CommentResponse;
 import com.example.sejong_voice.comment.entity.Comment;
 import com.example.sejong_voice.comment.entity.CommentStatus;
 import com.example.sejong_voice.comment.exception.CommentErrorCode;
+import com.example.sejong_voice.comment.repository.CommentAuthorProjection;
 import com.example.sejong_voice.comment.repository.CommentRepository;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.exception.BusinessException;
@@ -159,7 +160,7 @@ class CommentServiceTest {
   }
 
   @Test
-  void getAllByPost_루트댓글과_대댓글과_익명번호를_조합해_페이지응답을_반환한다() {
+  void getAllByPost_루트댓글과_대댓글과_작성자표시명을_조합해_페이지응답을_반환한다() {
     UUID currentUserId = UUID.randomUUID();
     User postAuthor = buildUser(UUID.randomUUID(), "컴퓨터공학과");
     Post post = buildPost(UUID.randomUUID(), postAuthor);
@@ -173,7 +174,7 @@ class CommentServiceTest {
         List.of(
             new CommentResponse(
                 rootComment.getId(),
-                1,
+                "익명1",
                 "루트",
                 CommentStatus.ACTIVE,
                 false,
@@ -185,8 +186,11 @@ class CommentServiceTest {
         .thenReturn(rootPage);
     when(commentRepository.findActiveRepliesByRootCommentIds(List.of(rootComment.getId())))
         .thenReturn(List.of(reply));
-    when(commentRepository.findCommentAuthorIdsByPostIdOrderByFirstCommentAt(post.getId()))
-        .thenReturn(List.of(firstCommentUser.getId(), secondCommentUser.getId()));
+    when(commentRepository.findCommentAuthorsByPostIdOrderByCreatedAt(post.getId()))
+        .thenReturn(
+            List.of(
+                new CommentAuthorProjection(firstCommentUser.getId(), UserRole.STUDENT),
+                new CommentAuthorProjection(secondCommentUser.getId(), UserRole.STUDENT)));
     when(commentRepository.countActiveByPostId(post.getId())).thenReturn(2L);
     when(commentResponseAssembler.assemble(
             List.of(rootComment),
@@ -207,6 +211,95 @@ class CommentServiceTest {
     assertEquals(1, result.totalPages());
     assertTrue(result.first());
     assertTrue(result.last());
+  }
+
+  @Test
+  void getAllByPost_게시글작성자와_학생회계정은_익명번호에서_제외한다() {
+    UUID currentUserId = UUID.randomUUID();
+    User postAuthor = buildUser(UUID.randomUUID(), "컴퓨터공학과");
+    Post post = buildPost(UUID.randomUUID(), postAuthor);
+    User councilAuthor = buildUser(UUID.randomUUID(), "총학생회", UserRole.ADMIN);
+    User anonymousUser = buildUser(UUID.randomUUID(), "전자정보공학과");
+    Comment rootComment = buildComment(UUID.randomUUID(), post, postAuthor, null, "글쓴이 댓글");
+    Comment councilReply =
+        buildComment(UUID.randomUUID(), post, councilAuthor, rootComment, "학생회 댓글");
+    Comment anonymousReply =
+        buildComment(UUID.randomUUID(), post, anonymousUser, rootComment, "일반 댓글");
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<Comment> rootPage = new PageImpl<>(List.of(rootComment), pageable, 1);
+
+    when(commentRepository.findDisplayableRootCommentsByPostId(post.getId(), pageable))
+        .thenReturn(rootPage);
+    when(commentRepository.findActiveRepliesByRootCommentIds(List.of(rootComment.getId())))
+        .thenReturn(List.of(councilReply, anonymousReply));
+    when(commentRepository.findCommentAuthorsByPostIdOrderByCreatedAt(post.getId()))
+        .thenReturn(
+            List.of(
+                new CommentAuthorProjection(postAuthor.getId(), UserRole.STUDENT),
+                new CommentAuthorProjection(councilAuthor.getId(), UserRole.ADMIN),
+                new CommentAuthorProjection(anonymousUser.getId(), UserRole.STUDENT)));
+    when(commentRepository.countActiveByPostId(post.getId())).thenReturn(3L);
+    when(commentResponseAssembler.assemble(
+            List.of(rootComment),
+            List.of(councilReply, anonymousReply),
+            currentUserId,
+            postAuthor.getId(),
+            Map.of(anonymousUser.getId(), 1)))
+        .thenReturn(List.of());
+
+    commentService.getAllByPost(post, currentUserId, pageable);
+
+    verify(commentResponseAssembler)
+        .assemble(
+            List.of(rootComment),
+            List.of(councilReply, anonymousReply),
+            currentUserId,
+            postAuthor.getId(),
+            Map.of(anonymousUser.getId(), 1));
+  }
+
+  @Test
+  void getAllByPost_삭제된댓글이_있어도_익명번호는_유지된다() {
+    UUID currentUserId = UUID.randomUUID();
+    User postAuthor = buildUser(UUID.randomUUID(), "컴퓨터공학과");
+    Post post = buildPost(UUID.randomUUID(), postAuthor);
+    User firstAnonymousUser = buildUser(UUID.randomUUID(), "전자정보공학과");
+    User secondAnonymousUser = buildUser(UUID.randomUUID(), "소프트웨어학과");
+    Comment deletedComment =
+        buildComment(UUID.randomUUID(), post, firstAnonymousUser, null, "삭제될 댓글");
+    deletedComment.delete(Instant.now(fixedClock));
+    Comment visibleComment =
+        buildComment(UUID.randomUUID(), post, secondAnonymousUser, null, "보이는 댓글");
+    Pageable pageable = PageRequest.of(0, 10);
+    Page<Comment> rootPage = new PageImpl<>(List.of(visibleComment), pageable, 1);
+
+    when(commentRepository.findDisplayableRootCommentsByPostId(post.getId(), pageable))
+        .thenReturn(rootPage);
+    when(commentRepository.findActiveRepliesByRootCommentIds(List.of(visibleComment.getId())))
+        .thenReturn(List.of());
+    when(commentRepository.findCommentAuthorsByPostIdOrderByCreatedAt(post.getId()))
+        .thenReturn(
+            List.of(
+                new CommentAuthorProjection(firstAnonymousUser.getId(), UserRole.STUDENT),
+                new CommentAuthorProjection(secondAnonymousUser.getId(), UserRole.STUDENT)));
+    when(commentRepository.countActiveByPostId(post.getId())).thenReturn(1L);
+    when(commentResponseAssembler.assemble(
+            List.of(visibleComment),
+            List.of(),
+            currentUserId,
+            postAuthor.getId(),
+            Map.of(firstAnonymousUser.getId(), 1, secondAnonymousUser.getId(), 2)))
+        .thenReturn(List.of());
+
+    commentService.getAllByPost(post, currentUserId, pageable);
+
+    verify(commentResponseAssembler)
+        .assemble(
+            List.of(visibleComment),
+            List.of(),
+            currentUserId,
+            postAuthor.getId(),
+            Map.of(firstAnonymousUser.getId(), 1, secondAnonymousUser.getId(), 2));
   }
 
   @Test
@@ -277,6 +370,10 @@ class CommentServiceTest {
   }
 
   private User buildUser(UUID id, String affiliationName) {
+    return buildUser(id, affiliationName, UserRole.STUDENT);
+  }
+
+  private User buildUser(UUID id, String affiliationName, UserRole role) {
     Affiliation affiliation = Affiliation.builder().name(affiliationName).build();
 
     User user =
@@ -290,7 +387,7 @@ class CommentServiceTest {
             .build();
 
     ReflectionTestUtils.setField(user, "id", id);
-    ReflectionTestUtils.setField(user, "role", UserRole.STUDENT);
+    ReflectionTestUtils.setField(user, "role", role);
     return user;
   }
 

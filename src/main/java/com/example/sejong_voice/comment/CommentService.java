@@ -5,11 +5,13 @@ import com.example.sejong_voice.comment.dto.CommentResponse;
 import com.example.sejong_voice.comment.entity.Comment;
 import com.example.sejong_voice.comment.entity.CommentStatus;
 import com.example.sejong_voice.comment.exception.CommentErrorCode;
+import com.example.sejong_voice.comment.repository.CommentAuthorProjection;
 import com.example.sejong_voice.comment.repository.CommentRepository;
 import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.post.dto.PostCountRow;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.user.entity.User;
+import com.example.sejong_voice.user.entity.UserRole;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
@@ -86,7 +88,8 @@ public class CommentService {
             ? List.of()
             : commentRepository.findActiveRepliesByRootCommentIds(rootCommentIds);
 
-    Map<UUID, Integer> anonymousNumberByUserId = createAnonymousNumberByUserId(postId);
+    Map<UUID, Integer> anonymousNumberByUserId =
+        createAnonymousNumberByUserId(postId, postAuthorId);
 
     List<CommentResponse> responses =
         commentResponseAssembler.assemble(
@@ -102,13 +105,20 @@ public class CommentService {
         activeCommentCount);
   }
 
-  private Map<UUID, Integer> createAnonymousNumberByUserId(UUID postId) {
-    List<UUID> authorIds =
-        commentRepository.findCommentAuthorIdsByPostIdOrderByFirstCommentAt(postId);
+  private Map<UUID, Integer> createAnonymousNumberByUserId(UUID postId, UUID postAuthorId) {
+    List<CommentAuthorProjection> authors =
+        commentRepository.findCommentAuthorsByPostIdOrderByCreatedAt(postId);
     Map<UUID, Integer> anonymousNumberByUserId = new LinkedHashMap<>();
 
-    for (UUID authorId : authorIds) {
-      anonymousNumberByUserId.put(authorId, anonymousNumberByUserId.size() + 1);
+    for (CommentAuthorProjection author : authors) {
+      UUID authorId = author.userId();
+
+      if (authorId.equals(postAuthorId) || author.role() == UserRole.ADMIN) {
+        continue;
+      }
+
+      anonymousNumberByUserId.computeIfAbsent(
+          authorId, ignored -> anonymousNumberByUserId.size() + 1);
     }
 
     return anonymousNumberByUserId;
