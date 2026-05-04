@@ -65,18 +65,19 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
 
   @Query(
       """
-      SELECT c.user.id
+      SELECT c
       FROM Comment c
+      LEFT JOIN FETCH c.user
       WHERE c.post.id = :postId
-      GROUP BY c.user.id
-      ORDER BY MIN(c.createdAt) ASC
+      ORDER BY c.createdAt ASC
       """)
-  List<UUID> findCommentAuthorIdsByPostIdOrderByFirstCommentAt(@Param("postId") UUID postId);
+  List<Comment> findAllByPostIdOrderByCreatedAt(@Param("postId") UUID postId);
 
   @Query(
       """
       SELECT c
       FROM Comment c
+      LEFT JOIN FETCH c.user
       WHERE c.post.id = :postId
         AND c.status = com.example.sejong_voice.comment.entity.CommentStatus.ACTIVE
       ORDER BY c.createdAt ASC

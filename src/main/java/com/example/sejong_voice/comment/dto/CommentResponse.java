@@ -2,6 +2,9 @@ package com.example.sejong_voice.comment.dto;
 
 import com.example.sejong_voice.comment.entity.Comment;
 import com.example.sejong_voice.comment.entity.CommentStatus;
+import com.example.sejong_voice.comment.exception.CommentErrorCode;
+import com.example.sejong_voice.exception.BusinessException;
+import com.example.sejong_voice.user.entity.UserRole;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +12,7 @@ import java.util.UUID;
 
 public record CommentResponse(
     UUID id,
-    Integer anonymousNumber,
+    String authorName,
     String content,
     CommentStatus status,
     boolean postAuthor,
@@ -25,7 +28,7 @@ public record CommentResponse(
       List<ReplyResponse> replies) {
     return new CommentResponse(
         comment.getId(),
-        resolveAnonymousNumber(comment, anonymousNumberByUserId),
+        resolveAuthorName(comment, postAuthorId, anonymousNumberByUserId),
         resolveDisplayContent(comment),
         comment.getStatus(),
         isPostAuthor(comment, postAuthorId),
@@ -34,13 +37,30 @@ public record CommentResponse(
         replies);
   }
 
-  static Integer resolveAnonymousNumber(
-      Comment comment, Map<UUID, Integer> anonymousNumberByUserId) {
-    if (comment.getStatus() != CommentStatus.ACTIVE) {
-      return null;
+  static String resolveAuthorName(
+      Comment comment, UUID postAuthorId, Map<UUID, Integer> anonymousNumberByUserId) {
+    if (!(comment.getStatus() == CommentStatus.ACTIVE)) {
+      return switch (comment.getStatus()) {
+        case DELETED -> "(삭제)";
+        case BLINDED -> "(숨김)";
+        case ACTIVE -> throw new BusinessException(CommentErrorCode.INVALID_COMMENT_STATUS);
+      };
     }
 
-    return anonymousNumberByUserId.get(comment.getUser().getId());
+    if (comment.getUser().getRole() == UserRole.ADMIN) {
+      return comment.getUser().getName();
+    }
+
+    if (isPostAuthor(comment, postAuthorId)) {
+      return "익명(글쓴이)";
+    }
+
+    Integer anonymousNumber = anonymousNumberByUserId.get(comment.getUser().getId());
+    if (anonymousNumber == null) {
+      throw new BusinessException(CommentErrorCode.ANONYMOUS_NUMBER_NOT_FOUND);
+    }
+
+    return "익명" + anonymousNumber;
   }
 
   static boolean isPostAuthor(Comment comment, UUID postAuthorId) {
