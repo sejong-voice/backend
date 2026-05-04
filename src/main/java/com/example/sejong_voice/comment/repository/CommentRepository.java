@@ -65,13 +65,16 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
 
   @Query(
       """
-      SELECT c
+      SELECT new com.example.sejong_voice.comment.repository.CommentAuthorProjection(
+        c.user.id,
+        c.user.role
+      )
       FROM Comment c
-      LEFT JOIN FETCH c.user
       WHERE c.post.id = :postId
       ORDER BY c.createdAt ASC
       """)
-  List<Comment> findAllByPostIdOrderByCreatedAt(@Param("postId") UUID postId);
+  List<CommentAuthorProjection> findCommentAuthorsByPostIdOrderByCreatedAt(
+      @Param("postId") UUID postId);
 
   @Query(
       """

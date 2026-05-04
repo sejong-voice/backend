@@ -5,6 +5,7 @@ import com.example.sejong_voice.comment.dto.CommentResponse;
 import com.example.sejong_voice.comment.entity.Comment;
 import com.example.sejong_voice.comment.entity.CommentStatus;
 import com.example.sejong_voice.comment.exception.CommentErrorCode;
+import com.example.sejong_voice.comment.repository.CommentAuthorProjection;
 import com.example.sejong_voice.comment.repository.CommentRepository;
 import com.example.sejong_voice.exception.BusinessException;
 import com.example.sejong_voice.post.dto.PostCountRow;
@@ -105,13 +106,14 @@ public class CommentService {
   }
 
   private Map<UUID, Integer> createAnonymousNumberByUserId(UUID postId, UUID postAuthorId) {
-    List<Comment> comments = commentRepository.findAllByPostIdOrderByCreatedAt(postId);
+    List<CommentAuthorProjection> authors =
+        commentRepository.findCommentAuthorsByPostIdOrderByCreatedAt(postId);
     Map<UUID, Integer> anonymousNumberByUserId = new LinkedHashMap<>();
 
-    for (Comment comment : comments) {
-      UUID authorId = comment.getUser().getId();
+    for (CommentAuthorProjection author : authors) {
+      UUID authorId = author.userId();
 
-      if (authorId.equals(postAuthorId) || comment.getUser().getRole() == UserRole.ADMIN) {
+      if (authorId.equals(postAuthorId) || author.role() == UserRole.ADMIN) {
         continue;
       }
 

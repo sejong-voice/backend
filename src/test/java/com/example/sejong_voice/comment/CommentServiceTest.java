@@ -17,6 +17,7 @@ import com.example.sejong_voice.comment.dto.CommentResponse;
 import com.example.sejong_voice.comment.entity.Comment;
 import com.example.sejong_voice.comment.entity.CommentStatus;
 import com.example.sejong_voice.comment.exception.CommentErrorCode;
+import com.example.sejong_voice.comment.repository.CommentAuthorProjection;
 import com.example.sejong_voice.comment.repository.CommentRepository;
 import com.example.sejong_voice.council.entity.Council;
 import com.example.sejong_voice.exception.BusinessException;
@@ -185,8 +186,11 @@ class CommentServiceTest {
         .thenReturn(rootPage);
     when(commentRepository.findActiveRepliesByRootCommentIds(List.of(rootComment.getId())))
         .thenReturn(List.of(reply));
-    when(commentRepository.findAllByPostIdOrderByCreatedAt(post.getId()))
-        .thenReturn(List.of(rootComment, reply));
+    when(commentRepository.findCommentAuthorsByPostIdOrderByCreatedAt(post.getId()))
+        .thenReturn(
+            List.of(
+                new CommentAuthorProjection(firstCommentUser.getId(), UserRole.STUDENT),
+                new CommentAuthorProjection(secondCommentUser.getId(), UserRole.STUDENT)));
     when(commentRepository.countActiveByPostId(post.getId())).thenReturn(2L);
     when(commentResponseAssembler.assemble(
             List.of(rootComment),
@@ -228,8 +232,12 @@ class CommentServiceTest {
         .thenReturn(rootPage);
     when(commentRepository.findActiveRepliesByRootCommentIds(List.of(rootComment.getId())))
         .thenReturn(List.of(councilReply, anonymousReply));
-    when(commentRepository.findAllByPostIdOrderByCreatedAt(post.getId()))
-        .thenReturn(List.of(rootComment, councilReply, anonymousReply));
+    when(commentRepository.findCommentAuthorsByPostIdOrderByCreatedAt(post.getId()))
+        .thenReturn(
+            List.of(
+                new CommentAuthorProjection(postAuthor.getId(), UserRole.STUDENT),
+                new CommentAuthorProjection(councilAuthor.getId(), UserRole.ADMIN),
+                new CommentAuthorProjection(anonymousUser.getId(), UserRole.STUDENT)));
     when(commentRepository.countActiveByPostId(post.getId())).thenReturn(3L);
     when(commentResponseAssembler.assemble(
             List.of(rootComment),
@@ -269,8 +277,11 @@ class CommentServiceTest {
         .thenReturn(rootPage);
     when(commentRepository.findActiveRepliesByRootCommentIds(List.of(visibleComment.getId())))
         .thenReturn(List.of());
-    when(commentRepository.findAllByPostIdOrderByCreatedAt(post.getId()))
-        .thenReturn(List.of(deletedComment, visibleComment));
+    when(commentRepository.findCommentAuthorsByPostIdOrderByCreatedAt(post.getId()))
+        .thenReturn(
+            List.of(
+                new CommentAuthorProjection(firstAnonymousUser.getId(), UserRole.STUDENT),
+                new CommentAuthorProjection(secondAnonymousUser.getId(), UserRole.STUDENT)));
     when(commentRepository.countActiveByPostId(post.getId())).thenReturn(1L);
     when(commentResponseAssembler.assemble(
             List.of(visibleComment),

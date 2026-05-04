@@ -39,11 +39,11 @@ public record CommentResponse(
 
   static String resolveAuthorName(
       Comment comment, UUID postAuthorId, Map<UUID, Integer> anonymousNumberByUserId) {
-    if (!(comment.getStatus() == CommentStatus.ACTIVE)) {
+    if (comment.getStatus() != CommentStatus.ACTIVE) {
       return switch (comment.getStatus()) {
         case DELETED -> "(삭제)";
         case BLINDED -> "(숨김)";
-        case ACTIVE -> throw new BusinessException(CommentErrorCode.INVALID_COMMENT_STATUS);
+        default -> throw new BusinessException(CommentErrorCode.INVALID_COMMENT_STATUS);
       };
     }
 
