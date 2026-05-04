@@ -30,4 +30,11 @@ public class Affiliation {
     this.name = name;
     this.parent = parent;
   }
+
+  public String getCouncilDisplayName() {
+    if (name.endsWith("학생회")) {
+      return name;
+    }
+    return name + " 학생회";
+  }
 }
