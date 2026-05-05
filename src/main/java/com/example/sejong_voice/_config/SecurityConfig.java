@@ -101,6 +101,8 @@ public class SecurityConfig {
                     .hasRole("SUPER")
                     .requestMatchers("/api/v1/admin/**")
                     .hasAnyRole("ADMIN", "SUPER")
+                    .requestMatchers("/actuator/health", "/actuator/prometheus")
+                    .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
 
