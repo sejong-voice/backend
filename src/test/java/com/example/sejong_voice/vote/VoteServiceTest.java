@@ -34,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 class VoteServiceTest {
@@ -78,10 +79,25 @@ class VoteServiceTest {
   }
 
   @Test
+  void cast_동시성으로_저장충돌이_나면_기존투표를_다시조회해_변경한다() {
+    Post post = buildPost();
+    User user = buildUser("컴퓨터공학과");
+    Vote vote = buildVote(post, user, VoteChoice.DISAGREE);
+    when(voteRepository.findByPostIdAndUserId(post.getId(), user.getId()))
+        .thenReturn(Optional.empty())
+        .thenReturn(Optional.of(vote));
+    when(voteRepository.save(any(Vote.class)))
+        .thenThrow(new DataIntegrityViolationException("duplicate vote"));
+
+    voteService.cast(post, user, VoteChoice.AGREE);
+
+    assertEquals(VoteChoice.AGREE, vote.getChoice());
+  }
+
+  @Test
   void getSummary_찬반개수와_총합을_반환한다() {
     UUID postId = UUID.randomUUID();
-    when(voteRepository.countByPostIdAndChoice(postId, VoteChoice.AGREE)).thenReturn(7L);
-    when(voteRepository.countByPostIdAndChoice(postId, VoteChoice.DISAGREE)).thenReturn(3L);
+    when(voteRepository.summarizeByPostId(postId)).thenReturn(new VoteSummaryResponse(7, 3, 10));
 
     VoteSummaryResponse result = voteService.getSummary(postId);
 
