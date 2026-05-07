@@ -21,6 +21,7 @@ import com.example.sejong_voice.vote.dto.VoteStatisticsResponse;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.Vote;
 import com.example.sejong_voice.vote.entity.VoteChoice;
+import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.vote.repository.VoteRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -40,13 +41,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 class VoteServiceTest {
 
   @Mock private VoteRepository voteRepository;
+  @Mock private PostRepository postRepository;
 
   private VoteService voteService;
   private Instant now;
 
   @BeforeEach
   void setUp() {
-    voteService = new VoteService(voteRepository);
+    voteService = new VoteService(voteRepository, postRepository);
     now = Instant.parse("2026-05-01T00:00:00Z");
   }
 
@@ -97,7 +99,11 @@ class VoteServiceTest {
   @Test
   void getSummary_찬반개수와_총합을_반환한다() {
     UUID postId = UUID.randomUUID();
-    when(voteRepository.summarizeByPostId(postId)).thenReturn(new VoteSummaryResponse(7, 3, 10));
+    Post post = buildPost();
+    org.springframework.test.util.ReflectionTestUtils.setField(post, "id", postId);
+    org.springframework.test.util.ReflectionTestUtils.setField(post, "agreeCount", 7L);
+    org.springframework.test.util.ReflectionTestUtils.setField(post, "disagreeCount", 3L);
+    when(postRepository.findByIdAndDeletedAtIsNull(postId)).thenReturn(Optional.of(post));
 
     VoteSummaryResponse result = voteService.getSummary(postId);
 

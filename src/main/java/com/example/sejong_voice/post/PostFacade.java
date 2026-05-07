@@ -51,6 +51,7 @@ public class PostFacade {
   private final NotificationService notificationService;
   private final ImageService imageService;
   private final CommentService commentService;
+  private final PostViewCountService postViewCountService;
   private final Clock clock;
 
   @Transactional
@@ -76,7 +77,7 @@ public class PostFacade {
   @Transactional
   public PostDetailResponse get(UUID postId, UUID userId) {
     Post post = postService.get(postId);
-    post.incrementViewCount();
+    postViewCountService.recordView(postId);
 
     boolean canVote = false;
     if (userId != null) {
@@ -132,17 +133,7 @@ public class PostFacade {
       }
     }
 
-    Page<PostListResponse> postPage = postService.getPosts(condition, pageable);
-    List<UUID> postIds = postPage.getContent().stream().map(PostListResponse::id).toList();
-
-    Map<UUID, Long> voteCountByPostId = voteService.countByPostIds(postIds);
-    Map<UUID, Long> commentCountByPostId = commentService.countActiveByPostIds(postIds);
-
-    return postPage.map(
-        response ->
-            response.withCounts(
-                voteCountByPostId.getOrDefault(response.id(), 0L),
-                commentCountByPostId.getOrDefault(response.id(), 0L)));
+    return postService.getPosts(condition, pageable);
   }
 
   @Transactional

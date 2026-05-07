@@ -65,6 +65,7 @@ class PostFacadeTest {
   @Mock private NotificationService notificationService;
   @Mock private ImageService imageService;
   @Mock private CommentService commentService;
+  @Mock private PostViewCountService postViewCountService;
 
   private PostFacade postFacade;
   private Clock fixedClock;
@@ -83,6 +84,7 @@ class PostFacadeTest {
             notificationService,
             imageService,
             commentService,
+            postViewCountService,
             fixedClock);
   }
 
@@ -178,16 +180,14 @@ class PostFacadeTest {
             .content("본문")
             .status(PostStatus.VOTING)
             .postVotingDuration(PostVotingDuration.ONE_WEEK)
-            .voteCount(0L)
-            .commentCount(0L)
+            .voteCount(7L)
+            .commentCount(3L)
             .createdAt(Instant.now(fixedClock))
             .votingEndAt(Instant.now(fixedClock).plusSeconds(60))
             .build();
     Page<PostListResponse> page = new PageImpl<>(List.of(response), pageable, 1);
 
     when(postService.getPosts(condition, pageable)).thenReturn(page);
-    when(voteService.countByPostIds(List.of(postId))).thenReturn(Map.of(postId, 7L));
-    when(commentService.countActiveByPostIds(List.of(postId))).thenReturn(Map.of(postId, 3L));
 
     Page<PostListResponse> result = postFacade.getPosts(condition, pageable);
 
@@ -446,7 +446,7 @@ class PostFacadeTest {
     assertTrue(result.canVote());
     assertTrue(result.canCloseEarly());
     assertEquals(1, result.images().size());
-    assertEquals(2, post.getViewCount());
+    verify(postViewCountService).recordView(postId);
   }
 
   @Test
