@@ -1,7 +1,6 @@
 package com.example.sejong_voice.vote.repository;
 
 import com.example.sejong_voice.post.dto.PostCountRow;
-import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.Vote;
 import com.example.sejong_voice.vote.entity.VoteChoice;
 import java.util.Collection;
@@ -19,18 +18,6 @@ public interface VoteRepository extends JpaRepository<Vote, UUID> {
   Optional<Vote> findByPostIdAndUserId(UUID postId, UUID userId);
 
   Long countByPostIdAndChoice(UUID postId, VoteChoice choice);
-
-  @Query(
-      """
-      SELECT new com.example.sejong_voice.vote.dto.VoteSummaryResponse(
-        COALESCE(SUM(CASE WHEN v.choice = com.example.sejong_voice.vote.entity.VoteChoice.AGREE THEN 1 ELSE 0 END), 0),
-        COALESCE(SUM(CASE WHEN v.choice = com.example.sejong_voice.vote.entity.VoteChoice.DISAGREE THEN 1 ELSE 0 END), 0),
-        COUNT(v)
-      )
-      FROM Vote v
-      WHERE v.post.id = :postId
-      """)
-  VoteSummaryResponse summarizeByPostId(@Param("postId") UUID postId);
 
   boolean existsByPostId(UUID postId);
 

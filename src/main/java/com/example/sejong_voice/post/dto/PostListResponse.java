@@ -24,7 +24,7 @@ public record PostListResponse(
     Instant createdAt,
     Instant votingEndAt) {
   public static PostListResponse from(Post post) {
-    return from(post, 0L, 0L);
+    return from(post, post.getTotalVoteCount(), post.getCommentCount());
   }
 
   public static PostListResponse from(Post post, long voteCount, long commentCount) {

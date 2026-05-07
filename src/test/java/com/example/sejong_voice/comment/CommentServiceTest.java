@@ -87,6 +87,7 @@ class CommentServiceTest {
     assertNull(saved.getRootComment());
     assertEquals("댓글", saved.getContent());
     assertEquals(Instant.now(fixedClock), saved.getCreatedAt());
+    assertEquals(1L, post.getCommentCount());
   }
 
   @Test
@@ -191,7 +192,7 @@ class CommentServiceTest {
             List.of(
                 new CommentAuthorProjection(firstCommentUser.getId(), UserRole.STUDENT),
                 new CommentAuthorProjection(secondCommentUser.getId(), UserRole.STUDENT)));
-    when(commentRepository.countActiveByPostId(post.getId())).thenReturn(2L);
+    ReflectionTestUtils.setField(post, "commentCount", 2L);
     when(commentResponseAssembler.assemble(
             List.of(rootComment),
             List.of(reply),
@@ -238,7 +239,7 @@ class CommentServiceTest {
                 new CommentAuthorProjection(postAuthor.getId(), UserRole.STUDENT),
                 new CommentAuthorProjection(councilAuthor.getId(), UserRole.ADMIN),
                 new CommentAuthorProjection(anonymousUser.getId(), UserRole.STUDENT)));
-    when(commentRepository.countActiveByPostId(post.getId())).thenReturn(3L);
+    ReflectionTestUtils.setField(post, "commentCount", 3L);
     when(commentResponseAssembler.assemble(
             List.of(rootComment),
             List.of(councilReply, anonymousReply),
@@ -282,7 +283,7 @@ class CommentServiceTest {
             List.of(
                 new CommentAuthorProjection(firstAnonymousUser.getId(), UserRole.STUDENT),
                 new CommentAuthorProjection(secondAnonymousUser.getId(), UserRole.STUDENT)));
-    when(commentRepository.countActiveByPostId(post.getId())).thenReturn(1L);
+    ReflectionTestUtils.setField(post, "commentCount", 1L);
     when(commentResponseAssembler.assemble(
             List.of(visibleComment),
             List.of(),
@@ -343,6 +344,7 @@ class CommentServiceTest {
   void delete_댓글작성자면_삭제처리한다() {
     User author = buildUser(UUID.randomUUID(), "컴퓨터공학과");
     Post post = buildPost(UUID.randomUUID(), author);
+    ReflectionTestUtils.setField(post, "commentCount", 1L);
     Comment comment = buildComment(UUID.randomUUID(), post, author, null, "댓글");
     when(commentRepository.findById(comment.getId())).thenReturn(Optional.of(comment));
 
@@ -350,12 +352,14 @@ class CommentServiceTest {
 
     assertEquals(CommentStatus.DELETED, comment.getStatus());
     assertEquals(Instant.now(fixedClock), comment.getDeletedAt());
+    assertEquals(0L, post.getCommentCount());
   }
 
   @Test
   void deleteAllByPostId_활성댓글들을_모두_삭제처리한다() {
     User author = buildUser(UUID.randomUUID(), "컴퓨터공학과");
     Post post = buildPost(UUID.randomUUID(), author);
+    ReflectionTestUtils.setField(post, "commentCount", 2L);
     Comment comment1 = buildComment(UUID.randomUUID(), post, author, null, "댓글1");
     Comment comment2 = buildComment(UUID.randomUUID(), post, author, null, "댓글2");
     when(commentRepository.findAllActiveByPostId(post.getId()))
@@ -367,6 +371,7 @@ class CommentServiceTest {
     assertEquals(CommentStatus.DELETED, comment2.getStatus());
     assertEquals(Instant.now(fixedClock), comment1.getDeletedAt());
     assertEquals(Instant.now(fixedClock), comment2.getDeletedAt());
+    assertEquals(0L, post.getCommentCount());
   }
 
   private User buildUser(UUID id, String affiliationName) {
