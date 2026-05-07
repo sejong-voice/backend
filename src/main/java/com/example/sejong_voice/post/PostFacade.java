@@ -25,6 +25,7 @@ import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.vote.VoteService;
+import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -86,8 +87,9 @@ public class PostFacade {
               && Instant.now(clock).isBefore(post.getVotingEndAt());
     }
 
-    long agreeCount = voteService.countAgree(postId);
-    long totalCount = agreeCount + voteService.countDisagree(postId);
+    VoteSummaryResponse voteSummary = voteService.getSummary(postId);
+    long agreeCount = voteSummary.agreeCount();
+    long totalCount = voteSummary.totalCount();
     boolean canCloseEarly = postService.canCloseEarly(post, agreeCount, totalCount);
 
     List<PostImageView> images = imageService.getPostImages(post.getId());

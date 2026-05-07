@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -34,13 +35,25 @@ public class VoteService {
   /** 투표하기 (Upsert: 없으면 생성, 있으면 수정) */
   @Transactional
   public void cast(Post post, User user, VoteChoice choice) {
-    voteRepository
-        .findByPostIdAndUserId(post.getId(), user.getId())
-        .ifPresentOrElse(
-            // 1. 이미 투표함 -> 선택 변경
-            vote -> vote.updateChoice(choice),
-            // 2. 투표 안 함 -> 새로 생성
-            () -> create(post, user, choice));
+    Vote existingVote = voteRepository.findByPostIdAndUserId(post.getId(), user.getId()).orElse(null);
+
+    if (existingVote != null) {
+      existingVote.updateChoice(choice);
+      log.info("투표: postId={}, userId={}, choice={}", post.getId(), user.getId(), choice);
+      return;
+    }
+
+    try {
+      create(post, user, choice);
+    } catch (DataIntegrityViolationException e) {
+      // Concurrent first-vote requests can race on the (post_id, user_id) unique key.
+      // When that happens, reload the just-created row and treat this request as an update.
+      Vote concurrentVote =
+          voteRepository
+              .findByPostIdAndUserId(post.getId(), user.getId())
+              .orElseThrow(() -> e);
+      concurrentVote.updateChoice(choice);
+    }
 
     log.info("투표: postId={}, userId={}, choice={}", post.getId(), user.getId(), choice);
   }
@@ -53,13 +66,15 @@ public class VoteService {
 
   /** 투표 현황 요약 조회 */
   public VoteSummaryResponse getSummary(UUID postId) {
-    long agreeCount = countAgree(postId);
-    long disagreeCount = countDisagree(postId);
+    VoteSummaryResponse summary = voteRepository.summarizeByPostId(postId);
 
     log.info(
-        "투표 요약: postId={}, agreeCount={}, disagreeCount={}", postId, agreeCount, disagreeCount);
+        "투표 요약: postId={}, agreeCount={}, disagreeCount={}",
+        postId,
+        summary.agreeCount(),
+        summary.disagreeCount());
 
-    return VoteSummaryResponse.of(agreeCount, disagreeCount);
+    return summary;
   }
 
   public VoteStatisticsResponse getStatistics(Post post) {
