@@ -69,6 +69,7 @@ public class CommentService {
             .build();
 
     UUID id = commentRepository.save(comment).getId();
+    post.incrementCommentCount();
     log.info("댓글 생성: commentId={}", id);
 
     return id;
@@ -95,14 +96,12 @@ public class CommentService {
         commentResponseAssembler.assemble(
             rootPage.getContent(), replies, currentUserId, postAuthorId, anonymousNumberByUserId);
 
-    long activeCommentCount = commentRepository.countActiveByPostId(postId);
-
     return CommentPageResponse.of(
         responses,
         pageable.getPageNumber(),
         pageable.getPageSize(),
         rootPage.getTotalElements(),
-        activeCommentCount);
+        post.getCommentCount());
   }
 
   private Map<UUID, Integer> createAnonymousNumberByUserId(UUID postId, UUID postAuthorId) {
@@ -144,6 +143,9 @@ public class CommentService {
       throw new BusinessException(CommentErrorCode.ACCESS_DENIED);
     }
 
+    if (comment.getStatus() == CommentStatus.ACTIVE) {
+      comment.getPost().decrementCommentCount();
+    }
     comment.delete(Instant.now(clock));
     log.info("댓글 삭제: commentId={}, userId={}", commentId, userId);
   }
@@ -153,6 +155,12 @@ public class CommentService {
     List<Comment> comments = commentRepository.findAllActiveByPostId(postId);
     Instant now = Instant.now(clock);
     comments.forEach(comment -> comment.delete(now));
+    if (!comments.isEmpty()) {
+      Post post = comments.getFirst().getPost();
+      for (int i = 0; i < comments.size(); i++) {
+        post.decrementCommentCount();
+      }
+    }
     log.info("게시글 댓글 삭제 처리: postId={}, commentCount={}", postId, comments.size());
   }
 }

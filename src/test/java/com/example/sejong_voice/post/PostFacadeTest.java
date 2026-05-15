@@ -34,6 +34,7 @@ import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.vote.VoteService;
+import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -64,6 +65,7 @@ class PostFacadeTest {
   @Mock private NotificationService notificationService;
   @Mock private ImageService imageService;
   @Mock private CommentService commentService;
+  @Mock private PostViewCountService postViewCountService;
 
   private PostFacade postFacade;
   private Clock fixedClock;
@@ -82,6 +84,7 @@ class PostFacadeTest {
             notificationService,
             imageService,
             commentService,
+            postViewCountService,
             fixedClock);
   }
 
@@ -177,16 +180,14 @@ class PostFacadeTest {
             .content("본문")
             .status(PostStatus.VOTING)
             .postVotingDuration(PostVotingDuration.ONE_WEEK)
-            .voteCount(0L)
-            .commentCount(0L)
+            .voteCount(7L)
+            .commentCount(3L)
             .createdAt(Instant.now(fixedClock))
             .votingEndAt(Instant.now(fixedClock).plusSeconds(60))
             .build();
     Page<PostListResponse> page = new PageImpl<>(List.of(response), pageable, 1);
 
     when(postService.getPosts(condition, pageable)).thenReturn(page);
-    when(voteService.countByPostIds(List.of(postId))).thenReturn(Map.of(postId, 7L));
-    when(commentService.countActiveByPostIds(List.of(postId))).thenReturn(Map.of(postId, 3L));
 
     Page<PostListResponse> result = postFacade.getPosts(condition, pageable);
 
@@ -433,8 +434,7 @@ class PostFacadeTest {
     when(postService.get(postId)).thenReturn(post);
     when(userService.getById(userId)).thenReturn(viewer);
     when(councilService.hasAccessToCouncil(viewer, council)).thenReturn(true);
-    when(voteService.countAgree(postId)).thenReturn(12L);
-    when(voteService.countDisagree(postId)).thenReturn(8L);
+    when(voteService.getSummary(postId)).thenReturn(new VoteSummaryResponse(12, 8, 20));
     when(postService.canCloseEarly(post, 12L, 20L)).thenReturn(true);
     when(imageService.getPostImages(postId))
         .thenReturn(List.of(PostImageView.of(UUID.randomUUID(), "https://example.com/image.png")));
@@ -446,7 +446,7 @@ class PostFacadeTest {
     assertTrue(result.canVote());
     assertTrue(result.canCloseEarly());
     assertEquals(1, result.images().size());
-    assertEquals(2, post.getViewCount());
+    verify(postViewCountService).recordView(postId);
   }
 
   @Test
@@ -457,8 +457,7 @@ class PostFacadeTest {
     Category category = buildCategory(UUID.randomUUID(), "학사");
     Post post = buildPost(postId, author, council, category, PostStatus.VOTING);
     when(postService.get(postId)).thenReturn(post);
-    when(voteService.countAgree(postId)).thenReturn(2L);
-    when(voteService.countDisagree(postId)).thenReturn(8L);
+    when(voteService.getSummary(postId)).thenReturn(new VoteSummaryResponse(2, 8, 10));
     when(postService.canCloseEarly(post, 2L, 10L)).thenReturn(false);
     when(imageService.getPostImages(postId)).thenReturn(List.of());
     when(postStatementService.getStatements(postId)).thenReturn(List.of());

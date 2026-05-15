@@ -25,6 +25,7 @@ import com.example.sejong_voice.user.UserService;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.vote.VoteService;
+import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -50,6 +51,7 @@ public class PostFacade {
   private final NotificationService notificationService;
   private final ImageService imageService;
   private final CommentService commentService;
+  private final PostViewCountService postViewCountService;
   private final Clock clock;
 
   @Transactional
@@ -75,7 +77,7 @@ public class PostFacade {
   @Transactional
   public PostDetailResponse get(UUID postId, UUID userId) {
     Post post = postService.get(postId);
-    post.incrementViewCount();
+    postViewCountService.recordView(postId);
 
     boolean canVote = false;
     if (userId != null) {
@@ -86,8 +88,9 @@ public class PostFacade {
               && Instant.now(clock).isBefore(post.getVotingEndAt());
     }
 
-    long agreeCount = voteService.countAgree(postId);
-    long totalCount = agreeCount + voteService.countDisagree(postId);
+    VoteSummaryResponse voteSummary = voteService.getSummary(postId);
+    long agreeCount = voteSummary.agreeCount();
+    long totalCount = voteSummary.totalCount();
     boolean canCloseEarly = postService.canCloseEarly(post, agreeCount, totalCount);
 
     List<PostImageView> images = imageService.getPostImages(post.getId());
@@ -130,17 +133,7 @@ public class PostFacade {
       }
     }
 
-    Page<PostListResponse> postPage = postService.getPosts(condition, pageable);
-    List<UUID> postIds = postPage.getContent().stream().map(PostListResponse::id).toList();
-
-    Map<UUID, Long> voteCountByPostId = voteService.countByPostIds(postIds);
-    Map<UUID, Long> commentCountByPostId = commentService.countActiveByPostIds(postIds);
-
-    return postPage.map(
-        response ->
-            response.withCounts(
-                voteCountByPostId.getOrDefault(response.id(), 0L),
-                commentCountByPostId.getOrDefault(response.id(), 0L)));
+    return postService.getPosts(condition, pageable);
   }
 
   @Transactional

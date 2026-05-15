@@ -109,6 +109,9 @@ public final class TestFixtures {
             .createdAt(createdAt)
             .build();
     ReflectionTestUtils.setField(post, "id", id);
+    ReflectionTestUtils.setField(post, "agreeCount", 0L);
+    ReflectionTestUtils.setField(post, "disagreeCount", 0L);
+    ReflectionTestUtils.setField(post, "commentCount", 0L);
     if (status != PostStatus.VOTING) {
       post.updateStatus(status);
     }

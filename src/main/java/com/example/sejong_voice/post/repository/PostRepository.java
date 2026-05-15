@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,4 +22,8 @@ public interface PostRepository extends JpaRepository<Post, UUID>, PostRepositor
   Optional<Post> findByIdForUpdate(@Param("id") UUID id);
 
   List<Post> findAllByStatusAndVotingEndAtBefore(PostStatus status, Instant now);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("update Post p set p.viewCount = p.viewCount + :amount where p.id = :postId")
+  int incrementViewCount(@Param("postId") UUID postId, @Param("amount") long amount);
 }

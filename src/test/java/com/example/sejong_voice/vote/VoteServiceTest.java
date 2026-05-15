@@ -21,6 +21,7 @@ import com.example.sejong_voice.vote.dto.VoteStatisticsResponse;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.Vote;
 import com.example.sejong_voice.vote.entity.VoteChoice;
+import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.vote.repository.VoteRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -34,18 +35,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 class VoteServiceTest {
 
   @Mock private VoteRepository voteRepository;
+  @Mock private PostRepository postRepository;
 
   private VoteService voteService;
   private Instant now;
 
   @BeforeEach
   void setUp() {
-    voteService = new VoteService(voteRepository);
+    voteService = new VoteService(voteRepository, postRepository);
     now = Instant.parse("2026-05-01T00:00:00Z");
   }
 
@@ -78,10 +81,29 @@ class VoteServiceTest {
   }
 
   @Test
+  void cast_동시성으로_저장충돌이_나면_기존투표를_다시조회해_변경한다() {
+    Post post = buildPost();
+    User user = buildUser("컴퓨터공학과");
+    Vote vote = buildVote(post, user, VoteChoice.DISAGREE);
+    when(voteRepository.findByPostIdAndUserId(post.getId(), user.getId()))
+        .thenReturn(Optional.empty())
+        .thenReturn(Optional.of(vote));
+    when(voteRepository.save(any(Vote.class)))
+        .thenThrow(new DataIntegrityViolationException("duplicate vote"));
+
+    voteService.cast(post, user, VoteChoice.AGREE);
+
+    assertEquals(VoteChoice.AGREE, vote.getChoice());
+  }
+
+  @Test
   void getSummary_찬반개수와_총합을_반환한다() {
     UUID postId = UUID.randomUUID();
-    when(voteRepository.countByPostIdAndChoice(postId, VoteChoice.AGREE)).thenReturn(7L);
-    when(voteRepository.countByPostIdAndChoice(postId, VoteChoice.DISAGREE)).thenReturn(3L);
+    Post post = buildPost();
+    org.springframework.test.util.ReflectionTestUtils.setField(post, "id", postId);
+    org.springframework.test.util.ReflectionTestUtils.setField(post, "agreeCount", 7L);
+    org.springframework.test.util.ReflectionTestUtils.setField(post, "disagreeCount", 3L);
+    when(postRepository.findByIdAndDeletedAtIsNull(postId)).thenReturn(Optional.of(post));
 
     VoteSummaryResponse result = voteService.getSummary(postId);
 

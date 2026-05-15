@@ -2,6 +2,7 @@ package com.example.sejong_voice.vote;
 
 import com.example.sejong_voice.post.dto.PostCountRow;
 import com.example.sejong_voice.post.entity.Post;
+import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.vote.dto.VoteAgreeVoterResponse;
 import com.example.sejong_voice.vote.dto.VoteDepartmentDistributionResponse;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -30,17 +32,32 @@ import org.springframework.transaction.annotation.Transactional;
 public class VoteService {
 
   private final VoteRepository voteRepository;
+  private final PostRepository postRepository;
 
   /** 투표하기 (Upsert: 없으면 생성, 있으면 수정) */
   @Transactional
   public void cast(Post post, User user, VoteChoice choice) {
-    voteRepository
-        .findByPostIdAndUserId(post.getId(), user.getId())
-        .ifPresentOrElse(
-            // 1. 이미 투표함 -> 선택 변경
-            vote -> vote.updateChoice(choice),
-            // 2. 투표 안 함 -> 새로 생성
-            () -> create(post, user, choice));
+    Vote existingVote = voteRepository.findByPostIdAndUserId(post.getId(), user.getId()).orElse(null);
+
+    if (existingVote != null) {
+      updatePostVoteCounts(post, existingVote.getChoice(), choice);
+      existingVote.updateChoice(choice);
+      log.info("투표: postId={}, userId={}, choice={}", post.getId(), user.getId(), choice);
+      return;
+    }
+
+    try {
+      create(post, user, choice);
+    } catch (DataIntegrityViolationException e) {
+      // Concurrent first-vote requests can race on the (post_id, user_id) unique key.
+      // When that happens, reload the just-created row and treat this request as an update.
+      Vote concurrentVote =
+          voteRepository
+              .findByPostIdAndUserId(post.getId(), user.getId())
+              .orElseThrow(() -> e);
+      updatePostVoteCounts(post, concurrentVote.getChoice(), choice);
+      concurrentVote.updateChoice(choice);
+    }
 
     log.info("투표: postId={}, userId={}, choice={}", post.getId(), user.getId(), choice);
   }
@@ -49,17 +66,25 @@ public class VoteService {
     Vote vote = Vote.builder().post(post).user(user).choice(choice).build();
 
     voteRepository.save(vote);
+    applyChoiceIncrement(post, choice);
   }
 
   /** 투표 현황 요약 조회 */
   public VoteSummaryResponse getSummary(UUID postId) {
-    long agreeCount = countAgree(postId);
-    long disagreeCount = countDisagree(postId);
+    Post post =
+        postRepository
+            .findByIdAndDeletedAtIsNull(postId)
+            .orElseThrow(() -> new IllegalArgumentException("Post not found: " + postId));
+    VoteSummaryResponse summary =
+        new VoteSummaryResponse(post.getAgreeCount(), post.getDisagreeCount(), post.getTotalVoteCount());
 
     log.info(
-        "투표 요약: postId={}, agreeCount={}, disagreeCount={}", postId, agreeCount, disagreeCount);
+        "투표 요약: postId={}, agreeCount={}, disagreeCount={}",
+        postId,
+        summary.agreeCount(),
+        summary.disagreeCount());
 
-    return VoteSummaryResponse.of(agreeCount, disagreeCount);
+    return summary;
   }
 
   public VoteStatisticsResponse getStatistics(Post post) {
@@ -118,11 +143,11 @@ public class VoteService {
   }
 
   public long countAgree(UUID postId) {
-    return voteRepository.countByPostIdAndChoice(postId, VoteChoice.AGREE);
+    return getSummary(postId).agreeCount();
   }
 
   public long countDisagree(UUID postId) {
-    return voteRepository.countByPostIdAndChoice(postId, VoteChoice.DISAGREE);
+    return getSummary(postId).disagreeCount();
   }
 
   public Map<UUID, Long> countByPostIds(Collection<UUID> postIds) {
@@ -132,5 +157,32 @@ public class VoteService {
 
     return voteRepository.countByPostIds(postIds).stream()
         .collect(Collectors.toMap(PostCountRow::postId, PostCountRow::count));
+  }
+
+  private void updatePostVoteCounts(Post post, VoteChoice previousChoice, VoteChoice newChoice) {
+    if (previousChoice == newChoice) {
+      return;
+    }
+
+    applyChoiceDecrement(post, previousChoice);
+    applyChoiceIncrement(post, newChoice);
+  }
+
+  private void applyChoiceIncrement(Post post, VoteChoice choice) {
+    if (choice == VoteChoice.AGREE) {
+      post.incrementAgreeCount();
+      return;
+    }
+
+    post.incrementDisagreeCount();
+  }
+
+  private void applyChoiceDecrement(Post post, VoteChoice choice) {
+    if (choice == VoteChoice.AGREE) {
+      post.decrementAgreeCount();
+      return;
+    }
+
+    post.decrementDisagreeCount();
   }
 }

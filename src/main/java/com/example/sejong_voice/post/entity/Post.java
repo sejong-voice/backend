@@ -78,6 +78,15 @@ public class Post {
   @Column(nullable = false)
   private Integer viewCount;
 
+  @Column(nullable = false)
+  private Long agreeCount;
+
+  @Column(nullable = false)
+  private Long disagreeCount;
+
+  @Column(nullable = false)
+  private Long commentCount;
+
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private PostModerationStatus visibilityStatus;
@@ -109,11 +118,46 @@ public class Post {
     this.votingEndAt = postVotingDuration.calculateDeadline(createdAt);
 
     this.viewCount = 1;
+    this.agreeCount = 0L;
+    this.disagreeCount = 0L;
+    this.commentCount = 0L;
     this.visibilityStatus = PostModerationStatus.ACTIVE;
   }
 
   public void incrementViewCount() {
     this.viewCount++;
+  }
+
+  public void incrementViewCount(long amount) {
+    this.viewCount += Math.toIntExact(amount);
+  }
+
+  public long getTotalVoteCount() {
+    return agreeCount + disagreeCount;
+  }
+
+  public void incrementAgreeCount() {
+    this.agreeCount++;
+  }
+
+  public void decrementAgreeCount() {
+    this.agreeCount--;
+  }
+
+  public void incrementDisagreeCount() {
+    this.disagreeCount++;
+  }
+
+  public void decrementDisagreeCount() {
+    this.disagreeCount--;
+  }
+
+  public void incrementCommentCount() {
+    this.commentCount++;
+  }
+
+  public void decrementCommentCount() {
+    this.commentCount--;
   }
 
   public void delete(Instant deletedAt) {

@@ -22,6 +22,7 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+      - "18081:18081"
     environment:
       TZ: UTC
       SPRING_PROFILES_ACTIVE: server
@@ -42,6 +43,11 @@ services:
       OCI_OBJECT_STORAGE_REGION: ${OCI_OBJECT_STORAGE_REGION}
       OCI_OBJECT_STORAGE_BUCKET: ${OCI_OBJECT_STORAGE_BUCKET}
       OCI_OBJECT_STORAGE_NAMESPACE: ${OCI_OBJECT_STORAGE_NAMESPACE}
+
+      MANAGEMENT_SERVER_PORT: 18081
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,prometheus
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: never
+      MANAGEMENT_METRICS_TAGS_APPLICATION: sejong-voice-api-dev
     depends_on:
       - db
 
