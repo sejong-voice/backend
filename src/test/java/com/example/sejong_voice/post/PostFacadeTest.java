@@ -2,6 +2,7 @@ package com.example.sejong_voice.post;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +36,7 @@ import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.vote.VoteService;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
+import com.example.sejong_voice.vote.entity.VoteChoice;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -284,11 +286,11 @@ class PostFacadeTest {
     Council council = buildCouncil(UUID.randomUUID(), 10, new BigDecimal("0.5000"), author, "총학생회");
     Category category = buildCategory(UUID.randomUUID(), "학사");
     Post post = buildPost(postId, author, council, category, PostStatus.VOTING);
+    ReflectionTestUtils.setField(post, "agreeCount", 12L);
+    ReflectionTestUtils.setField(post, "disagreeCount", 8L);
 
     when(postService.get(postId)).thenReturn(post);
     when(councilService.isAdmin(userId, council.getId())).thenReturn(true);
-    when(voteService.countAgree(postId)).thenReturn(12L);
-    when(voteService.countDisagree(postId)).thenReturn(8L);
 
     postFacade.closeEarly(postId, userId);
 
@@ -379,10 +381,10 @@ class PostFacadeTest {
     Council council = buildCouncil(UUID.randomUUID(), 10, new BigDecimal("0.5000"), author, "총학생회");
     Category category = buildCategory(UUID.randomUUID(), "학사");
     Post post = buildPost(postId, author, council, category, PostStatus.VOTING);
+    ReflectionTestUtils.setField(post, "agreeCount", 12L);
+    ReflectionTestUtils.setField(post, "disagreeCount", 8L);
 
     when(postService.get(postId)).thenReturn(post);
-    when(voteService.countAgree(postId)).thenReturn(12L);
-    when(voteService.countDisagree(postId)).thenReturn(8L);
     doAnswer(
             invocation -> {
               post.updateStatus(PostStatus.APPROVED);
@@ -404,10 +406,10 @@ class PostFacadeTest {
     Council council = buildCouncil(UUID.randomUUID(), 10, new BigDecimal("0.8000"), author, "총학생회");
     Category category = buildCategory(UUID.randomUUID(), "학사");
     Post post = buildPost(postId, author, council, category, PostStatus.VOTING);
+    ReflectionTestUtils.setField(post, "agreeCount", 7L);
+    ReflectionTestUtils.setField(post, "disagreeCount", 3L);
 
     when(postService.get(postId)).thenReturn(post);
-    when(voteService.countAgree(postId)).thenReturn(7L);
-    when(voteService.countDisagree(postId)).thenReturn(3L);
     doAnswer(
             invocation -> {
               post.updateStatus(PostStatus.PENDING);
@@ -434,7 +436,11 @@ class PostFacadeTest {
     when(postService.get(postId)).thenReturn(post);
     when(userService.getById(userId)).thenReturn(viewer);
     when(councilService.hasAccessToCouncil(viewer, council)).thenReturn(true);
-    when(voteService.getSummary(postId)).thenReturn(new VoteSummaryResponse(12, 8, 20));
+    when(voteService.getMyChoice(postId, userId)).thenReturn(VoteChoice.AGREE);
+    when(voteService.getSummary(post))
+        .thenReturn(
+            new VoteSummaryResponse(
+                12, 8, 20, 10, 0, new BigDecimal("0.5000"), new BigDecimal("0.6000")));
     when(postService.canCloseEarly(post, 12L, 20L)).thenReturn(true);
     when(imageService.getPostImages(postId))
         .thenReturn(List.of(PostImageView.of(UUID.randomUUID(), "https://example.com/image.png")));
@@ -445,6 +451,7 @@ class PostFacadeTest {
 
     assertTrue(result.canVote());
     assertTrue(result.canCloseEarly());
+    assertEquals(VoteChoice.AGREE, result.myVoteChoice());
     assertEquals(1, result.images().size());
     verify(postViewCountService).recordView(postId);
   }
@@ -457,7 +464,10 @@ class PostFacadeTest {
     Category category = buildCategory(UUID.randomUUID(), "학사");
     Post post = buildPost(postId, author, council, category, PostStatus.VOTING);
     when(postService.get(postId)).thenReturn(post);
-    when(voteService.getSummary(postId)).thenReturn(new VoteSummaryResponse(2, 8, 10));
+    when(voteService.getSummary(post))
+        .thenReturn(
+            new VoteSummaryResponse(
+                2, 8, 10, 15, 5, new BigDecimal("0.5000"), new BigDecimal("0.2000")));
     when(postService.canCloseEarly(post, 2L, 10L)).thenReturn(false);
     when(imageService.getPostImages(postId)).thenReturn(List.of());
     when(postStatementService.getStatements(postId)).thenReturn(List.of());
@@ -467,6 +477,7 @@ class PostFacadeTest {
 
     assertFalse(result.canVote());
     assertFalse(result.canCloseEarly());
+    assertNull(result.myVoteChoice());
   }
 
   private User buildUser(UUID id, UserRole role, String affiliationName) {

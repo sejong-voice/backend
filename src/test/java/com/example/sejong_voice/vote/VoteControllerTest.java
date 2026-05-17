@@ -14,6 +14,7 @@ import com.example.sejong_voice.support.TestFixtures;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.VoteChoice;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -78,14 +79,21 @@ class VoteControllerTest {
   @Test
   void getSummary_응답을_반환한다() throws Exception {
     UUID postId = UUID.randomUUID();
-    when(voteFacade.getSummary(postId)).thenReturn(new VoteSummaryResponse(7, 3, 10));
+    when(voteFacade.getSummary(postId))
+        .thenReturn(
+            new VoteSummaryResponse(
+                7, 3, 10, 15, 5, new BigDecimal("0.6667"), new BigDecimal("0.7000")));
 
     mockMvc
         .perform(get("/api/v1/posts/{postId}/votes/summary", postId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.agreeCount").value(7))
         .andExpect(jsonPath("$.disagreeCount").value(3))
-        .andExpect(jsonPath("$.totalCount").value(10));
+        .andExpect(jsonPath("$.totalCount").value(10))
+        .andExpect(jsonPath("$.minVote").value(15))
+        .andExpect(jsonPath("$.remainingVotesToMinVote").value(5))
+        .andExpect(jsonPath("$.requiredAgreeRatio").value(0.6667))
+        .andExpect(jsonPath("$.agreeRatio").value(0.7000));
   }
 
   @Test
