@@ -17,6 +17,15 @@ public interface VoteRepository extends JpaRepository<Vote, UUID> {
 
   Optional<Vote> findByPostIdAndUserId(UUID postId, UUID userId);
 
+  @Query(
+      """
+      SELECT v.choice
+      FROM Vote v
+      WHERE v.post.id = :postId AND v.user.id = :userId
+      """)
+  Optional<VoteChoice> findChoiceByPostIdAndUserId(
+      @Param("postId") UUID postId, @Param("userId") UUID userId);
+
   Long countByPostIdAndChoice(UUID postId, VoteChoice choice);
 
   boolean existsByPostId(UUID postId);

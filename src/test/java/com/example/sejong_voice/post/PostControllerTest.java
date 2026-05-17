@@ -21,6 +21,7 @@ import com.example.sejong_voice.post.entity.PostStatus;
 import com.example.sejong_voice.post.entity.PostVotingDuration;
 import com.example.sejong_voice.support.TestFixtures;
 import com.example.sejong_voice.user.entity.UserRole;
+import com.example.sejong_voice.vote.entity.VoteChoice;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -133,6 +134,7 @@ class PostControllerTest {
                 .id(postId)
                 .title("제목")
                 .status(PostStatus.VOTING)
+                .myVoteChoice(VoteChoice.AGREE)
                 .canVote(true)
                 .canCloseEarly(false)
                 .images(List.of())
@@ -143,7 +145,8 @@ class PostControllerTest {
         .perform(get("/api/v1/posts/{postId}", postId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(postId.toString()))
-        .andExpect(jsonPath("$.title").value("제목"));
+        .andExpect(jsonPath("$.title").value("제목"))
+        .andExpect(jsonPath("$.myVoteChoice").value("AGREE"));
   }
 
   @Test
