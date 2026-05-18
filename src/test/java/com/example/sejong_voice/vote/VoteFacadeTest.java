@@ -23,6 +23,7 @@ import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.VoteChoice;
 import com.example.sejong_voice.vote.exception.VoteErrorCode;
 import java.math.BigDecimal;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -119,8 +120,13 @@ class VoteFacadeTest {
   @Test
   void getSummary_서비스결과를_반환한다() {
     UUID postId = UUID.randomUUID();
-    VoteSummaryResponse response = new VoteSummaryResponse(1, 2, 3);
-    when(voteService.getSummary(postId)).thenReturn(response);
+    User user = buildUser(UserRole.STUDENT, "컴퓨터공학과");
+    Post post = buildPost(PostStatus.VOTING, now.plusSeconds(60), user);
+    VoteSummaryResponse response =
+        new VoteSummaryResponse(
+            1, 2, 3, 10, 7, new BigDecimal("0.5000"), new BigDecimal("0.3333"));
+    when(postService.get(postId)).thenReturn(post);
+    when(voteService.getSummary(post)).thenReturn(response);
 
     assertSame(response, voteFacade.getSummary(postId));
   }

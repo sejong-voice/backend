@@ -26,6 +26,7 @@ import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.user.entity.UserRole;
 import com.example.sejong_voice.vote.VoteService;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
+import com.example.sejong_voice.vote.entity.VoteChoice;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -80,15 +81,17 @@ public class PostFacade {
     postViewCountService.recordView(postId);
 
     boolean canVote = false;
+    VoteChoice myVoteChoice = null;
     if (userId != null) {
       User user = userService.getById(userId);
       canVote =
           councilService.hasAccessToCouncil(user, post.getCouncil())
               && post.getStatus() == PostStatus.VOTING
               && Instant.now(clock).isBefore(post.getVotingEndAt());
+      myVoteChoice = voteService.getMyChoice(postId, userId);
     }
 
-    VoteSummaryResponse voteSummary = voteService.getSummary(postId);
+    VoteSummaryResponse voteSummary = voteService.getSummary(post);
     long agreeCount = voteSummary.agreeCount();
     long totalCount = voteSummary.totalCount();
     boolean canCloseEarly = postService.canCloseEarly(post, agreeCount, totalCount);
@@ -120,7 +123,7 @@ public class PostFacade {
             .toList();
 
     return PostDetailResponse.from(
-        post, canVote, canCloseEarly, imageResponses, statementResponses);
+        post, myVoteChoice, canVote, canCloseEarly, imageResponses, statementResponses);
   }
 
   @Transactional(readOnly = true)
@@ -167,8 +170,8 @@ public class PostFacade {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    long agreeCount = voteService.countAgree(postId);
-    long totalCount = agreeCount + voteService.countDisagree(postId);
+    long agreeCount = post.getAgreeCount();
+    long totalCount = post.getTotalVoteCount();
 
     postService.closeEarly(postId, agreeCount, totalCount);
     notificationService.createPostApprovedNotifications(post);
@@ -220,8 +223,8 @@ public class PostFacade {
     Post post = postService.get(postId);
     PostStatus beforeStatus = post.getStatus();
 
-    long agreeCount = voteService.countAgree(postId);
-    long totalCount = agreeCount + voteService.countDisagree(postId);
+    long agreeCount = post.getAgreeCount();
+    long totalCount = post.getTotalVoteCount();
 
     postService.close(postId, agreeCount, totalCount);
 

@@ -4,6 +4,7 @@ import com.example.sejong_voice.image.dto.PostImageResponse;
 import com.example.sejong_voice.post.entity.Post;
 import com.example.sejong_voice.post.entity.PostStatus;
 import com.example.sejong_voice.post.entity.PostVotingDuration;
+import com.example.sejong_voice.vote.entity.VoteChoice;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +23,7 @@ public record PostDetailResponse(
     String content,
     PostStatus status,
     PostVotingDuration postVotingDuration,
+    VoteChoice myVoteChoice,
     boolean canVote,
     boolean canCloseEarly,
     Instant createdAt,
@@ -32,6 +34,7 @@ public record PostDetailResponse(
 
   public static PostDetailResponse from(
       Post post,
+      VoteChoice myVoteChoice,
       boolean canVote,
       boolean canCloseEarly,
       List<PostImageResponse> images,
@@ -48,6 +51,7 @@ public record PostDetailResponse(
         .content(post.getContent())
         .status(post.getStatus())
         .postVotingDuration(post.getVotingDuration())
+        .myVoteChoice(myVoteChoice)
         .canVote(canVote)
         .canCloseEarly(canCloseEarly)
         .createdAt(post.getCreatedAt())

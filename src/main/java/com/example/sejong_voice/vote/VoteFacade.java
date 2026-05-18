@@ -54,7 +54,8 @@ public class VoteFacade {
 
   @Transactional(readOnly = true)
   public VoteSummaryResponse getSummary(UUID postId) {
-    return voteService.getSummary(postId);
+    Post post = postService.get(postId);
+    return voteService.getSummary(post);
   }
 
   @Transactional(readOnly = true)

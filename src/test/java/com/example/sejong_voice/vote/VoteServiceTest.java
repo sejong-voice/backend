@@ -21,7 +21,6 @@ import com.example.sejong_voice.vote.dto.VoteStatisticsResponse;
 import com.example.sejong_voice.vote.dto.VoteSummaryResponse;
 import com.example.sejong_voice.vote.entity.Vote;
 import com.example.sejong_voice.vote.entity.VoteChoice;
-import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.vote.repository.VoteRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -41,14 +40,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 class VoteServiceTest {
 
   @Mock private VoteRepository voteRepository;
-  @Mock private PostRepository postRepository;
 
   private VoteService voteService;
   private Instant now;
 
   @BeforeEach
   void setUp() {
-    voteService = new VoteService(voteRepository, postRepository);
+    voteService = new VoteService(voteRepository);
     now = Instant.parse("2026-05-01T00:00:00Z");
   }
 
@@ -98,18 +96,31 @@ class VoteServiceTest {
 
   @Test
   void getSummary_찬반개수와_총합을_반환한다() {
-    UUID postId = UUID.randomUUID();
     Post post = buildPost();
-    org.springframework.test.util.ReflectionTestUtils.setField(post, "id", postId);
     org.springframework.test.util.ReflectionTestUtils.setField(post, "agreeCount", 7L);
     org.springframework.test.util.ReflectionTestUtils.setField(post, "disagreeCount", 3L);
-    when(postRepository.findByIdAndDeletedAtIsNull(postId)).thenReturn(Optional.of(post));
 
-    VoteSummaryResponse result = voteService.getSummary(postId);
+    VoteSummaryResponse result = voteService.getSummary(post);
 
     assertEquals(7L, result.agreeCount());
     assertEquals(3L, result.disagreeCount());
     assertEquals(10L, result.totalCount());
+    assertEquals(10, result.minVote());
+    assertEquals(0L, result.remainingVotesToMinVote());
+    assertEquals(new BigDecimal("0.5000"), result.requiredAgreeRatio());
+    assertEquals(new BigDecimal("0.7000"), result.agreeRatio());
+  }
+
+  @Test
+  void getMyChoice_내투표선택을_반환한다() {
+    UUID postId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    when(voteRepository.findChoiceByPostIdAndUserId(postId, userId))
+        .thenReturn(Optional.of(VoteChoice.AGREE));
+
+    VoteChoice result = voteService.getMyChoice(postId, userId);
+
+    assertEquals(VoteChoice.AGREE, result);
   }
 
   @Test

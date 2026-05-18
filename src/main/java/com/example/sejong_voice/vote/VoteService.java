@@ -2,7 +2,6 @@ package com.example.sejong_voice.vote;
 
 import com.example.sejong_voice.post.dto.PostCountRow;
 import com.example.sejong_voice.post.entity.Post;
-import com.example.sejong_voice.post.repository.PostRepository;
 import com.example.sejong_voice.user.entity.User;
 import com.example.sejong_voice.vote.dto.VoteAgreeVoterResponse;
 import com.example.sejong_voice.vote.dto.VoteDepartmentDistributionResponse;
@@ -32,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class VoteService {
 
   private final VoteRepository voteRepository;
-  private final PostRepository postRepository;
 
   /** 투표하기 (Upsert: 없으면 생성, 있으면 수정) */
   @Transactional
@@ -70,21 +68,26 @@ public class VoteService {
   }
 
   /** 투표 현황 요약 조회 */
-  public VoteSummaryResponse getSummary(UUID postId) {
-    Post post =
-        postRepository
-            .findByIdAndDeletedAtIsNull(postId)
-            .orElseThrow(() -> new IllegalArgumentException("Post not found: " + postId));
+  public VoteSummaryResponse getSummary(Post post) {
     VoteSummaryResponse summary =
-        new VoteSummaryResponse(post.getAgreeCount(), post.getDisagreeCount(), post.getTotalVoteCount());
+        VoteSummaryResponse.of(
+            post.getAgreeCount(),
+            post.getDisagreeCount(),
+            post.getMinVoteSnapshot(),
+            post.getApproveRatioSnapshot(),
+            calculateAgreeRatio(post.getAgreeCount(), post.getTotalVoteCount()));
 
     log.info(
         "투표 요약: postId={}, agreeCount={}, disagreeCount={}",
-        postId,
+        post.getId(),
         summary.agreeCount(),
         summary.disagreeCount());
 
     return summary;
+  }
+
+  public VoteChoice getMyChoice(UUID postId, UUID userId) {
+    return voteRepository.findChoiceByPostIdAndUserId(postId, userId).orElse(null);
   }
 
   public VoteStatisticsResponse getStatistics(Post post) {
@@ -142,14 +145,6 @@ public class VoteService {
         .toList();
   }
 
-  public long countAgree(UUID postId) {
-    return getSummary(postId).agreeCount();
-  }
-
-  public long countDisagree(UUID postId) {
-    return getSummary(postId).disagreeCount();
-  }
-
   public Map<UUID, Long> countByPostIds(Collection<UUID> postIds) {
     if (postIds.isEmpty()) {
       return Map.of();
@@ -184,5 +179,14 @@ public class VoteService {
     }
 
     post.decrementDisagreeCount();
+  }
+
+  private BigDecimal calculateAgreeRatio(long agreeCount, long totalCount) {
+    if (totalCount <= 0) {
+      return BigDecimal.ZERO;
+    }
+
+    return BigDecimal.valueOf(agreeCount)
+        .divide(BigDecimal.valueOf(totalCount), 4, RoundingMode.HALF_UP);
   }
 }
