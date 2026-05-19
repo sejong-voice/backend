@@ -28,6 +28,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @ExtendWith(MockitoExtension.class)
 class ImageControllerTest {
@@ -70,6 +71,19 @@ class ImageControllerTest {
         .andExpect(jsonPath("$.imageUrl").value("https://example.com/a.png"));
 
     verify(imageFacade).upload(userId, file);
+  }
+
+  @Test
+  void upload_업로드크기초과예외면_400으로_응답한다() throws Exception {
+    authenticate();
+    MockMultipartFile file = new MockMultipartFile("image", "a.png", "image/png", "img".getBytes());
+    when(imageFacade.upload(userId, file)).thenThrow(new MaxUploadSizeExceededException(1_048_576));
+
+    mockMvc
+        .perform(multipart("/api/v1/images").file(file))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("COMMON_005"))
+        .andExpect(jsonPath("$.message").value("허용 가능한 업로드 크기를 초과했습니다."));
   }
 
   private void authenticate() {

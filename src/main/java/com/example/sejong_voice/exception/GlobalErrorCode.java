@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 public enum GlobalErrorCode implements ErrorCode { // ErrorCode 구현 필수!
   INVALID_INPUT_VALUE(400, "COMMON_001", "입력값이 올바르지 않습니다."),
   JSON_PARSE_ERROR(400, "COMMON_002", "JSON 형식이 올바르지 않습니다."),
+  MAX_UPLOAD_SIZE_EXCEEDED(400, "COMMON_005", "허용 가능한 업로드 크기를 초과했습니다."),
 
   METHOD_NOT_ALLOWED(405, "COMMON_003", "허용되지 않는 HTTP 메서드입니다."),
 
