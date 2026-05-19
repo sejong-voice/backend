@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -56,6 +57,17 @@ public class GlobalExceptionHandler {
     log.warn("[JSON Parse Error] {}", e.getMessage());
 
     GlobalErrorCode errorCode = GlobalErrorCode.JSON_PARSE_ERROR;
+
+    return ResponseEntity.status(errorCode.getStatus()).body(ErrorResponse.of(errorCode, clock));
+  }
+
+  /** multipart 업로드 크기 제한 초과 예외 */
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(
+      MaxUploadSizeExceededException e) {
+    log.warn("[Max Upload Size Exceeded] {}", e.getMessage());
+
+    GlobalErrorCode errorCode = GlobalErrorCode.MAX_UPLOAD_SIZE_EXCEEDED;
 
     return ResponseEntity.status(errorCode.getStatus()).body(ErrorResponse.of(errorCode, clock));
   }
