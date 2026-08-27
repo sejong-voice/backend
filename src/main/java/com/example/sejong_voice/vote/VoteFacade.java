@@ -39,7 +39,7 @@ public class VoteFacade {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
 
-    Post post = postService.get(postId);
+    Post post = postService.getByIdForUpdate(postId);
     if (!councilService.hasAccessToCouncil(user, post.getCouncil())) {
       throw new BusinessException(PostErrorCode.ACCESS_DENIED);
     }
