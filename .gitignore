@@ -38,3 +38,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### k6 ###
+k6/
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
