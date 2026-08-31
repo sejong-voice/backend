@@ -7,7 +7,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +19,17 @@ import org.springframework.stereotype.Repository;
 public interface VoteRepository extends JpaRepository<Vote, UUID> {
 
   Optional<Vote> findByPostIdAndUserId(UUID postId, UUID userId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("""
+    select v
+    from Vote v
+    where v.post.id = :postId
+      and v.user.id = :userId
+    """)
+  Optional<Vote> findByPostIdAndUserIdForUpdate(
+          @Param("postId") UUID postId,
+          @Param("userId") UUID userId);
 
   @Query(
       """
