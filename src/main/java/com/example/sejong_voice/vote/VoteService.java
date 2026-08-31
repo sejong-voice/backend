@@ -35,7 +35,8 @@ public class VoteService {
   /** 투표하기 (Upsert: 없으면 생성, 있으면 수정) */
   @Transactional
   public void cast(Post post, User user, VoteChoice choice) {
-    Vote existingVote = voteRepository.findByPostIdAndUserId(post.getId(), user.getId()).orElse(null);
+    // 비관적 락이 적용된 repo 조회 메서드
+    Vote existingVote = voteRepository.findByPostIdAndUserIdForUpdate(post.getId(), user.getId()).orElse(null);
 
     if (existingVote != null) {
       updatePostVoteCounts(post, existingVote.getChoice(), choice);
@@ -44,19 +45,7 @@ public class VoteService {
       return;
     }
 
-    try {
-      create(post, user, choice);
-    } catch (DataIntegrityViolationException e) {
-      // Concurrent first-vote requests can race on the (post_id, user_id) unique key.
-      // When that happens, reload the just-created row and treat this request as an update.
-      Vote concurrentVote =
-          voteRepository
-              .findByPostIdAndUserId(post.getId(), user.getId())
-              .orElseThrow(() -> e);
-      updatePostVoteCounts(post, concurrentVote.getChoice(), choice);
-      concurrentVote.updateChoice(choice);
-    }
-
+    create(post, user, choice);
     log.info("투표: postId={}, userId={}, choice={}", post.getId(), user.getId(), choice);
   }
 
